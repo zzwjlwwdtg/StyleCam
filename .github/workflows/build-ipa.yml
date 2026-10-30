@@ -6,6 +6,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: xcode-27
@@ -37,6 +40,16 @@ jobs:
         with:
           name: StyleCam-ipa
           path: StyleCam.ipa
+
+      - name: 同时把 IPA 放到 ipa-build 分支（方便用 git 直接取回）
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout -q --orphan ipa-build
+          git rm -rfq --cached .
+          git add -f StyleCam.ipa
+          git commit -qm "IPA from ${GITHUB_SHA::7}"
+          git push -qf origin ipa-build
 
       - name: 上传编译日志（失败时排查用）
         if: always()
