@@ -24,6 +24,7 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: 需要使用相机来拍摄与参考图同款风格的照片
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: 需要把拍好的照片保存到相册
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: 需要读取你选择的参考图
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: 录制同款风格视频时需要收录声音
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait

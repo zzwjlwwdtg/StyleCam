@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import PhotosUI
 import CoreImage
 
 /// 串起整个流程：参考图 → 分析 → 选镜头 → 读“修改前” → 规划 → 应用 → 回读“实测”
@@ -36,6 +37,7 @@ final class AppModel: ObservableObject {
     @Published var overlayOpacity: Double = 0.35
     @Published var outlineImage: UIImage?
     @Published var currentRecipeID: UUID?
+    @Published var batchProgress: String?
     private(set) var referenceData: Data?
     private var readySub: AnyCancellable?
 
@@ -159,6 +161,35 @@ final class AppModel: ObservableObject {
     private func isUnsupported(_ c: ParameterChange) -> Bool {
         if case .unsupported = c.status { return true }
         return false
+    }
+
+    // MARK: - 给相册里已有的照片套用当前风格（另存新照片，原图不动）
+
+    func applyStyle(to items: [PhotosPickerItem]) async {
+        guard let profile, !items.isEmpty else { return }
+        let renderer = camera.renderer
+        let base = renderer.snapshotState()
+        let targets = PhotoProcessor.Targets(medianL: profile.medianL, chroma: profile.meanChroma,
+                                             cast: SIMD2(profile.castA, profile.castB))
+        let v = variant, person = profile.faceCount > 0
+        let summary = "StyleCam 后期套用 | \(v.rawValue) | 强度 \(Fmt.percent(strength))"
+        var ok = 0
+        for (i, item) in items.enumerated() {
+            batchProgress = "正在套用 \(i + 1)/\(items.count)…"
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let err: String? = await withCheckedContinuation { cont in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, targets: targets,
+                                                   variant: v, preferPerson: person, summary: summary) { thumb, err in
+                        if let thumb { DispatchQueue.main.async { self.camera.lastPhoto = thumb } }
+                        cont.resume(returning: err)
+                    }
+                }
+            }
+            if err == nil { ok += 1 }
+        }
+        batchProgress = nil
+        camera.statusMessage = "已套用 \(ok)/\(items.count) 张，另存到相册"
     }
 
     // MARK: - 风格库

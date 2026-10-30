@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var holdOriginal = false
     @State private var flash = false
     @State private var showLibrary = false
+    @State private var batchItems: [PhotosPickerItem] = []
 
     var body: some View {
         ZStack {
@@ -22,9 +23,19 @@ struct ContentView: View {
                 viewfinder
                 if model.referenceImage != nil { strengthBar }
                 lensBar
+                modeBar
                 bottomBar
             }
             .padding(.bottom, 8)
+
+            if let p = model.batchProgress {
+                VStack(spacing: 10) {
+                    ProgressView().tint(.yellow)
+                    Text(p).font(.footnote)
+                }
+                .padding(20)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            }
 
             if model.isAnalyzing {
                 VStack(spacing: 10) {
@@ -57,6 +68,13 @@ struct ContentView: View {
                 pickerItem = nil
             }
         }
+        .onChange(of: batchItems) { _, items in
+            guard !items.isEmpty else { return }
+            Task {
+                await model.applyStyle(to: items)
+                batchItems = []
+            }
+        }
         .onChange(of: camera.captureFlash) { _, _ in
             flash = true
             withAnimation(.easeOut(duration: 0.25)) { flash = false }
@@ -67,7 +85,7 @@ struct ContentView: View {
         }
         // Camera Control / 音量键 按下即拍
         .onCameraCaptureEvent { event in
-            if event.phase == .ended { camera.capturePhoto() }
+            if event.phase == .ended { shutter() }
         }
     }
 
@@ -114,6 +132,15 @@ struct ContentView: View {
                         Text("构图·" + model.overlayMode.rawValue).font(.system(size: 9))
                     }
                     .foregroundStyle(model.overlayMode == .off ? Color.white : Color.yellow)
+                }
+            }
+
+            if model.referenceImage != nil {
+                PhotosPicker(selection: $batchItems, maxSelectionCount: 30, matching: .images) {
+                    VStack(spacing: 1) {
+                        Image(systemName: "wand.and.stars").font(.title3)
+                        Text("套用相册").font(.system(size: 9))
+                    }
                 }
             }
 
@@ -246,6 +273,30 @@ struct ContentView: View {
         }
     }
 
+    private func shutter() {
+        if camera.videoMode { camera.toggleRecording() } else { camera.capturePhoto() }
+    }
+
+    // MARK: - 照片 / 视频
+
+    private var modeBar: some View {
+        HStack(spacing: 18) {
+            ForEach([false, true], id: \.self) { video in
+                Button {
+                    if !camera.isRecording { camera.setVideoMode(video) }
+                } label: {
+                    Text(video ? "视频" : "照片")
+                        .font(.caption.bold())
+                        .foregroundStyle(camera.videoMode == video ? Color.yellow : Color.white.opacity(0.7))
+                }
+            }
+            if camera.isRecording {
+                Text(String(format: "● %02d:%02d", camera.recordingSeconds / 60, camera.recordingSeconds % 60))
+                    .font(.caption.monospacedDigit()).foregroundStyle(.red)
+            }
+        }
+    }
+
     // MARK: - 底部：最近照片 / 快门 / 参数面板
 
     private var bottomBar: some View {
@@ -263,10 +314,18 @@ struct ContentView: View {
 
             Spacer()
 
-            Button { camera.capturePhoto() } label: {
+            Button { shutter() } label: {
                 ZStack {
                     Circle().stroke(.white, lineWidth: 4).frame(width: 76, height: 76)
-                    Circle().fill(.white).frame(width: 62, height: 62)
+                    if camera.videoMode {
+                        if camera.isRecording {
+                            RoundedRectangle(cornerRadius: 6).fill(.red).frame(width: 30, height: 30)
+                        } else {
+                            Circle().fill(.red).frame(width: 62, height: 62)
+                        }
+                    } else {
+                        Circle().fill(.white).frame(width: 62, height: 62)
+                    }
                 }
             }
 

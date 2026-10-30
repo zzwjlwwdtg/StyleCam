@@ -50,6 +50,11 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     @Published var compositionHint: String?
     @Published var compositionAligned = false
     @Published var isReady = false
+    @Published var videoMode = false
+    @Published var isRecording = false
+    @Published var recordingSeconds = 0
+    @Published var proRAWSupported = false
+    @Published var proRAWEnabled = false
 
     /// Camera Control 实体键改动后的回调（主线程）
     var onStrengthFromControl: ((Double) -> Void)?
@@ -64,6 +69,16 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private let controlsQueue = DispatchQueue(label: "stylecam.controls")
     private let videoOutput = AVCaptureVideoDataOutput()
     private let photoOutput = AVCapturePhotoOutput()
+    private let audioOutput = AVCaptureAudioDataOutput()
+    private var audioInput: AVCaptureDeviceInput?
+    // 视频录制（只在 videoQueue 上使用）
+    private var recorder: VideoRecorder?
+    private var wantRecording = false
+    private lazy var videoContext = CIContext(options: [.cacheIntermediates: false])
+    private var recordTimer: Timer?
+    // 拍照：一次拍摄可能先后收到 RAW 和处理后的照片，等 didFinishCapture 再统一处理
+    private var pendingProcessed: [Int64: (Data, [String: Any])] = [:]
+    private var pendingRaw: [Int64: Data] = [:]
     private var input: AVCaptureDeviceInput?
     private var device: AVCaptureDevice?
     private var sessionLens: LensChoice = .wide
@@ -138,6 +153,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         if session.canAddOutput(photoOutput) { session.addOutput(photoOutput) }
         photoOutput.maxPhotoQualityPrioritization = .quality
         session.commitConfiguration()
+        let rawOK = photoOutput.isAppleProRAWSupported
+        DispatchQueue.main.async { self.proRAWSupported = rawOK }
 
         let avail = Set(LensChoice.allCases.filter {
             AVCaptureDevice.default($0.deviceType, for: .video, position: .back) != nil
@@ -496,13 +513,105 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         session.commitConfiguration()
     }
 
+    // MARK: - ProRAW
+
+    func setProRAW(_ on: Bool) {
+        sessionQueue.async {
+            guard self.photoOutput.isAppleProRAWSupported else { return }
+            self.session.beginConfiguration()
+            self.photoOutput.isAppleProRAWEnabled = on
+            self.session.commitConfiguration()
+            let now = self.photoOutput.isAppleProRAWEnabled
+            DispatchQueue.main.async { self.proRAWEnabled = now }
+        }
+    }
+
+    // MARK: - 视频模式
+
+    func setVideoMode(_ on: Bool) {
+        if on {
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                self.sessionQueue.async { self.configureAudio(granted) }
+            }
+        } else {
+            if isRecording { stopRecording() }
+            sessionQueue.async { self.configureAudio(false) }
+        }
+        DispatchQueue.main.async { self.videoMode = on }
+    }
+
+    private func configureAudio(_ on: Bool) {
+        session.beginConfiguration()
+        if on, audioInput == nil, let mic = AVCaptureDevice.default(for: .audio),
+           let input = try? AVCaptureDeviceInput(device: mic), session.canAddInput(input) {
+            session.addInput(input)
+            audioInput = input
+            if !session.outputs.contains(audioOutput), session.canAddOutput(audioOutput) {
+                session.addOutput(audioOutput)
+                audioOutput.setSampleBufferDelegate(self, queue: videoQueue)
+            }
+        } else if !on {
+            if let a = audioInput { session.removeInput(a); audioInput = nil }
+            if session.outputs.contains(audioOutput) { session.removeOutput(audioOutput) }
+        }
+        session.commitConfiguration()
+    }
+
+    func toggleRecording() {
+        if isRecording { stopRecording() } else { startRecording() }
+    }
+
+    private func startRecording() {
+        videoQueue.async { self.wantRecording = true }
+        DispatchQueue.main.async {
+            self.isRecording = true
+            self.recordingSeconds = 0
+            self.recordTimer?.invalidate()
+            self.recordTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                self?.recordingSeconds += 1
+            }
+        }
+    }
+
+    private func stopRecording() {
+        DispatchQueue.main.async {
+            self.isRecording = false
+            self.recordTimer?.invalidate()
+            self.recordTimer = nil
+        }
+        videoQueue.async {
+            self.wantRecording = false
+            guard let rec = self.recorder else { return }
+            self.recorder = nil
+            DispatchQueue.main.async { self.isSaving = true }
+            rec.finish { url in
+                guard let url else {
+                    DispatchQueue.main.async { self.isSaving = false; self.statusMessage = "视频写入失败" }
+                    return
+                }
+                PhotoProcessor.saveVideo(url) { err in
+                    DispatchQueue.main.async {
+                        self.isSaving = false
+                        self.statusMessage = err ?? "视频已保存到相册"
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - 拍照
 
     func capturePhoto() {
         sessionQueue.async {
             let settings: AVCapturePhotoSettings
-            if self.photoOutput.availablePhotoCodecTypes.contains(.hevc) {
-                settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+            let processed: [String: Any]? = self.photoOutput.availablePhotoCodecTypes.contains(.hevc)
+                ? [AVVideoCodecKey: AVVideoCodecType.hevc] : nil
+            if self.photoOutput.isAppleProRAWEnabled,
+               let raw = self.photoOutput.availableRawPhotoPixelFormatTypes.first(where: { AVCapturePhotoOutput.isAppleProRAWPixelFormat($0) }) {
+                // ProRAW：同时拿到 DNG（未调色的数字底片）和处理后的照片
+                settings = AVCapturePhotoSettings(rawPixelFormatType: raw, processedFormat: processed)
+            } else if let processed {
+                settings = AVCapturePhotoSettings(format: processed)
             } else {
                 settings = AVCapturePhotoSettings()
             }
@@ -650,12 +759,26 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
 extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        if output === audioOutput {
+            recorder?.appendAudio(sampleBuffer)
+            return
+        }
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let raw = CIImage(cvPixelBuffer: pb)
         let st = renderer.snapshotState()
         let masks = updateLiveMasks(pb, extent: raw.extent, state: st)
         let filtered = renderer.apply(raw, state: st, masks: masks)
         frameStore.set(raw: raw, filtered: filtered)
+        if wantRecording {
+            if recorder == nil {
+                let e = filtered.extent
+                let scale = min(1, 1920 / max(e.width, e.height))
+                let rot = ((locked({ _captureAngle }) - 90) % 360 + 360) % 360
+                recorder = VideoRecorder(width: Int(e.width * scale), height: Int(e.height * scale),
+                                         rotationDegrees: rot, context: videoContext)
+            }
+            recorder?.appendVideo(filtered, time: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+        }
         frameCount += 1
         if frameCount % 12 == 0 {
             analyzeLive(filtered, device: (connection.inputPorts.first?.input as? AVCaptureDeviceInput)?.device)
@@ -745,7 +868,20 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             return
         }
         guard let data = photo.fileDataRepresentation() else { return }
-        let metadata = photo.metadata
+        let id = photo.resolvedSettings.uniqueID
+        if photo.isRawPhoto {
+            locked { pendingRaw[id] = data }
+        } else {
+            let metadata = photo.metadata
+            locked { pendingProcessed[id] = (data, metadata) }
+        }
+    }
+
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
+        let id = resolvedSettings.uniqueID
+        let (processed, rawData) = locked { (pendingProcessed.removeValue(forKey: id), pendingRaw.removeValue(forKey: id)) }
+        guard let processed else { return }
+        let (data, metadata) = processed
         let state = renderer.snapshotState()
         let (summary, saveOriginal, preferPerson) = locked { (_planSummary, _saveOriginal, _preferPerson) }
         // 用成片 EXIF 的实际焦距校准等效光圈换算
@@ -757,16 +893,18 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         DispatchQueue.global(qos: .userInitiated).async {
             PhotoProcessor.process(data: data, metadata: metadata, renderer: self.renderer, state: state,
                                    summary: summary, preferPerson: preferPerson,
-                                   saveOriginal: saveOriginal) { thumb, err in
+                                   saveOriginal: saveOriginal, rawData: rawData) { thumb, err in
                 DispatchQueue.main.async {
                     self.isSaving = false
                     if let thumb { self.lastPhoto = thumb }
-                    self.statusMessage = err ?? "已保存到相册"
+                    self.statusMessage = err ?? (rawData != nil ? "已保存（含 ProRAW 底片）" : "已保存到相册")
                 }
             }
         }
     }
 }
+
+extension CameraManager: AVCaptureAudioDataOutputSampleBufferDelegate {}
 
 // MARK: - Camera Control 委托
 

@@ -17,6 +17,7 @@ enum PhotoProcessor {
                         summary: String,
                         preferPerson: Bool,
                         saveOriginal: Bool,
+                        rawData: Data? = nil,
                         completion: @escaping (UIImage?, String?) -> Void) {
         guard let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
             completion(nil, "照片解码失败"); return
@@ -53,7 +54,10 @@ enum PhotoProcessor {
                 completion(thumb, "没有相册写入权限"); return
             }
             PHPhotoLibrary.shared().performChanges({
-                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: outData as Data, options: nil)
+                let req = PHAssetCreationRequest.forAsset()
+                req.addResource(with: .photo, data: outData as Data, options: nil)
+                // ProRAW：DNG 作为同一张照片的“RAW 底片”一起保存（相册里显示 RAW 标记，可切换）
+                if let rawData { req.addResource(with: .alternatePhoto, data: rawData, options: nil) }
                 if saveOriginal {
                     PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: nil)
                 }
@@ -83,5 +87,84 @@ enum PhotoProcessor {
             }
         }
         return m
+    }
+
+    // MARK: - 视频保存
+
+    static func saveVideo(_ url: URL, completion: @escaping (String?) -> Void) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else {
+                completion("没有相册写入权限"); return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                let opts = PHAssetResourceCreationOptions()
+                opts.shouldMoveFile = true
+                PHAssetCreationRequest.forAsset().addResource(with: .video, fileURL: url, options: opts)
+            }) { ok, err in
+                completion(ok ? nil : "视频保存失败：\(err?.localizedDescription ?? "未知错误")")
+            }
+        }
+    }
+
+    // MARK: - 已有照片套用当前风格
+
+    /// 参考图的目标统计（用于按每张照片自适应）
+    struct Targets {
+        var medianL: Double
+        var chroma: Double
+        var cast: SIMD2<Double>
+    }
+
+    /// 已有照片没有“实时闭环”，所以按这张照片本身的亮度/彩度/色偏重新算一次曝光、饱和度和色偏
+    static func adaptedState(_ base: StyleRenderer.State, for ci: CIImage, targets t: Targets, variant: StyleVariant) -> StyleRenderer.State {
+        let e = ci.extent
+        let s = 128 / max(e.width, e.height)
+        let small = ci.transformed(by: CGAffineTransform(scaleX: s, y: s))
+        let w = Int(small.extent.width), h = Int(small.extent.height)
+        guard w > 4, h > 4, let srgb = CGColorSpace(name: CGColorSpace.sRGB) else { return base }
+        var buf = [UInt8](repeating: 0, count: w * h * 4)
+        buf.withUnsafeMutableBytes { ptr in
+            guard let b = ptr.baseAddress else { return }
+            context.render(small, toBitmap: b, rowBytes: w * 4,
+                           bounds: CGRect(x: small.extent.minX, y: small.extent.minY, width: CGFloat(w), height: CGFloat(h)),
+                           format: .RGBA8, colorSpace: srgb)
+        }
+        let lut = ColorMath.srgbToLinearLUT
+        var Ls: [Double] = [], chroma = 0.0, nA: [Double] = [], nB: [Double] = []
+        for p in 0..<(w * h) {
+            let i = p * 4
+            let lab = ColorMath.linearRGBToLab(lut[Int(buf[i])], lut[Int(buf[i + 1])], lut[Int(buf[i + 2])])
+            let c = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+            Ls.append(lab.L); chroma += c
+            if lab.L > 25, lab.L < 85, c < 22 { nA.append(lab.a); nB.append(lab.b) }
+        }
+        let n = Double(w * h)
+        let medL = ColorMath.median(Ls)
+        let meanC = chroma / n
+        var p = base.params
+        func y(_ L: Double) -> Double { pow((L + 16) / 116, 3) }
+        p.exposureEV = ColorMath.clamp(log2(max(y(t.medianL), 0.002) / max(y(medL), 0.002)) * 0.8, -1.5, 1.5)
+        if meanC > 0.5 { p.saturation = ColorMath.clamp(t.chroma * variant.chromaFactor / meanC, 0.3, 1.8) }
+        if nA.count > Int(n) / 50 {
+            let target = t.cast * variant.castFactor
+            p.castA = ColorMath.clamp(target.x - ColorMath.median(nA), -15, 15)
+            p.castB = ColorMath.clamp(target.y - ColorMath.median(nB), -15, 15)
+        }
+        return StyleRenderer.State(params: p, lut: LUTBuilder.build(p),
+                                   skinLut: LUTBuilder.build(p, skinVersion: true), enabled: base.enabled)
+    }
+
+    /// 读取已有照片（保留原 EXIF）→ 自适应 → 套用 → 另存为新照片（原图不动）
+    static func processExisting(data: Data, renderer: StyleRenderer, base: StyleRenderer.State,
+                                targets: Targets, variant: StyleVariant, preferPerson: Bool,
+                                summary: String, completion: @escaping (UIImage?, String?) -> Void) {
+        guard let src = CGImageSourceCreateWithData(data as CFData, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any],
+              let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
+            completion(nil, "无法读取照片"); return
+        }
+        let state = adaptedState(base, for: ci, targets: targets, variant: variant)
+        process(data: data, metadata: props, renderer: renderer, state: state, summary: summary,
+                preferPerson: preferPerson, saveOriginal: false, completion: completion)
     }
 }

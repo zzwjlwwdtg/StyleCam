@@ -37,6 +37,11 @@ struct ParameterPanel: View {
                         Text("当前：" + st).font(.caption2).foregroundStyle(.secondary)
                     }
                     Toggle("48MP 拍摄", isOn: $model.use48MP)
+                    if camera.proRAWSupported {
+                        Toggle("同时保存 ProRAW 底片（DNG）", isOn: Binding(
+                            get: { camera.proRAWEnabled },
+                            set: { camera.setProRAW($0) }))
+                    }
                     Toggle("同时保存未调色原图", isOn: $model.saveOriginal)
                 }
 
