@@ -324,6 +324,7 @@ struct EffectToggles: Equatable {
     var halation = true     // 高光光晕
     var grain = true        // 颗粒
     var vignette = true     // 暗角
+    var grainAmount = 1.0   // 颗粒强度倍率 0…2
     var toneColor = true    // 影调与色彩（曲线、饱和度、色偏、分离色调）
 
     func apply(_ g: GradingParams) -> GradingParams {
@@ -332,7 +333,7 @@ struct EffectToggles: Equatable {
         if !skin { o.skinProtect = 0 }
         if !region { o.greenTarget = nil; o.skyTarget = nil }
         if !halation { o.halation = 0 }
-        if !grain { o.grain = 0 }
+        if !grain { o.grain = 0 } else { o.grain = min(1, o.grain * grainAmount) }
         if !vignette { o.vignette = 0 }
         if !toneColor {
             o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1; o.toneCurve = nil

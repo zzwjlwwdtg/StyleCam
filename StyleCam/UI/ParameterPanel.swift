@@ -37,6 +37,13 @@ struct ParameterPanel: View {
                     Toggle("分区调色（植物/天空）", isOn: $model.effects.region)
                     Toggle("高光光晕", isOn: $model.effects.halation)
                     Toggle("颗粒", isOn: $model.effects.grain)
+                    if model.effects.grain {
+                        HStack {
+                            Text("颗粒强度").font(.caption)
+                            Slider(value: $model.effects.grainAmount, in: 0...2)
+                            Text(Fmt.percent(model.effects.grainAmount)).font(.caption.monospacedDigit()).frame(width: 44)
+                        }
+                    }
                     Toggle("暗角", isOn: $model.effects.vignette)
                 } header: {
                     Text("效果开关")

@@ -189,7 +189,7 @@ final class StyleRenderer: @unchecked Sendable {
     /// 注意：CIRandomGenerator 的 alpha 也是随机的，必须把 alpha 固定为 1，否则叠加后会变成大片黑白噪点
     private func addGrain(_ img: CIImage, amount: Double, scale: CGFloat) -> CIImage {
         let extent = img.extent
-        let amp = CGFloat(min(0.4, amount * 0.32))           // 颗粒幅度（围绕 0.5 上下）
+        let amp = CGFloat(min(0.28, amount * 0.2))           // 颗粒幅度（围绕 0.5 上下）
         func noiseLayer(size: CGFloat) -> CIImage? {
             guard let noise = CIFilter.randomGenerator().outputImage else { return nil }
             let w = amp / 3
@@ -206,13 +206,15 @@ final class StyleRenderer: @unchecked Sendable {
                 ])
                 .cropped(to: extent)
         }
-        guard let fine = noiseLayer(size: scale * 1.1),
-              let coarse = noiseLayer(size: scale * 2.6) else { return img }
+        // 颗粒尺寸不随分辨率等比放大（否则 24/48MP 成片里会变成糊的斑块），只轻微增大
+        let base = max(1, pow(scale, 0.5))
+        guard let fine = noiseLayer(size: base),
+              let coarse = noiseLayer(size: base * 1.8) else { return img }
         // 两层取加权平均（0.6 细 + 0.4 粗）
         let mix = CIFilter.dissolveTransition()
         mix.inputImage = fine
         mix.targetImage = coarse
-        mix.time = 0.4
+        mix.time = 0.25
         guard let grain = mix.outputImage?.cropped(to: extent).applyingFilter("CIColorClamp") else { return img }
 
         let blend = CIFilter.softLightBlendMode()

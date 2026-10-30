@@ -249,7 +249,8 @@ enum ParameterPlanner {
         g.highlightTint = profile.highlightTint
         // 参考图四角偏暗大多是画面内容（如深色树干），只把明显超出的部分当作后期暗角
         g.vignette = max(0, profile.vignette - 0.35) * 0.6
-        g.grain = profile.grain
+        // 参考图多为压缩过的网图，测到的“颗粒”里混有 JPEG 噪点，只取六成
+        g.grain = profile.grain * 0.6
         g.sharpen = profile.sharpness > 0.3 ? profile.sharpness * 0.5 : 0
         g.softGlow = profile.sharpness < -0.4 ? -profile.sharpness * 0.6 : 0
         // 胶片感（有颗粒 + 黑位提升或高光压缩）→ 加一点高光光晕
