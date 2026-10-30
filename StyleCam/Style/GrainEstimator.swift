@@ -9,6 +9,12 @@ enum GrainEstimator {
 
     /// image：任意尺寸；jpegGridAligned：图像是否与原 JPEG 像素网格对齐（未缩放的原图）
     static func sigma(of image: CIImage, context: CIContext, jpegGridAligned: Bool = false) -> Double? {
+        guard let v = viewLuma(of: image, context: context) else { return nil }
+        return sigma(luma: v.y, width: v.w, height: v.h, excludeJPEGGrid: jpegGridAligned && v.native)
+    }
+
+    /// 观看尺度下的亮度（sRGB 编码值 0…1）；native = 没有缩放（与原像素网格对齐）
+    static func viewLuma(of image: CIImage, context: CIContext) -> (y: [Float], w: Int, h: Int, native: Bool)? {
         let e = image.extent
         guard e.width > 16, e.height > 16, let srgb = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         let long = max(e.width, e.height)
@@ -30,7 +36,7 @@ enum GrainEstimator {
         for i in 0..<(w * h) {
             y[i] = 0.299 * buf[i * 4] + 0.587 * buf[i * 4 + 1] + 0.114 * buf[i * 4 + 2]
         }
-        return sigma(luma: y, width: w, height: h, excludeJPEGGrid: jpegGridAligned && scale >= 1)
+        return (y, w, h, scale >= 1)
     }
 
     static func sigma(luma y: [Float], width w: Int, height h: Int, excludeJPEGGrid: Bool) -> Double? {

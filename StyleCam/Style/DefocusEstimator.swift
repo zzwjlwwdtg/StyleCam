@@ -40,6 +40,34 @@ enum DefocusEstimator {
                       subjectEdges: sEdges, backgroundEdges: bEdges)
     }
 
+    /// 整幅图的边缘模糊 σ（像素）：梯度最强 15% 的边缘处 Zhuo-Sim 估计的中位数；可排除 JPEG 块边界
+    static func edgeSigma(gray img: [Float], width w: Int, height h: Int, excludeJPEGGrid: Bool) -> Double? {
+        guard w > 32, h > 32 else { return nil }
+        let s0: Float = 1.5
+        let g = gradient(img, w, h)
+        let g1 = gradient(gaussian(img, w, h, sigma: s0), w, h)
+        var vals = g
+        vals.sort()
+        let thr = vals[Int(Double(vals.count - 1) * 0.85)]
+        var out: [Double] = []
+        for y in 2..<(h - 2) {
+            for x in 2..<(w - 2) {
+                if excludeJPEGGrid {
+                    let mx = x % 8, my = y % 8
+                    if mx == 0 || mx == 7 || my == 0 || my == 7 { continue }
+                }
+                let i = y * w + x
+                let v = g[i]
+                guard v > thr, g1[i] > 1e-4 else { continue }
+                guard (v >= g[i - 1] && v >= g[i + 1]) || (v >= g[i - w] && v >= g[i + w]) else { continue }
+                let r = Double(v / g1[i])
+                guard r > 1.02 else { continue }
+                out.append(min(Double(s0) / (r * r - 1).squareRoot(), 15))
+            }
+        }
+        return out.count > 200 ? ColorMath.median(out) : nil
+    }
+
     // MARK: - 单层
 
     private struct LevelResult {

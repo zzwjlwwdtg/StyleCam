@@ -7,6 +7,8 @@ struct SceneStats: Equatable {
     var chroma: Double
     var cast: SIMD2<Double>?
     var chromaRel: Double = 0        // 以中性色偏为原点的平均彩度（去掉整体色偏带来的彩度）
+    var shadowTint: SIMD2<Double> = .zero     // 暗部相对整体色偏的色调
+    var highlightTint: SIMD2<Double> = .zero  // 高光相对整体色偏的色调
     var median: Double { quantiles.count == 21 ? quantiles[10] : 50 }
 }
 
@@ -40,9 +42,23 @@ enum StyleMatcher {
         let cast: SIMD2<Double>? = nA.count > n / 50 ? SIMD2(ColorMath.median(nA), ColorMath.median(nB)) : nil
         let o = cast ?? .zero
         var rel = 0.0
-        for i in 0..<allA.count { rel += ((allA[i] - o.x) * (allA[i] - o.x) + (allB[i] - o.y) * (allB[i] - o.y)).squareRoot() }
+        var shA: [Double] = [], shB: [Double] = [], hiA: [Double] = [], hiB: [Double] = []
+        for i in 0..<allA.count {
+            rel += ((allA[i] - o.x) * (allA[i] - o.x) + (allB[i] - o.y) * (allB[i] - o.y)).squareRoot()
+        }
+        // 暗部 / 高光色调（按未排序的亮度判断，需要原始顺序）
+        for p in 0..<(w * h) {
+            let i = p * 4
+            let lab = ColorMath.linearRGBToLab(lut[Int(bytes[i])], lut[Int(bytes[i + 1])], lut[Int(bytes[i + 2])])
+            let c = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+            if lab.L < 30, c < 30 { shA.append(lab.a); shB.append(lab.b) }
+            if lab.L > 70, c < 30 { hiA.append(lab.a); hiB.append(lab.b) }
+        }
+        func tint(_ a: [Double], _ b: [Double]) -> SIMD2<Double> {
+            a.count > 30 ? SIMD2(ColorMath.median(a) - o.x, ColorMath.median(b) - o.y) : .zero
+        }
         return SceneStats(quantiles: probs.map { ColorMath.percentile(Ls, $0) }, chroma: chroma / Double(n), cast: cast,
-                          chromaRel: rel / Double(n))
+                          chromaRel: rel / Double(n), shadowTint: tint(shA, shB), highlightTint: tint(hiA, hiB))
     }
 
     static func stats(of image: CIImage, context: CIContext, maxSide: CGFloat = 96) -> SceneStats? {
@@ -123,6 +139,12 @@ enum StyleMatcher {
         let lc = raw.chromaRel > 0.5 ? raw.chromaRel : raw.chroma
         let sat = lc > 0.5 ? ColorMath.clamp(rc * variant.chromaFactor / lc, 0.4, 1.6) : 1
         g.saturation += alpha * (sat - g.saturation)
+        // 分离色调也按差值：参考图暗部/高光色调 − 当前画面已有的
+        let st = (ref.shadowTint - raw.shadowTint) * variant.castFactor
+        let ht = (ref.highlightTint - raw.highlightTint) * variant.castFactor
+        func clampV(_ v: SIMD2<Double>) -> SIMD2<Double> { SIMD2(ColorMath.clamp(v.x, -10, 10), ColorMath.clamp(v.y, -10, 10)) }
+        g.shadowTint += alpha * (clampV(st) - g.shadowTint)
+        g.highlightTint += alpha * (clampV(ht) - g.highlightTint)
         if let rc = ref.cast, let lc = raw.cast {
             let t = rc * variant.castFactor - lc
             g.castA += alpha * (ColorMath.clamp(t.x, -12, 12) - g.castA)

@@ -101,6 +101,7 @@ struct StyleProfile: Equatable {
     var exif: ReferenceEXIF
     var optics: ReferenceOptics
     var refStats: SceneStats       // 用于实时匹配的参考图统计
+    var refTexture: TextureStats   // 参考图质感（观看尺度，已排除 JPEG 块边界）
     var aspect: Double             // 长边 / 短边
     var isLandscape: Bool
     var faceRect: CGRect?          // 最大人脸，归一化、左上角原点
@@ -130,6 +131,8 @@ struct GradingParams: Equatable {
     var sharpen: Double = 0
     var softGlow: Double = 0
     var backgroundBlur: Double = 0      // 计算补足的背景虚化：弥散圆直径 / 画面长边
+    var grainAddSigma: Double = 0       // 需要补的颗粒（观看尺度 σ）=√(参考² − 当前画面²)；grain 作为倍率
+    var blurSigmaView: Double = 0       // 需要补的柔化（观看尺度像素）
     var cropRatio: Double?              // 按参考图画幅裁切（长边 / 短边），沿画面长边方向
     var halation: Double = 0            // 胶片高光光晕 0...1
     var skinProtect: Double = 0.7       // 肤色保护强度 0...1（人像区域内的肤色不跟着偏色）
@@ -333,7 +336,7 @@ struct EffectToggles: Equatable {
         if !skin { o.skinProtect = 0 }
         if !region { o.greenTarget = nil; o.skyTarget = nil }
         if !halation { o.halation = 0 }
-        if !grain { o.grain = 0 } else { o.grain = min(1, o.grain * grainAmount) }
+        if !grain { o.grain = 0 } else { o.grain = o.grain * grainAmount }
         if !vignette { o.vignette = 0 }
         if !toneColor {
             o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1; o.toneCurve = nil

@@ -18,9 +18,15 @@ enum PhotoProcessor {
                         preferPerson: Bool,
                         saveOriginal: Bool,
                         rawData: Data? = nil,
+                        refTexture: TextureStats? = nil,
                         completion: @escaping (UIImage?, String?) -> Void) {
         guard let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
             completion(nil, "照片解码失败"); return
+        }
+        // 质感按这张照片本身重新算差值（成片的降噪/锐化与取景帧不同）
+        var state = state
+        if let refTexture, let tex = TextureEstimator.measure(ci, context: context) {
+            TextureEstimator.apply(to: &state.params, raw: tex, ref: refTexture)
         }
         let out = renderer.apply(ci, state: state, masks: masks(for: ci, state: state, preferPerson: preferPerson))
         guard let p3 = CGColorSpace(name: CGColorSpace.displayP3),
@@ -120,7 +126,7 @@ enum PhotoProcessor {
 
     /// 读取已有照片（保留原 EXIF）→ 自适应 → 套用 → 另存为新照片（原图不动）
     static func processExisting(data: Data, renderer: StyleRenderer, base: StyleRenderer.State,
-                                ref: SceneStats, variant: StyleVariant, preferPerson: Bool,
+                                ref: SceneStats, refTexture: TextureStats?, variant: StyleVariant, preferPerson: Bool,
                                 summary: String, completion: @escaping (UIImage?, String?) -> Void) {
         guard let src = CGImageSourceCreateWithData(data as CFData, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any],
@@ -129,6 +135,6 @@ enum PhotoProcessor {
         }
         let state = adaptedState(base, for: ci, ref: ref, variant: variant)
         process(data: data, metadata: props, renderer: renderer, state: state, summary: summary,
-                preferPerson: preferPerson, saveOriginal: false, completion: completion)
+                preferPerson: preferPerson, saveOriginal: false, refTexture: refTexture, completion: completion)
     }
 }

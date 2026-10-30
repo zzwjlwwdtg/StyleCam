@@ -147,6 +147,7 @@ enum StyleAnalyzer {
             exif: exif,
             optics: optics,
             refStats: StyleMatcher.stats(rgba: px.bytes, width: px.width, height: px.height),
+            refTexture: referenceTexture(src: src, medium: medium),
             aspect: Double(max(medium.width, medium.height)) / Double(max(1, min(medium.width, medium.height))),
             isLandscape: medium.width > medium.height,
             faceRect: faceRects.max(by: { $0.height < $1.height }).map(NormRect.fromVision),
@@ -155,6 +156,17 @@ enum StyleAnalyzer {
             skyAB: regionAB(skyA, skyB))
 
         return (profile, UIImage(cgImage: medium))
+    }
+
+    /// 参考图质感：若 1600 缩略图就是原始像素（未缩放），可以排除 JPEG 8×8 块边界
+    static func referenceTexture(src: CGImageSource, medium: CGImage) -> TextureStats {
+        let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any]
+        let pw = (props?[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue ?? 0
+        let ph = (props?[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue ?? 0
+        let native = (pw == medium.width && ph == medium.height) || (pw == medium.height && ph == medium.width)
+        let ctx = CIContext(options: [.cacheIntermediates: false])
+        return TextureEstimator.measure(CIImage(cgImage: medium), context: ctx, jpegGridAligned: native)
+            ?? TextureStats(grain: 0, edge: 1, vignette: 1)
     }
 
     // MARK: - EXIF

@@ -31,6 +31,7 @@ final class RenderTests: XCTestCase {
                                     wb: TempTint(temperature: 5000, tint: 0), enabledSignals: [], globalToneMapping: false)
         let (lens, why) = ParameterPlanner.chooseLens(profile: profile)
         let (plan, changes) = ParameterPlanner.makePlan(profile: profile, lens: lens, lensReason: why, caps: caps, before: before)
+        report += String(format: "参考图质感: 颗粒σ %.4f 边缘 %.2f 暗角 %.2f\n", profile.refTexture.grain, profile.refTexture.edge, profile.refTexture.vignette)
         report += "== 参数规划 ==\n镜头 \(lens.rawValue)：\(why)\n"
         for c in changes { report += "- [\(c.category.rawValue)] \(c.name)：\(c.before) → \(c.after)\n" }
         report += "grading: \(plan.grading)\n\n"
@@ -59,7 +60,8 @@ final class RenderTests: XCTestCase {
         for url in scenes {
             let scene = url.deletingPathExtension().lastPathComponent
             let ci = try XCTUnwrap(CIImage(contentsOf: url, options: [.applyOrientationProperty: true]))
-            report += "== 场景 \(scene) ==\n输入: \(stats(ci))\n"
+            let it = TextureEstimator.measure(ci, context: ctx)
+            report += "== 场景 \(scene) ==\n输入: \(stats(ci))" + String(format: " | 颗粒σ %.4f 边缘 %.2f 暗角 %.2f\n", it?.grain ?? -1, it?.edge ?? -1, it?.vignette ?? -1)
             try save(ci, outDir.appendingPathComponent("\(scene)_00_input.jpg"))
 
             for (name, fx) in configs {
@@ -70,13 +72,18 @@ final class RenderTests: XCTestCase {
                     if let raw = StyleMatcher.stats(of: ci, context: ctx) {
                         StyleMatcher.apply(to: &matched, raw: raw, ref: profile.refStats, variant: variant, alpha: 1)
                     }
+                    if let tex = TextureEstimator.measure(ci, context: ctx) {
+                        TextureEstimator.apply(to: &matched, raw: tex, ref: profile.refTexture)
+                    }
                     var g = fx.apply(variant.apply(matched))
                     g.cropRatio = nil
                     renderer.update(g)
                     let st = renderer.snapshotState()
                     let out = renderer.apply(ci, state: st, masks: PhotoProcessor.masks(for: ci, state: st, preferPerson: true))
                     let tag = name + (variant == .faithful ? "" : "_\(variant.rawValue)")
-                    report += "\(tag): \(stats(out))\n"
+                    let ot = TextureEstimator.measure(out, context: ctx)
+                    report += "\(tag): \(stats(out))" + String(format: " | 颗粒σ %.4f 边缘 %.2f 暗角 %.2f [补颗粒 %.4f 柔化 %.2f 锐化 %.2f 暗角 %.2f]\n",
+                        ot?.grain ?? -1, ot?.edge ?? -1, ot?.vignette ?? -1, g.grainAddSigma * g.grain, g.blurSigmaView, g.sharpen, g.vignette)
                     try save(out, outDir.appendingPathComponent("\(scene)_\(tag).jpg"))
                 }
             }
@@ -193,6 +200,26 @@ final class GrainCalibrationTests: XCTestCase {
                 line += String(format: "  a%.1f→σ%.4f", amount, s)
             }
             report += line + "\n"
+        }
+        report += "\n== 标定：暗角 intensity → 四角/中心（灰 0.5）==\n"
+        for v in [0.1, 0.25, 0.5, 1.0] {
+            let rect = CGRect(x: 0, y: 0, width: 3024, height: 4032)
+            let gray = CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1,
+                                              colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)!).cropped(to: rect)
+            var p = GradingParams(); p.vignette = v; p.skinProtect = 0
+            let r = StyleRenderer(); r.update(p)
+            let t = TextureEstimator.measure(r.apply(gray, state: r.snapshotState()), context: ctx)
+            report += String(format: "  v%.2f → 暗角比 %.3f\n", v, t?.vignette ?? -1)
+        }
+        if let url = bundle.url(forResource: "noise_iphone_stock", withExtension: "jpg"),
+           let ci = CIImage(contentsOf: url, options: [.applyOrientationProperty: true]) {
+            report += "\n== 标定：锐化/柔化 → 边缘 σ（iPhone 原片）==\n"
+            for (sh, bl) in [(0.0, 0.0), (0.3, 0.0), (0.6, 0.0), (0.0, 0.3), (0.0, 0.6), (0.0, 1.0)] {
+                var p = GradingParams(); p.sharpen = sh; p.blurSigmaView = bl; p.skinProtect = 0
+                let r = StyleRenderer(); r.update(p)
+                let t = TextureEstimator.measure(r.apply(ci, state: r.snapshotState()), context: ctx)
+                report += String(format: "  锐化%.1f 柔化%.1f → 边缘 %.2f 颗粒 %.4f\n", sh, bl, t?.edge ?? -1, t?.grain ?? -1)
+            }
         }
         try report.write(to: outDir.appendingPathComponent("grain-calibration.txt"), atomically: true, encoding: .utf8)
         print(report)

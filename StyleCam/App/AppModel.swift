@@ -189,7 +189,7 @@ final class AppModel: ObservableObject {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             let err: String? = await withCheckedContinuation { cont in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, ref: refStats,
+                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, ref: refStats, refTexture: profile.refTexture,
                                                    variant: v, preferPerson: person, summary: summary) { thumb, err in
                         if let thumb { DispatchQueue.main.async { self.camera.lastPhoto = thumb } }
                         cont.resume(returning: err)

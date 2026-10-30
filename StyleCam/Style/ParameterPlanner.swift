@@ -245,17 +245,18 @@ enum ParameterPlanner {
         g.shadowLift = 0
         g.highlightRolloff = 0
         g.saturation = 1
-        g.shadowTint = profile.shadowTint
-        g.highlightTint = profile.highlightTint
-        // 参考图四角偏暗大多是画面内容（如深色树干），只把明显超出的部分当作后期暗角
-        g.vignette = max(0, profile.vignette - 0.35) * 0.6
-        // 参考图多为压缩过的网图，测到的“颗粒”里混有 JPEG 噪点，只取六成
-        g.grain = profile.grain * 0.6
-        g.sharpen = profile.sharpness > 0.3 ? profile.sharpness * 0.5 : 0
-        g.softGlow = profile.sharpness < -0.4 ? -profile.sharpness * 0.6 : 0
-        // 胶片感（有颗粒 + 黑位提升或高光压缩）→ 加一点高光光晕
-        let filmLook = profile.grain > 0.15 && (profile.shadowLift > 0.1 || profile.highlightRolloff > 0.1)
-        g.halation = filmLook ? min(0.6, 0.2 + profile.grain * 0.5) : 0
+        // 分离色调、暗角、颗粒、锐度都由 StyleMatcher / TextureEstimator 按“参考图 − 当前画面”的差值实时设置
+        g.shadowTint = .zero
+        g.highlightTint = .zero
+        g.vignette = 0
+        g.grain = 1                       // 颗粒倍率（版本/开关/滑块在此基础上调整）
+        g.grainAddSigma = 0
+        g.sharpen = 0
+        g.softGlow = 0
+        g.blurSigmaView = 0
+        // 高光光晕只在参考图真实颗粒明显（已排除压缩噪点）且影调像胶片时才加
+        let filmLook = profile.refTexture.grain > 0.006 && (profile.shadowLift > 0.1 || profile.highlightRolloff > 0.1)
+        g.halation = filmLook ? 0.25 : 0
         g.greenTarget = profile.greenAB
         g.skyTarget = profile.skyAB
         g.skinProtect = profile.faceCount > 0 || abs(profile.castA) + abs(profile.castB) > 4 ? 0.7 : 0.5
@@ -274,16 +275,15 @@ enum ParameterPlanner {
             gradingRow("cast", "整体色偏（匹配）", String(format: "目标中性色 a*%+.1f b*%+.1f", c.x, c.y),
                        "按“参考图色偏 − 当前画面色偏”补齐，硬件白平衡已覆盖的部分不重复加")
         }
-        if Fmt.tint(g.shadowTint) != "无" {
-            gradingRow("shadowTint", "暗部色调（分离色调）", Fmt.tint(g.shadowTint), "参考图暗部偏\(ColorMath.hueName(a: g.shadowTint.x, b: g.shadowTint.y))")
-        }
-        if Fmt.tint(g.highlightTint) != "无" {
-            gradingRow("highlightTint", "高光色调（分离色调）", Fmt.tint(g.highlightTint), "参考图亮部偏\(ColorMath.hueName(a: g.highlightTint.x, b: g.highlightTint.y))")
-        }
-        if g.vignette > 0.05 { gradingRow("vignette", "暗角", Fmt.percent(g.vignette), "参考图四角明显比中心暗") }
-        if g.grain > 0.05 { gradingRow("grain", "胶片颗粒", Fmt.percent(g.grain), "参考图平坦区域有明显颗粒（用软件模拟，而不是提高 ISO 造噪点）") }
-        if g.sharpen > 0.05 { gradingRow("sharpen", "锐化", Fmt.percent(g.sharpen), "参考图焦点处细节锐利") }
-        if g.softGlow > 0.05 { gradingRow("glow", "柔光（Bloom）", Fmt.percent(g.softGlow), "参考图整体偏柔焦、有光晕感") }
+        let t = profile.refTexture
+        gradingRow("tint", "分离色调（差值）", "暗部 " + Fmt.tint(profile.refStats.shadowTint) + " · 高光 " + Fmt.tint(profile.refStats.highlightTint),
+                   "参考图暗部/高光的色调减去当前画面已有的色调，只补差值（iPhone 暗部本身偏冷时就少加）")
+        gradingRow("grain", "颗粒（差值）", String(format: "参考图真实颗粒 σ %.4f", t.grain),
+                   "在观看尺度（长边 1440）测量，已排除 JPEG 8×8 压缩块边界；只补 √(参考² − 当前画面²)。手机画面本身噪点够多时不加")
+        gradingRow("sharp", "锐度（差值）", String(format: "参考图边缘模糊 σ %.2fpx", t.edge),
+                   "同一观看尺度比较边缘清晰度：参考图更软就轻微柔化，更锐才锐化（iPhone 已经锐化过，不再叠加）")
+        gradingRow("vignette", "暗角（差值）", String(format: "参考图四角/中心 %.2f", t.vignette),
+                   "比较四角与中心的亮度比，扣除镜头本身已有的暗角，只补差值")
         if g.halation > 0.05 { gradingRow("halation", "胶片高光光晕", Fmt.percent(g.halation), "参考图有颗粒且黑位/高光被压，属于胶片质感 → 高光边缘渗出橙红色光晕") }
         if let t = g.greenTarget {
             gradingRow("green", "分区调色：植物", "\(ColorMath.hueName(a: t.x, b: t.y)) 色相 \(Int(atan2(t.y, t.x) * 180 / .pi))°",

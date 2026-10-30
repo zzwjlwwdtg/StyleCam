@@ -101,12 +101,19 @@ final class StyleRenderer: @unchecked Sendable {
             img = bloom.outputImage?.cropped(to: extent) ?? img
         }
 
+        // 4b. 柔化（参考图比当前画面软时，按观看尺度换算到当前分辨率）
+        if p.blurSigmaView > 0.05 && s > 0 {
+            img = img.clampedToExtent()
+                .applyingGaussianBlur(sigma: p.blurSigmaView * longEdge / 1440 * s)
+                .cropped(to: extent)
+        }
+
         // 5. 锐化
         if p.sharpen > 0.01 && s > 0 {
             let sh = CIFilter.sharpenLuminance()
             sh.inputImage = img
             sh.sharpness = Float(p.sharpen * 0.8 * s)
-            sh.radius = Float(1.69 * scale)
+            sh.radius = Float(1.69 * pow(scale, 0.5))
             img = sh.outputImage ?? img
         }
 
@@ -119,14 +126,16 @@ final class StyleRenderer: @unchecked Sendable {
         if p.vignette > 0.01 && s > 0 {
             let v = CIFilter.vignette()
             v.inputImage = img
-            v.intensity = Float(p.vignette * 1.0 * s)
+            v.intensity = Float(p.vignette * s)
             v.radius = 1.6
             img = v.outputImage ?? img
         }
 
         // 8. 颗粒
-        if p.grain > 0.01 && s > 0 {
-            img = addGrain(img, amount: p.grain * s, scale: scale)
+        // 颗粒：只补差值（观看尺度 σ），按标定换算成颗粒参数
+        let grainAmount = p.grain * p.grainAddSigma / TextureEstimator.grainSigmaPerAmount
+        if grainAmount > 0.01 && s > 0 {
+            img = addGrain(img, amount: grainAmount * s, scale: scale)
         }
 
         img = img.cropped(to: extent)

@@ -92,6 +92,12 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _refChroma: Double?
     private var _refCast: SIMD2<Double>?
     private var _refStats: SceneStats?
+    private var _refTexture: TextureStats?
+    private var _rawTexture: TextureStats?
+    private var textureBusy = false
+    private var lastTexture = Date.distantPast
+    private let textureQueue = DispatchQueue(label: "stylecam.texture", qos: .utility)
+    private lazy var textureContext = CIContext(options: [.cacheIntermediates: false])
     private var _autoMatch = false
     private var _wbFollow = true
     private var _saveOriginal = false
@@ -476,6 +482,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             _refChroma = profile?.meanChroma
             _refCast = profile.map { SIMD2($0.castA, $0.castB) }
             _refStats = profile?.refStats
+            _refTexture = profile?.refTexture
+            _rawTexture = nil
             _refFace = profile?.faceRect
             _refMagnification = profile?.optics.magnification
             _preferPerson = (profile?.faceCount ?? 1) > 0
@@ -711,14 +719,43 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             publishReadout(hist: hist, score: score, device: d)
             return
         }
+        // 质感（颗粒/锐度/暗角）在观看尺度测量，较重，约每 1.5 秒在后台算一次
+        if Date().timeIntervalSince(lastTexture) > 1.5, locked({ !textureBusy }) {
+            lastTexture = Date()
+            locked { textureBusy = true }
+            // 取景帧的像素缓冲会被复用，先在当前线程缩到观看尺度并拷贝出来
+            let e = raw.extent
+            let sc = min(1, GrainEstimator.viewLongEdge / max(e.width, e.height))
+            let small = raw.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: sc, kCIInputAspectRatioKey: 1])
+            guard let cg = textureContext.createCGImage(small, from: small.extent) else {
+                locked { textureBusy = false }
+                publishReadout(hist: hist, score: score, device: d)
+                return
+            }
+            let frame = CIImage(cgImage: cg)
+            textureQueue.async {
+                let t = TextureEstimator.measure(frame, context: self.textureContext)
+                self.locked { self._rawTexture = t; self.textureBusy = false }
+            }
+        }
+        let (refTexture, rawTexture) = locked { (_refTexture, _rawTexture) }
         sessionQueue.async {
             var g = self.plan.grading
             StyleMatcher.apply(to: &g, raw: rawStats, ref: refStats, variant: variant, alpha: 0.35)
+            if let refTexture, let rawTexture { TextureEstimator.apply(to: &g, raw: rawTexture, ref: refTexture) }
             self.plan.grading = g
             self.pushGrading()
-            let status = String(format: "画面中位 L*%.0f→%.0f · 彩度 %.1f→%.1f（×%.2f）· 色偏 a*%+.1f b*%+.1f",
+            var status = String(format: "画面中位 L*%.0f→%.0f · 彩度 %.1f→%.1f（×%.2f）· 色偏 a*%+.1f b*%+.1f",
                                 rawStats.median, refStats.median, rawStats.chroma, refStats.chroma,
                                 g.saturation, g.castA, g.castB)
+            if let rawTexture, let refTexture {
+                status += String(format: "\n颗粒 σ %.4f→%.4f（补 %.4f）· 边缘 %.2f→%.2f（%@）· 暗角 %.2f→%.2f（%@）",
+                                 rawTexture.grain, refTexture.grain, g.grainAddSigma,
+                                 rawTexture.edge, refTexture.edge,
+                                 g.blurSigmaView > 0 ? String(format: "柔化 %.2f", g.blurSigmaView) : (g.sharpen > 0 ? String(format: "锐化 %.2f", g.sharpen) : "不变"),
+                                 rawTexture.vignette, refTexture.vignette,
+                                 g.vignette > 0 ? String(format: "补 %.2f", g.vignette) : "不补")
+            }
             DispatchQueue.main.async { self.autoMatchStatus = status }
         }
 
@@ -890,6 +927,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         let (data, metadata) = processed
         let state = renderer.snapshotState()
         let (summary, saveOriginal, preferPerson) = locked { (_planSummary, _saveOriginal, _preferPerson) }
+        let refTexture = locked { _refTexture }
         // 用成片 EXIF 的实际焦距校准等效光圈换算
         if let exif = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any],
            let fl = (exif[kCGImagePropertyExifFocalLength as String] as? NSNumber)?.doubleValue {
@@ -899,7 +937,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         DispatchQueue.global(qos: .userInitiated).async {
             PhotoProcessor.process(data: data, metadata: metadata, renderer: self.renderer, state: state,
                                    summary: summary, preferPerson: preferPerson,
-                                   saveOriginal: saveOriginal, rawData: rawData) { thumb, err in
+                                   saveOriginal: saveOriginal, rawData: rawData, refTexture: refTexture) { thumb, err in
                 DispatchQueue.main.async {
                     self.isSaving = false
                     if let thumb { self.lastPhoto = thumb }
