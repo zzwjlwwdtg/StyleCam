@@ -106,10 +106,12 @@ enum StyleAnalyzer {
 
         let vignetteRatio = (centerN > 0 && cornerN > 0 && centerY > 0.001)
             ? (cornerY / cornerN) / (centerY / centerN) : 1
-        let (dof, sharpTop) = estimateDepthOfField(L: Ls, w: w, h: h)
         let grainNoise = estimateGrain(mpx)
         let points = countPointLights(Y: Ys, w: w, h: h)
-        let faces = countFaces(medium)
+        let faceRects = detectFaces(medium)
+        let optics = analyzeOptics(image: medium, px: mpx, exif: exif, faces: faceRects)
+        // 景深分类按“背景弥散圆占画面长边的比例”：<0.3% 基本清晰，0.3–1% 微虚，>1% 明显虚化
+        let dof: DepthOfField = optics.blurFraction < 0.003 ? .deep : (optics.blurFraction < 0.01 ? .medium : .shallow)
 
         let profile = StyleProfile(
             meanLuminance: sumY / Double(n),
@@ -126,13 +128,14 @@ enum StyleAnalyzer {
             highlightTint: tint(hiA, hiB),
             vignette: ColorMath.clamp((0.75 - vignetteRatio) / 0.45, 0, 1),
             grain: ColorMath.clamp((grainNoise - 0.006) / 0.016, 0, 1),
-            sharpness: ColorMath.clamp((sharpTop - 0.05) / 0.04, -1, 1),
+            sharpness: ColorMath.clamp((1.15 - optics.subjectSigma) / 0.5, -1, 1),
             depthOfField: dof,
             isNight: medianL < 28,
             pointLightCount: points,
-            faceCount: faces,
+            faceCount: faceRects.count,
             histogram: hist,
-            exif: exif)
+            exif: exif,
+            optics: optics)
 
         return (profile, UIImage(cgImage: medium))
     }
@@ -150,6 +153,7 @@ enum StyleAnalyzer {
         e.model = tiff[kCGImagePropertyTIFFModel] as? String
         e.lensModel = exif[kCGImagePropertyExifLensModel] as? String
         e.fNumber = (exif[kCGImagePropertyExifFNumber] as? NSNumber)?.doubleValue
+        e.focalLength = (exif[kCGImagePropertyExifFocalLength] as? NSNumber)?.doubleValue
         e.exposureTime = (exif[kCGImagePropertyExifExposureTime] as? NSNumber)?.doubleValue
         e.iso = (exif[kCGImagePropertyExifISOSpeedRatings] as? [NSNumber])?.first?.doubleValue
         e.focalLength35mm = (exif[kCGImagePropertyExifFocalLenIn35mmFilm] as? NSNumber)?.doubleValue
@@ -165,28 +169,6 @@ enum StyleAnalyzer {
             kCGImageSourceShouldCacheImmediately: true
         ]
         return CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary)
-    }
-
-    // MARK: - 景深：把画面分 4×4 块，比较最清晰块和普通块的拉普拉斯能量
-
-    private static func estimateDepthOfField(L: [Double], w: Int, h: Int) -> (DepthOfField, Double) {
-        let grid = 4
-        var tileSum = [Double](repeating: 0, count: grid * grid)
-        var tileN = [Double](repeating: 0, count: grid * grid)
-        for y in 1..<(h - 1) {
-            for x in 1..<(w - 1) {
-                let c = L[y * w + x]
-                let lap = abs(4 * c - L[y * w + x - 1] - L[y * w + x + 1] - L[(y - 1) * w + x] - L[(y + 1) * w + x]) / 100
-                let t = min(grid - 1, y * grid / h) * grid + min(grid - 1, x * grid / w)
-                tileSum[t] += lap; tileN[t] += 1
-            }
-        }
-        let tiles = zip(tileSum, tileN).map { $1 > 0 ? $0 / $1 : 0 }.sorted()
-        let top = (tiles[tiles.count - 1] + tiles[tiles.count - 2]) / 2
-        let median = max(tiles[tiles.count / 2], 1e-4)
-        let ratio = top / median
-        let dof: DepthOfField = ratio > 3.2 ? .shallow : (ratio < 1.7 ? .deep : .medium)
-        return (dof, top)
     }
 
     // MARK: - 颗粒：在平坦区域里测高频残差
@@ -249,12 +231,103 @@ enum StyleAnalyzer {
         return count
     }
 
-    // MARK: - 人脸数量（判断人像 / 合影）
+    // MARK: - 人脸（Vision 归一化坐标，原点在左下）
 
-    private static func countFaces(_ image: CGImage) -> Int {
+    private static func detectFaces(_ image: CGImage) -> [CGRect] {
         let req = VNDetectFaceRectanglesRequest()
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         try? handler.perform([req])
-        return req.results?.count ?? 0
+        return (req.results ?? []).map(\.boundingBox).filter { $0.height > 0.015 }
+    }
+
+    // MARK: - 光学分析：主体分割 → 离焦量 → 等效入瞳 / 等效光圈
+
+    static func analyzeOptics(image: CGImage, px: RGBAPixels, exif: ReferenceEXIF, faces: [CGRect]) -> ReferenceOptics {
+        let w = px.width, h = px.height, n = w * h
+        var gray = [Float](repeating: 0, count: n)
+        for i in 0..<n {
+            let j = i * 4
+            gray[i] = (0.299 * Float(px.bytes[j]) + 0.587 * Float(px.bytes[j + 1]) + 0.114 * Float(px.bytes[j + 2])) / 255
+        }
+
+        var o = ReferenceOptics()
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        var subject: [Bool]
+        if let pb = SubjectMasker.mask(handler: handler, preferPerson: !faces.isEmpty, personQuality: .accurate) {
+            subject = SubjectMasker.boolMask(pb, width: w, height: h)
+            o.subjectMaskFound = true
+        } else {
+            subject = fallbackSubject(w, h, faces)
+        }
+        let coverage = Double(subject.filter { $0 }.count) / Double(n)
+        if coverage < 0.02 || coverage > 0.9 {
+            subject = fallbackSubject(w, h, faces)
+            o.subjectMaskFound = false
+        }
+
+        let r = DefocusEstimator.estimate(gray: gray, width: w, height: h, subject: subject)
+        let longEdge = Double(max(w, h))
+        o.subjectSigma = r.subjectSigma
+        o.backgroundSigma = r.excessSigma
+        o.blurFraction = r.blurDiameterPx / longEdge
+
+        // 放大率：人脸框高度（≈20cm）在全画幅长边 36mm 里占多少
+        if let face = faces.max(by: { $0.height < $1.height }) {
+            let faceFrac = Double(face.height) * Double(h) / longEdge
+            o.magnification = faceFrac * Optics.ffLongEdge / Optics.faceHeightMM
+        }
+        if let f35 = exif.focalLength35mm, f35 > 8 {
+            o.focal35 = f35
+            o.focal35Assumed = false
+        }
+
+        if let fn = exif.fNumber, fn > 0.7, let fa = exif.focalLength, fa > 0, let f35 = exif.focalLength35mm, f35 > 8 {
+            // EXIF 齐全：直接精确换算
+            let pupil = fa / fn
+            o.pupilMM = pupil
+            o.equivalentF = fn * f35 / fa
+            o.source = .exif
+            if o.magnification == nil, o.blurFraction > 0.002 {
+                o.magnification = o.blurFraction * Optics.ffLongEdge / (pupil * Optics.backgroundFactor)
+            }
+        } else {
+            let m = o.magnification ?? Optics.assumedMagnification
+            o.source = o.magnification != nil ? .face : .assumed
+            let f35 = o.focal35 ?? Optics.assumedFocal35
+            o.focal35 = f35
+            let eqF = min(32, f35 / max(Optics.pupilNeeded(blurFraction: o.blurFraction, magnification: m), 0.01))
+            o.equivalentF = eqF
+            o.pupilMM = f35 / eqF
+        }
+        if let m = o.magnification, let f35 = o.focal35, !o.focal35Assumed {
+            o.subjectDistanceM = Optics.subjectDistance(focal35: f35, magnification: m)
+        }
+        return o
+    }
+
+    /// 分割失败时的主体区域：有人脸就取“脸 + 身体”区域，否则取画面中央椭圆
+    private static func fallbackSubject(_ w: Int, _ h: Int, _ faces: [CGRect]) -> [Bool] {
+        var m = [Bool](repeating: false, count: w * h)
+        if !faces.isEmpty {
+            for f in faces {
+                let fw = Double(f.width) * Double(w), fh = Double(f.height) * Double(h)
+                let x0 = Double(f.minX) * Double(w) - 0.6 * fw, x1 = Double(f.maxX) * Double(w) + 0.6 * fw
+                let top = (1 - Double(f.maxY)) * Double(h) - 0.3 * fh, bottom = top + 4.5 * fh
+                let ys = max(0, Int(top)), ye = min(h, Int(bottom))
+                let xs = max(0, Int(x0)), xe = min(w, Int(x1))
+                guard ys < ye, xs < xe else { continue }
+                for y in ys..<ye {
+                    for x in xs..<xe { m[y * w + x] = true }
+                }
+            }
+        } else {
+            for y in 0..<h {
+                for x in 0..<w {
+                    let dx = (Double(x) / Double(w) - 0.5) / 0.22, dy = (Double(y) / Double(h) - 0.5) / 0.3
+                    m[y * w + x] = dx * dx + dy * dy < 1
+                }
+            }
+        }
+        return m
     }
 }

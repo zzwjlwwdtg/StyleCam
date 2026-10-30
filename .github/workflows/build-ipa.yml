@@ -51,6 +51,18 @@ jobs:
           git commit -qm "IPA from ${GITHUB_SHA::7}"
           git push -qf origin ipa-build
 
+      - name: 把编译错误摘要推到 ci-log 分支（方便用 git 读取）
+        if: always()
+        run: |
+          grep -E "error:|warning: .*(deprecated|never)|BUILD (SUCCEEDED|FAILED)" xcodebuild.log > ci-errors.txt || echo "no log" > ci-errors.txt
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout -q --orphan ci-log
+          git rm -rfq --cached .
+          git add -f ci-errors.txt
+          git commit -qm "log for ${GITHUB_SHA::7}"
+          git push -qf origin ci-log
+
       - name: 上传编译日志（失败时排查用）
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,5 +1,7 @@
 import AVFoundation
 import CoreImage
+import ImageIO
+import Vision
 import UIKit
 import Combine
 
@@ -71,6 +73,16 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _saveOriginal = false
     private var _use48MP = false
     private var _planSummary = ""
+    private var _preferPerson = true
+
+    // 实时主体分割（只在 videoQueue 上使用）
+    private var liveMask: CIImage?
+    private lazy var personSeg: VNGeneratePersonSegmentationRequest = {
+        let r = VNGeneratePersonSegmentationRequest()
+        r.qualityLevel = .balanced
+        r.outputPixelFormat = kCVPixelFormatType_OneComponent8
+        return r
+    }()
 
     private func locked<T>(_ body: () -> T) -> T { stateLock.lock(); defer { stateLock.unlock() }; return body() }
 
@@ -382,6 +394,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         locked {
             _refHistogram = profile?.histogram
             _refMedianL = profile?.medianL
+            _preferPerson = (profile?.faceCount ?? 1) > 0
         }
         if profile == nil { DispatchQueue.main.async { self.matchScore = nil } }
     }
@@ -529,7 +542,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         var r = LiveReadout()
         if let d {
             let tt = d.temperatureAndTintValues(for: d.deviceWhiteBalanceGains)
-            r = LiveReadout(aperture: Fmt.ap(d.lensAperture),
+            let eq = Optics.lens(sessionLens).equivalentF(Double(d.lensAperture))
+            r = LiveReadout(aperture: Fmt.ap(d.lensAperture) + "≈" + Optics.fmtF(eq),
                             shutter: Fmt.shutter(d.exposureDuration.seconds),
                             iso: "ISO \(Int(d.iso))",
                             wb: Fmt.kelvin(Double(tt.temperature)),
@@ -549,12 +563,34 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let raw = CIImage(cvPixelBuffer: pb)
-        let filtered = renderer.apply(raw, state: renderer.snapshotState())
+        let st = renderer.snapshotState()
+        var mask: CIImage?
+        if st.enabled && st.params.backgroundBlur > 0.002 {
+            let every = locked({ _preferPerson }) ? 3 : 10
+            if liveMask == nil || frameCount % every == 0 { updateLiveMask(pb, extent: raw.extent) }
+            mask = liveMask
+        } else {
+            liveMask = nil
+        }
+        let filtered = renderer.apply(raw, state: st, subjectMask: mask)
         frameStore.set(raw: raw, filtered: filtered)
         frameCount += 1
         if frameCount % 12 == 0 {
             analyzeLive(filtered, device: (connection.inputPorts.first?.input as? AVCaptureDeviceInput)?.device)
         }
+    }
+}
+
+extension CameraManager {
+    /// 实时主体分割：人像用人像分割（balanced，约每 3 帧），其他主体用前景实例分割（约每 10 帧）
+    fileprivate func updateLiveMask(_ pb: CVPixelBuffer, extent: CGRect) {
+        let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: .up, options: [:])
+        var out: CVPixelBuffer?
+        if locked({ _preferPerson }), (try? handler.perform([personSeg])) != nil {
+            out = personSeg.results?.first?.pixelBuffer
+        }
+        if out == nil { out = SubjectMasker.foregroundMask(handler) }
+        if let out { liveMask = SubjectMasker.ciMask(out, fitting: extent) }
     }
 }
 
@@ -569,11 +605,17 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         guard let data = photo.fileDataRepresentation() else { return }
         let metadata = photo.metadata
         let state = renderer.snapshotState()
-        let (summary, saveOriginal) = locked { (_planSummary, _saveOriginal) }
+        let (summary, saveOriginal, preferPerson) = locked { (_planSummary, _saveOriginal, _preferPerson) }
+        // 用成片 EXIF 的实际焦距校准等效光圈换算
+        if let exif = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any],
+           let fl = (exif[kCGImagePropertyExifFocalLength as String] as? NSNumber)?.doubleValue {
+            Optics.calibrate(sessionLens, focalActual: fl)
+        }
         DispatchQueue.main.async { self.isSaving = true }
         DispatchQueue.global(qos: .userInitiated).async {
             PhotoProcessor.process(data: data, metadata: metadata, renderer: self.renderer, state: state,
-                                   summary: summary, saveOriginal: saveOriginal) { thumb, err in
+                                   summary: summary, preferPerson: preferPerson,
+                                   saveOriginal: saveOriginal) { thumb, err in
                 DispatchQueue.main.async {
                     self.isSaving = false
                     if let thumb { self.lastPhoto = thumb }

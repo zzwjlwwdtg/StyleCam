@@ -214,7 +214,7 @@ struct ContentView: View {
             Button { showPanel = true } label: {
                 VStack(spacing: 2) {
                     Image(systemName: "slider.horizontal.3").font(.title3)
-                    Text(model.changes.isEmpty ? "参数" : "已改 \(model.changes.count) 项")
+                    Text(model.changes.isEmpty ? "参数" : "已改 \(model.modifiedCount) 项")
                         .font(.system(size: 10))
                 }
                 .frame(width: 54, height: 54)

@@ -3,6 +3,7 @@ import CoreImage
 import ImageIO
 import UniformTypeIdentifiers
 import Photos
+import Vision
 import UIKit
 
 /// 成片处理：套用与预览相同的滤镜 → 写 HEIC（保留原 EXIF，并把本次参数写进 UserComment）→ 存相册
@@ -14,12 +15,20 @@ enum PhotoProcessor {
                         renderer: StyleRenderer,
                         state: StyleRenderer.State,
                         summary: String,
+                        preferPerson: Bool,
                         saveOriginal: Bool,
                         completion: @escaping (UIImage?, String?) -> Void) {
         guard let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
             completion(nil, "照片解码失败"); return
         }
-        let out = renderer.apply(ci, state: state)
+        var mask: CIImage?
+        if state.enabled && state.params.backgroundBlur > 0.002 {
+            let handler = VNImageRequestHandler(ciImage: ci, options: [:])
+            if let pb = SubjectMasker.mask(handler: handler, preferPerson: preferPerson, personQuality: .accurate) {
+                mask = SubjectMasker.ciMask(pb, fitting: ci.extent)
+            }
+        }
+        let out = renderer.apply(ci, state: state, subjectMask: mask)
         guard let p3 = CGColorSpace(name: CGColorSpace.displayP3),
               let cg = context.createCGImage(out, from: out.extent, format: .RGBA8, colorSpace: p3) else {
             completion(nil, "渲染失败"); return

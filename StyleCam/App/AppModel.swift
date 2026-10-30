@@ -23,7 +23,8 @@ final class AppModel: ObservableObject {
 
     private var suppressSync = false
 
-    var hardwareChangeCount: Int { changes.filter { $0.category != .grading && !isUnsupported($0) }.count }
+    var hardwareChangeCount: Int { changes.filter { $0.category != .grading && !isUnsupported($0) && $0.status != .info }.count }
+    var modifiedCount: Int { changes.filter { $0.status != .info }.count }
 
     init() {
         // Camera Control 实体键拨动后，同步界面和“已修改参数”
@@ -37,7 +38,8 @@ final class AppModel: ObservableObject {
             guard let self else { return }
             self.plan?.aperture = f
             if let i = self.changes.firstIndex(where: { $0.id == "aperture" }) {
-                self.changes[i].after = "\(Fmt.ap(f)) 锁定（Camera Control 手动）"
+                let eq = Optics.lens(self.camera.lens).equivalentF(Double(f))
+                self.changes[i].after = "\(Fmt.ap(f)) 锁定（≈全画幅 \(Optics.fmtF(eq))，Camera Control 手动）"
                 self.changes[i].actual = Fmt.ap(f)
                 self.changes[i].status = .applied
             }

@@ -40,6 +40,12 @@ struct ParameterPanel: View {
                 Section("本机相机能力（\(camera.capabilities.deviceName)）") {
                     let c = camera.capabilities
                     info("可变光圈", c.hasVariableAperture ? c.apertureStops.map(Fmt.ap).joined(separator: " / ") : "无（固定光圈）")
+                    if c.hasVariableAperture {
+                        let lo = Optics.lens(camera.lens)
+                        info("光圈 ≈ 全画幅等效（入瞳）", c.apertureStops.map {
+                            "\(Fmt.ap($0))≈\(Optics.fmtF(lo.equivalentF(Double($0))))（\(ParameterPlanner.mm(lo.pupil(Double($0))))）"
+                        }.joined(separator: "\n"))
+                    }
                     info("ISO 范围", "\(Int(c.isoRange.lowerBound))–\(Int(c.isoRange.upperBound))")
                     info("快门范围", "\(Fmt.shutter(c.shutterRange.lowerBound)) – \(Fmt.shutter(c.shutterRange.upperBound))")
                     info("曝光信号（iOS 27）", Fmt.signals(c.supportedSignals))
@@ -58,7 +64,7 @@ struct ParameterPanel: View {
                     }
                 }
             }
-            .navigationTitle(model.changes.isEmpty ? "参数" : "已修改 \(model.changes.count) 项参数")
+            .navigationTitle(model.changes.isEmpty ? "参数" : "已修改 \(model.modifiedCount) 项参数")
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium, .large])
@@ -78,6 +84,7 @@ struct ParameterPanel: View {
                     Text("色彩：饱和 \(Fmt.percent(p.saturation)) · 色偏 \(ColorMath.hueName(a: p.castA, b: p.castB)) \(String(format: "%.1f", (p.castA * p.castA + p.castB * p.castB).squareRoot()))")
                     Text("质感：颗粒 \(Fmt.percent(p.grain)) · 暗角 \(Fmt.percent(p.vignette))")
                     Text("场景：" + sceneText(p))
+                    Text("光学：" + p.optics.summary)
                 }
                 .font(.caption2).foregroundStyle(.secondary)
             }
@@ -131,6 +138,7 @@ struct ChangeRow: View {
 
     @ViewBuilder private var badge: some View {
         switch change.status {
+        case .info: tag("说明", .blue)
         case .planned: tag("待生效", .gray)
         case .applied: tag("已生效", .green)
         case .adjusted: tag("已调整", .orange)

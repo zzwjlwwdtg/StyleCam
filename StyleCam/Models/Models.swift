@@ -55,6 +55,7 @@ struct ReferenceEXIF: Equatable {
     var model: String?
     var lensModel: String?
     var fNumber: Double?
+    var focalLength: Double?           // 实际焦距 mm
     var exposureTime: Double?
     var iso: Double?
     var focalLength35mm: Double?
@@ -98,6 +99,7 @@ struct StyleProfile: Equatable {
     var faceCount: Int
     var histogram: [Double]        // 32 档 L* 直方图（归一化）
     var exif: ReferenceEXIF
+    var optics: ReferenceOptics
 }
 
 // MARK: - 软件调色参数（实时滤镜）
@@ -116,6 +118,7 @@ struct GradingParams: Equatable {
     var grain: Double = 0
     var sharpen: Double = 0
     var softGlow: Double = 0
+    var backgroundBlur: Double = 0      // 计算补足的背景虚化：弥散圆直径 / 画面长边
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
 }
 
@@ -181,12 +184,14 @@ struct HardwareCapabilities {
 
 struct ParameterChange: Identifiable, Equatable {
     enum Category: String, CaseIterable {
+        case optics = "光学等效分析（按全画幅换算）"
         case newFeature = "18 Pro Max / iOS 27 新能力"
         case hardware = "相机硬件参数"
         case grading = "实时调色（软件滤镜）"
     }
 
     enum Status: Equatable {
+        case info
         case planned
         case applied
         case adjusted(String)

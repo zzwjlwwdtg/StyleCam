@@ -28,7 +28,8 @@ final class StyleRenderer: @unchecked Sendable {
         return state
     }
 
-    func apply(_ input: CIImage, state st: State) -> CIImage {
+    /// subjectMask：主体蒙版（白 = 主体），用于只虚化背景
+    func apply(_ input: CIImage, state st: State, subjectMask: CIImage? = nil) -> CIImage {
         guard st.enabled else { return input }
         let p = st.params
         let s = ColorMath.clamp(p.strength, 0, 1)
@@ -36,6 +37,21 @@ final class StyleRenderer: @unchecked Sendable {
         // 以 1920px 长边为基准，让暗角/颗粒/锐化在预览和 48MP 成片里看起来一致
         let scale = max(1, max(extent.width, extent.height) / 1920)
         var img = input
+
+        // 计算补足的背景虚化（先于调色，模拟光学虚化发生在镜头里）
+        if p.backgroundBlur > 0.002 && s > 0, let mask = subjectMask {
+            let longEdge = Double(max(extent.width, extent.height))
+            let sigma = p.backgroundBlur * longEdge / 4 * s          // 弥散圆直径 ≈ 4σ
+            let background = mask.applyingFilter("CIColorInvert")
+                .clampedToExtent()
+                .applyingGaussianBlur(sigma: Double(3 * scale))      // 羽化边缘，避免硬边
+                .cropped(to: extent)
+            let blur = CIFilter.maskedVariableBlur()
+            blur.inputImage = img.clampedToExtent()
+            blur.mask = background
+            blur.radius = Float(sigma)
+            img = blur.outputImage?.cropped(to: extent) ?? img
+        }
 
         let cube = CIFilter.colorCubeWithColorSpace()
         cube.inputImage = img

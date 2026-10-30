@@ -11,11 +11,18 @@ enum ParameterPlanner {
             let lens = LensChoice.nearest(toFocal35: f)
             return (lens, "参考图 EXIF 等效焦距 \(Int(f))mm → 最接近的光学焦段")
         }
-        if profile.faceCount == 1 && profile.depthOfField == .shallow {
-            return (.wide2x, "单人 + 浅景深，判断为人像 → 48mm 人像焦段")
+        let main = Optics.lens(.wide), tele = Optics.lens(.tele)
+        let mainMax = main.pupil(1.48), teleD = tele.pupil(tele.fixedF ?? 2.8)
+        if (1...2).contains(profile.faceCount), let d = profile.optics.pupilMM, d > mainMax * 1.25 {
+            return (.tele, "参考图虚化需要入瞳约 \(mm(d))，超过主摄极限 \(mm(mainMax))；4x 长焦入瞳 \(mm(teleD)) 更大，同样构图下背景更虚（要站到约 4 倍远保持构图）")
+        }
+        if profile.faceCount == 1 && profile.depthOfField != .deep {
+            return (.wide2x, "单人人像 → 48mm 人像焦段（仍是主摄，可调光圈）")
         }
         return (.wide, "无焦距信息，使用主摄（唯一带可变光圈的镜头）")
     }
+
+    static func mm(_ v: Double) -> String { String(format: v < 10 ? "%.1fmm" : "%.0fmm", v) }
 
     // MARK: 生成完整计划
 
@@ -37,51 +44,95 @@ enum ParameterPlanner {
 
         let longExposure = (profile.exif.exposureTime ?? 0) >= 1.0 / 8.0
         let starLook = profile.isNight && profile.pointLightCount >= 4
-        let stops = caps.apertureStops.isEmpty ? [caps.apertureRange.lowerBound] : caps.apertureStops
 
-        // ---- 1. 物理可变光圈（18 Pro Max 新硬件 + iOS 27 API）----
+        // ---- 1. 光圈：在“入瞳直径”空间匹配参考图（等效光圈原理）----
+        let o = profile.optics
+        let lensO = Optics.lens(lens)
+        var usedF: Double = lensO.fixedF ?? Double(before.aperture)
         if caps.hasVariableAperture && lens.hasVariableAperture {
-            var target: Float
-            var why: String
-            if profile.exif.isFromIPhone, let f = profile.exif.fNumber, f > 1.2 {
-                target = Float(f)
-                why = "参考图是 iPhone 拍的，EXIF 光圈 \(Fmt.ap(Float(f)))，直接复用"
-            } else {
-                switch profile.depthOfField {
-                case .shallow:
-                    target = stops.first ?? 1.48
-                    why = "参考图背景虚化明显 → 开到最大光圈，用光学虚化而不是人像模式算法"
-                case .medium:
-                    target = 2.8
-                    why = "参考图主体清晰、背景略虚 → 中等光圈"
-                case .deep:
-                    target = stops.last ?? 4
-                    why = "参考图前后景都清晰 → 收小光圈加大景深"
-                }
-                if profile.faceCount >= 3 && target < 2.8 {
-                    target = 2.8
-                    why = "参考图是合影（\(profile.faceCount) 张脸）→ 至少 f/2.8 保证每张脸清晰"
+            let nMin = Double(caps.apertureRange.lowerBound), nMax = Double(caps.apertureRange.upperBound)
+            let dMax = lensO.pupil(nMin), dMin = lensO.pupil(nMax)
+            var n = nMin
+            var why = ""
+            let refDesc = "参考图 ≈ 全画幅 \(Int(o.focal35 ?? Optics.assumedFocal35))mm \(Optics.fmtF(o.equivalentF ?? 0))，入瞳 \(mm(o.pupilMM ?? 0))"
+            if profile.exif.isFromIPhone, let f = profile.exif.fNumber, f > 1.2,
+               abs((profile.exif.focalLength35mm ?? 0) - lens.focal35) < 5 {
+                n = f
+                why = "参考图是 iPhone 同焦段拍的，EXIF 光圈 \(Fmt.ap(Float(f))) 直接复用"
+            } else if let d = o.pupilMM {
+                if d <= dMin {
+                    n = nMax
+                    why = refDesc + "，比 iPhone \(Fmt.ap(Float(nMax))) 的入瞳 \(mm(dMin)) 还小 → 收到最小光圈，景深足够"
+                } else if d <= dMax {
+                    n = lensO.focalActual / d
+                    why = refDesc + " → iPhone 用 \(Fmt.ap(Float(n))) 时入瞳相同，同样构图下背景虚化一致"
+                } else {
+                    n = nMin
+                    why = refDesc + "，超过 iPhone 物理极限（\(Fmt.ap(Float(nMin))) 入瞳 \(mm(dMax)) ≈ 全画幅 \(Optics.fmtF(lensO.equivalentF(nMin)))）→ 开到最大，差的部分用计算虚化补足"
                 }
             }
+            if profile.faceCount >= 3 && n < 2.8 {
+                n = 2.8
+                why = "参考图是合影（\(profile.faceCount) 张脸）→ 至少 f/2.8 保证每张脸清晰"
+            }
             if starLook {
-                target = stops.last ?? 4
+                n = nMax
                 why = "参考图是夜景且有 \(profile.pointLightCount) 个点光源 → 收到最小光圈出星芒"
             }
             if longExposure {
-                target = stops.last ?? 4
+                n = nMax
                 why += "；为配合长曝光收小光圈减光（相当于内置 ND）"
             }
-            let snapped = stops.min { abs($0 - target) < abs($1 - target) } ?? target
-            plan.aperture = snapped
+            n = min(max((n * 20).rounded() / 20, nMin), nMax)
+            usedF = n
+            plan.aperture = Float(n)
             changes.append(.init(id: "aperture", category: .newFeature, name: "物理可变光圈",
                                  before: "\(Fmt.ap(before.aperture))（自动）",
-                                 after: "\(Fmt.ap(snapped)) 锁定",
+                                 after: "\(Fmt.ap(Float(n))) 锁定（≈全画幅 \(Optics.fmtF(lensO.equivalentF(n)))）",
                                  reason: why))
         } else if lens.hasVariableAperture == false {
             changes.append(.init(id: "aperture", category: .newFeature, name: "物理可变光圈",
                                  before: Fmt.ap(before.aperture), after: "不可调",
-                                 reason: "\(lens.rawValue) 镜头为固定光圈，只有 1x/2x 主摄能调光圈",
+                                 reason: "\(lens.rawValue) 镜头为固定光圈 \(Optics.fmtF(usedF))（≈全画幅 \(Optics.fmtF(lensO.equivalentF(usedF)))），只有 1x/2x 主摄能调光圈",
                                  status: .unsupported("固定光圈镜头")))
+        }
+
+        // ---- 1b. 光学等效说明 + 超出物理极限的虚化用计算补足 ----
+        let usedPupil = lensO.pupil(usedF)
+        let m = o.magnification ?? Optics.assumedMagnification
+        let opticalBlur = Optics.backgroundBlurFraction(pupilMM: usedPupil, magnification: m)
+        let extraBlur = (max(0, o.blurFraction * o.blurFraction - opticalBlur * opticalBlur)).squareRoot()
+
+        changes.append(.init(id: "opt.ref", category: .optics, name: "参考图光学推算",
+                             before: "依据：\(o.source.rawValue)",
+                             after: o.summary,
+                             reason: "用 Apple 端侧模型分割\(o.subjectMaskFound ? "主体" : "（分割失败，按人脸/中央区域）")，分别测量主体与背景边缘的离焦量；背景比主体多出的模糊即光学虚化。" +
+                                (o.source == .face ? "按人脸高度≈20cm 推算构图放大率。" : "") +
+                                (o.source == .assumed ? "没有人脸和 EXIF，构图按“中景”假设，等效光圈仅供参考。" : ""),
+                             status: .info))
+        changes.append(.init(id: "opt.phone", category: .optics, name: "iPhone 光学等效",
+                             before: "\(lens.rawValue) 实际焦距 \(String(format: "%.1f", lensO.focalActual))mm · 裁切系数 \(String(format: "%.1f", lensO.crop))",
+                             after: "\(Optics.fmtF(usedF)) ≈ 全画幅 \(Int(lens.focal35))mm \(Optics.fmtF(lensO.equivalentF(usedF)))，入瞳 \(mm(usedPupil))",
+                             reason: "构图相同时，背景虚化只由入瞳直径（实际焦距 ÷ f 值）决定。手机传感器小、实际焦距短，同样的 f 值虚化弱得多，所以要按入瞳而不是按 f 值匹配。",
+                             status: .info))
+        if let s = o.subjectDistanceM, let f35 = o.focal35, let n = o.equivalentF, s < 30 {
+            let refDOF = Optics.depthOfField(focal35: f35, equivalentF: n, subjectM: s)
+            let sPhone = Optics.subjectDistance(focal35: lens.focal35, magnification: m)
+            let phoneDOF = Optics.depthOfField(focal35: lens.focal35, equivalentF: lensO.equivalentF(usedF), subjectM: sPhone)
+            changes.append(.init(id: "opt.dof", category: .optics, name: "景深范围（同样构图）",
+                                 before: "参考图：主体 \(String(format: "%.1f", s))m，\(Optics.fmtDOF(refDOF))",
+                                 after: "iPhone：主体 \(String(format: "%.1f", sPhone))m，\(Optics.fmtDOF(phoneDOF))",
+                                 reason: "全画幅等效空间计算，容许弥散圆 0.03mm。按这个距离站位，画面里主体大小与参考图一致。",
+                                 status: .info))
+        }
+        if extraBlur > 0.003 && !starLook {
+            plan.grading.backgroundBlur = extraBlur
+            let pct = { (v: Double) in String(format: "%.1f%%", v * 100) }
+            changes.append(.init(id: "bokeh", category: .grading, name: "背景虚化（计算补足）",
+                                 before: "光学 \(pct(opticalBlur)) 画幅",
+                                 after: "目标 \(pct(o.blurFraction))（补 \(pct(extraBlur))）",
+                                 reason: "iPhone 入瞳只有 \(mm(usedPupil))，光学虚化能还原约 \(Int(min(1, opticalBlur / max(o.blurFraction, 1e-6)) * 100))%；剩余部分用主体分割蒙版只模糊背景，实时预览和成片一致",
+                                 status: .applied))
         }
 
         // ---- 2. 快门（长曝光 / 运动模糊）----
@@ -225,6 +276,7 @@ enum ParameterPlanner {
         for i in changes.indices {
             let id = changes[i].id
             if case .unsupported = changes[i].status { continue }
+            if changes[i].status == .info { continue }
             if changes[i].category == .grading { continue }
             if let a = report.actual[id] { changes[i].actual = a }
             if id.hasPrefix("signal."), let a = report.actual["signals"] { changes[i].actual = "当前启用：\(a)" }
