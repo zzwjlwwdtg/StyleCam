@@ -14,7 +14,6 @@ final class RenderTests: XCTestCase {
         let bundle = Bundle(for: RenderTests.self)
         let outDir = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
             .appendingPathComponent("render-out", isDirectory: true)
-        try? FileManager.default.removeItem(at: outDir)
         try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
         var report = ""
 
@@ -157,5 +156,45 @@ final class RenderTests: XCTestCase {
         let flat = scaled.composited(over: CIImage(color: .black).cropped(to: scaled.extent))
         try ctx.writeJPEGRepresentation(of: flat, to: url, colorSpace: srgb,
                                         options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.85])
+    }
+}
+
+// MARK: - 颗粒标定：不同输出分辨率下，颗粒参数 → 观看尺度（长边 1440）测到的 σ
+final class GrainCalibrationTests: XCTestCase {
+    func testGrainCalibration() throws {
+        let ctx = CIContext(options: [.cacheIntermediates: false])
+        let bundle = Bundle(for: GrainCalibrationTests.self)
+        let outDir = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
+            .appendingPathComponent("render-out", isDirectory: true)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        var report = "== 实拍/参考图在观看尺度（长边1440）的颗粒 σ ==\n"
+        for name in ["noise_reference", "noise_iphone_stock", "noise_stylecam_rich"] {
+            guard let url = bundle.url(forResource: name, withExtension: "jpg"),
+                  let ci = CIImage(contentsOf: url, options: [.applyOrientationProperty: true]) else { continue }
+            let native = GrainEstimator.sigma(of: ci, context: ctx, jpegGridAligned: true) ?? -1
+            let noGrid = GrainEstimator.sigma(of: ci, context: ctx, jpegGridAligned: false) ?? -1
+            report += String(format: "%@ %.0fx%.0f  σ(排除块边界)=%.4f  σ(不排除)=%.4f\n",
+                             name, ci.extent.width, ci.extent.height, native, noGrid)
+        }
+        report += "\n== 标定：灰度 0.5 平面，颗粒 amount → σ ==\n"
+        for long in [1440.0, 1920.0, 4032.0, 5712.0, 8064.0] {
+            let rect = CGRect(x: 0, y: 0, width: long * 0.75, height: long)
+            let gray = CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1,
+                                              colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)!).cropped(to: rect)
+            var line = String(format: "长边 %5.0f:", long)
+            for amount in [0.1, 0.3, 0.6, 1.0] {
+                var p = GradingParams()
+                p.grain = amount
+                p.skinProtect = 0
+                let r = StyleRenderer()
+                r.update(p)
+                let out = r.apply(gray, state: r.snapshotState())
+                let s = GrainEstimator.sigma(of: out, context: ctx) ?? -1
+                line += String(format: "  a%.1f→σ%.4f", amount, s)
+            }
+            report += line + "\n"
+        }
+        try report.write(to: outDir.appendingPathComponent("grain-calibration.txt"), atomically: true, encoding: .utf8)
+        print(report)
     }
 }
