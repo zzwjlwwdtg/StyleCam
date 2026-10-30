@@ -32,8 +32,13 @@ enum TextureEstimator {
     }
 
     /// 只补“参考图有、当前画面没有”的那部分质感
+    /// 柔化会顺带抹掉画面原有的噪点。模拟器标定（iPhone 原片）：柔化 0.3/0.6/1.0 → 噪点剩 65%/26%/6.5%
+    static func noiseRemaining(afterBlur b: Double) -> Double {
+        guard b > 0 else { return 1 }
+        return exp(-pow(b / 0.55, 1.6))
+    }
+
     static func apply(to g: inout GradingParams, raw: TextureStats, ref: TextureStats) {
-        g.grainAddSigma = (max(0, ref.grain * ref.grain - raw.grain * raw.grain)).squareRoot()
         let d = ref.edge - raw.edge
         if d > 0.08 {
             g.blurSigmaView = (ref.edge * ref.edge - raw.edge * raw.edge).squareRoot()
@@ -45,6 +50,9 @@ enum TextureEstimator {
             g.blurSigmaView = 0
             g.sharpen = 0
         }
+        // 颗粒：先算柔化后画面还剩多少噪点，再补到参考图的真实颗粒
+        let remaining = raw.grain * noiseRemaining(afterBlur: g.blurSigmaView)
+        g.grainAddSigma = (max(0, ref.grain * ref.grain - remaining * remaining)).squareRoot()
         // 暗角：四角亮度很大程度取决于画面内容（参考图角落是深色树干、取景角落是白色打印机），
         // 差值也不可靠，所以只在参考图明显更暗时补一点点（四角最多暗约 10%；标定：0.12 → 四角/中心 0.89）
         let dv = raw.vignette - ref.vignette

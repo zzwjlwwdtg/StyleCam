@@ -184,7 +184,7 @@ struct ContentView: View {
                 roll: level.roll,
                 pitch: level.pitch,
                 isLevel: level.isLevel,
-                hint: model.referenceImage == nil || holdOriginal ? nil : camera.compositionHint,
+                hint: model.referenceImage == nil || holdOriginal || model.overlayMode == .off ? nil : camera.compositionHint,
                 aligned: camera.compositionAligned,
                 referenceIsLandscape: model.profile?.isLandscape ?? false)
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
