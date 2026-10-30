@@ -95,6 +95,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _refTexture: TextureStats?
     private var _rawTexture: TextureStats?
     private var textureBusy = false
+    private var _grainTargetActive = false
     private var lastTexture = Date.distantPast
     private let textureQueue = DispatchQueue(label: "stylecam.texture", qos: .utility)
     private lazy var textureContext = CIContext(options: [.cacheIntermediates: false])
@@ -303,7 +304,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         sessionQueue.async {
             self.plan = newPlan
             self.pushGrading()
-            self.locked { self._use48MP = newPlan.use48MP; self._planSummary = Self.summary(of: newPlan) }
+            self.locked { self._use48MP = newPlan.use48MP; self._planSummary = Self.summary(of: newPlan); self._grainTargetActive = newPlan.grading.grainTarget != nil }
             guard let d = self.device else { DispatchQueue.main.async { completion(ApplyReport()) }; return }
 
             var report = ApplyReport()
@@ -714,30 +715,31 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             score = zip(ref, hist).reduce(0) { $0 + min($1.0, $1.1) }   // 直方图交集 0...1
         }
 
+        // 内置滤镜（没有参考图）：只按画面已有噪点反推颗粒
+        if refStats == nil {
+            if locked({ _grainTargetActive }) {
+                measureTextureIfDue(raw)
+                if let rawTexture = locked({ _rawTexture }) {
+                    sessionQueue.async {
+                        guard self.plan.grading.grainTarget != nil else { return }
+                        let before = self.plan.grading.grainAddSigma
+                        TextureEstimator.applyGrainTarget(to: &self.plan.grading, raw: rawTexture)
+                        if abs(before - self.plan.grading.grainAddSigma) > 0.0002 { self.pushGrading() }
+                        let st = String(format: "颗粒 σ 画面 %.4f → 目标 %.4f（补 %.4f）", rawTexture.grain,
+                                        self.plan.grading.grainTarget ?? 0, self.plan.grading.grainAddSigma)
+                        DispatchQueue.main.async { self.autoMatchStatus = st }
+                    }
+                }
+            }
+            publishReadout(hist: hist, score: score, device: d)
+            return
+        }
         // 风格匹配：用“未调色”的取景帧统计，按分位点对齐影调、按比值对齐彩度、按差值对齐色偏（时间平滑防闪烁）
         guard autoMatch, let refStats, let rawStats = StyleMatcher.stats(of: raw, context: histContext) else {
             publishReadout(hist: hist, score: score, device: d)
             return
         }
-        // 质感（颗粒/锐度/暗角）在观看尺度测量，较重，约每 1.5 秒在后台算一次
-        if Date().timeIntervalSince(lastTexture) > 1.5, locked({ !textureBusy }) {
-            lastTexture = Date()
-            locked { textureBusy = true }
-            // 取景帧的像素缓冲会被复用，先在当前线程缩到观看尺度并拷贝出来
-            let e = raw.extent
-            let sc = min(1, GrainEstimator.viewLongEdge / max(e.width, e.height))
-            let small = raw.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: sc, kCIInputAspectRatioKey: 1])
-            guard let cg = textureContext.createCGImage(small, from: small.extent) else {
-                locked { textureBusy = false }
-                publishReadout(hist: hist, score: score, device: d)
-                return
-            }
-            let frame = CIImage(cgImage: cg)
-            textureQueue.async {
-                let t = TextureEstimator.measure(frame, context: self.textureContext)
-                self.locked { self._rawTexture = t; self.textureBusy = false }
-            }
-        }
+        measureTextureIfDue(raw)
         let (refTexture, rawTexture) = locked { (_refTexture, _rawTexture) }
         sessionQueue.async {
             var g = self.plan.grading
@@ -777,6 +779,27 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
         publishReadout(hist: hist, score: score, device: d)
+    }
+
+    /// 质感（颗粒/锐度/暗角）在观看尺度测量，较重，约每 1.5 秒在后台算一次
+    private func measureTextureIfDue(_ raw: CIImage) {
+        if Date().timeIntervalSince(lastTexture) > 1.5, locked({ !textureBusy }) {
+            lastTexture = Date()
+            locked { textureBusy = true }
+            // 取景帧的像素缓冲会被复用，先在当前线程缩到观看尺度并拷贝出来
+            let e = raw.extent
+            let sc = min(1, GrainEstimator.viewLongEdge / max(e.width, e.height))
+            let small = raw.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: sc, kCIInputAspectRatioKey: 1])
+            guard let cg = textureContext.createCGImage(small, from: small.extent) else {
+                locked { textureBusy = false }
+                return
+            }
+            let frame = CIImage(cgImage: cg)
+            textureQueue.async {
+                let t = TextureEstimator.measure(frame, context: self.textureContext)
+                self.locked { self._rawTexture = t; self.textureBusy = false }
+            }
+        }
     }
 
     private func publishReadout(hist: [Double], score: Double?, device d: AVCaptureDevice?) {

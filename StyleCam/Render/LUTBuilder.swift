@@ -9,7 +9,7 @@ enum LUTBuilder {
     static func build(_ p: GradingParams, skinVersion: Bool = false) -> Data {
         var p = p
         if skinVersion {
-            p.castA = 0; p.castB = 0
+            if !p.monochrome { p.castA = 0; p.castB = 0 }
             p.shadowTint = .zero; p.highlightTint = .zero
             p.greenTarget = nil; p.skyTarget = nil
             p.saturation = 1 + (p.saturation - 1) * 0.3
@@ -44,15 +44,21 @@ enum LUTBuilder {
                     let tOrig = t
                     t = t - k * sin(twoPi * t) / twoPi
                     t = lift + t * (1 - lift - roll)
-                    let L = t * 100
+                    var L = t * 100
 
                     // 色彩：饱和度 + 整体色偏 + 分离色调
                     let ws = ColorMath.smoothstep(0.6, 0.0, tOrig)
                     let wh = ColorMath.smoothstep(0.4, 1.0, tOrig)
                     // 分区调色：植物 / 天空的色相与彩度向参考图同类颜色靠拢
-                    let (ra, rb) = regionPull(lab.a, lab.b, p)
-                    let a = ra * p.saturation + p.castA + p.shadowTint.x * ws + p.highlightTint.x * wh
-                    let b = rb * p.saturation + p.castB + p.shadowTint.y * ws + p.highlightTint.y * wh
+                    var (ra, rb) = regionPull(lab.a, lab.b, p)
+                    // 按色相分别调整（内置滤镜）
+                    if !p.hsl.isEmpty { (ra, rb, L) = hslAdjust(ra, rb, L, p.hsl) }
+                    var a = ra * p.saturation + p.castA + p.shadowTint.x * ws + p.highlightTint.x * wh
+                    var b = rb * p.saturation + p.castB + p.shadowTint.y * ws + p.highlightTint.y * wh
+                    if p.monochrome {
+                        // 黑白：去掉颜色，castA/castB 作为整体染色（如暖调黑白）
+                        a = p.castA; b = p.castB
+                    }
 
                     let out = ColorMath.labToLinearRGB(L, a, b)
                     var orr = ColorMath.clamp(ColorMath.linearToSRGB(out.r), 0, 1)
@@ -105,6 +111,23 @@ enum LUTBuilder {
         }
         let r = h * .pi / 180
         return (nc * cos(r), nc * sin(r))
+    }
+
+    private static func hslAdjust(_ a: Double, _ b: Double, _ L: Double, _ bands: [HSLBand]) -> (Double, Double, Double) {
+        let c = (a * a + b * b).squareRoot()
+        guard c > 2 else { return (a, b, L) }
+        var h = hueDeg(a, b), nc = c, nl = L
+        let chromaW = ColorMath.smoothstep(2, 10, c)
+        for band in bands {
+            let d = abs(angleDiff(h, band.hue))
+            let w = ColorMath.smoothstep(band.width, band.width * 0.3, d) * chromaW
+            guard w > 0 else { continue }
+            h += w * band.dHue
+            nc *= 1 + w * (band.sat - 1)
+            nl += w * band.dL
+        }
+        let r = h * .pi / 180
+        return (nc * cos(r), nc * sin(r), ColorMath.clamp(nl, 0, 100))
     }
 
     // MARK: - 肤色可能性（输出灰度：白 = 肤色）

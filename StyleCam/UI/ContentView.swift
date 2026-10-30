@@ -21,7 +21,7 @@ struct ContentView: View {
             VStack(spacing: 10) {
                 topBar
                 viewfinder
-                if model.referenceImage != nil { strengthBar }
+                if model.hasStyle { strengthBar }
                 lensBar
                 modeBar
                 bottomBar
@@ -97,6 +97,11 @@ struct ContentView: View {
                 ZStack {
                     if let ref = model.referenceImage {
                         Image(uiImage: ref).resizable().scaledToFill()
+                    } else if let p = model.currentPreset {
+                        VStack(spacing: 2) {
+                            Text(p.mood.emoji).font(.title3)
+                            Text(p.brand.rawValue).font(.system(size: 9))
+                        }
                     } else {
                         VStack(spacing: 2) {
                             Image(systemName: "photo.badge.plus")
@@ -106,17 +111,20 @@ struct ContentView: View {
                 }
                 .frame(width: 46, height: 46)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.yellow.opacity(model.referenceImage == nil ? 0.3 : 1), lineWidth: 1.5))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.yellow.opacity(model.hasStyle ? 1 : 0.3), lineWidth: 1.5))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 if let score = camera.matchScore {
                     Text("风格匹配度 \(Int(score * 100))%").font(.subheadline.bold())
                         .foregroundStyle(score > 0.75 ? Color.green : (score > 0.55 ? Color.yellow : Color.orange))
+                } else if let p = model.currentPreset {
+                    Text(p.name).font(.subheadline.bold()).lineLimit(1).minimumScaleFactor(0.7)
                 } else {
                     Text("上传一张喜欢的照片").font(.subheadline.bold())
                 }
-                Text(model.referenceImage == nil ? "自动调相机参数，拍同款" : "按住取景框可看原图对比")
+                Text(model.currentPreset.map { "\($0.mood.rawValue) · 按住取景框看原图" }
+                     ?? (model.referenceImage == nil ? "或在风格库选富士 / 佳能同款滤镜" : "按住取景框可看原图对比"))
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
@@ -135,7 +143,7 @@ struct ContentView: View {
                 }
             }
 
-            if model.referenceImage != nil {
+            if model.hasStyle {
                 PhotosPicker(selection: $batchItems, maxSelectionCount: 30, matching: .images) {
                     VStack(spacing: 1) {
                         Image(systemName: "wand.and.stars").font(.title3)
@@ -151,7 +159,7 @@ struct ContentView: View {
                 }
             }
 
-            if model.referenceImage != nil {
+            if model.hasStyle {
                 Button { model.clearReference() } label: {
                     Image(systemName: "xmark.circle.fill").font(.title3).foregroundStyle(.secondary)
                 }
@@ -169,7 +177,7 @@ struct ContentView: View {
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .gesture(DragGesture(minimumDistance: 0)
-                    .onChanged { _ in if model.referenceImage != nil { holdOriginal = true } }
+                    .onChanged { _ in if model.hasStyle { holdOriginal = true } }
                     .onEnded { _ in holdOriginal = false })
 
             CompositionOverlay(

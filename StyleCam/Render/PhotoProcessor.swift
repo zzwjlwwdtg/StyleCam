@@ -27,6 +27,8 @@ enum PhotoProcessor {
         var state = state
         if let refTexture, let tex = TextureEstimator.measure(ci, context: context) {
             TextureEstimator.apply(to: &state.params, raw: tex, ref: refTexture)
+        } else if state.params.grainTarget != nil, let tex = TextureEstimator.measure(ci, context: context) {
+            TextureEstimator.applyGrainTarget(to: &state.params, raw: tex)
         }
         let out = renderer.apply(ci, state: state, masks: masks(for: ci, state: state, preferPerson: preferPerson))
         guard let p3 = CGColorSpace(name: CGColorSpace.displayP3),
@@ -126,14 +128,15 @@ enum PhotoProcessor {
 
     /// 读取已有照片（保留原 EXIF）→ 自适应 → 套用 → 另存为新照片（原图不动）
     static func processExisting(data: Data, renderer: StyleRenderer, base: StyleRenderer.State,
-                                ref: SceneStats, refTexture: TextureStats?, variant: StyleVariant, preferPerson: Bool,
+                                ref: SceneStats?, refTexture: TextureStats?, variant: StyleVariant, preferPerson: Bool,
                                 summary: String, completion: @escaping (UIImage?, String?) -> Void) {
         guard let src = CGImageSourceCreateWithData(data as CFData, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any],
               let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
             completion(nil, "无法读取照片"); return
         }
-        let state = adaptedState(base, for: ci, ref: ref, variant: variant)
+        // 内置滤镜没有参考图：参数固定，不做自适应（颗粒仍按这张照片的噪点反推）
+        let state = ref.map { adaptedState(base, for: ci, ref: $0, variant: variant) } ?? base
         process(data: data, metadata: props, renderer: renderer, state: state, summary: summary,
                 preferPerson: preferPerson, saveOriginal: false, refTexture: refTexture, completion: completion)
     }

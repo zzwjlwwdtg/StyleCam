@@ -38,6 +38,13 @@ enum TextureEstimator {
         return exp(-pow(b / 0.55, 1.6))
     }
 
+    /// 内置滤镜：没有参考图，只有目标总颗粒；同样只补差值（画面已有的噪点不重复加）
+    static func applyGrainTarget(to g: inout GradingParams, raw: TextureStats) {
+        guard let t = g.grainTarget else { return }
+        let remaining = raw.grain * noiseRemaining(afterBlur: g.blurSigmaView)
+        g.grainAddSigma = (max(0, t * t - remaining * remaining)).squareRoot()
+    }
+
     static func apply(to g: inout GradingParams, raw: TextureStats, ref: TextureStats) {
         let d = ref.edge - raw.edge
         if d > 0.08 {

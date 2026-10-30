@@ -12,6 +12,16 @@ struct ParameterPanel: View {
                     Section { referenceCard(profile) }
                 }
 
+                if let p = model.currentPreset {
+                    Section {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(p.mood.emoji) \(p.name)").font(.subheadline.bold())
+                            Text(p.note).font(.caption2).foregroundStyle(.secondary)
+                            Text("仿色风格，参数按公开的观感特征近似，非厂商官方配置").font(.caption2).foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+
                 if model.changes.isEmpty {
                     Section {
                         Text("还没有参考图。点左上角选一张喜欢的照片，App 会自动分析风格、调整相机，并在这里列出每一项改动。")

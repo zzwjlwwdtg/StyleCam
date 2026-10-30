@@ -225,3 +225,51 @@ final class GrainCalibrationTests: XCTestCase {
         print(report)
     }
 }
+
+// MARK: - 内置滤镜：每个富士 / 佳能同款在测试场景上的效果 + 统计
+final class PresetTests: XCTestCase {
+    func testPresets() throws {
+        let ctx = CIContext(options: [.cacheIntermediates: false])
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+        let bundle = Bundle(for: PresetTests.self)
+        let outDir = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
+            .appendingPathComponent("render-out/presets", isDirectory: true)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        var report = "内置滤镜 \(LookPresets.all.count) 个\n"
+        // id 不重复、名称都带“同款”
+        XCTAssertEqual(Set(LookPresets.all.map(\.id)).count, LookPresets.all.count)
+        for p in LookPresets.all { XCTAssertTrue(p.name.hasSuffix("同款"), p.name) }
+
+        for sceneName in ["scene_office2", "scene_forest"] {
+            let url = try XCTUnwrap(bundle.url(forResource: sceneName, withExtension: "jpg"))
+            let ci = try XCTUnwrap(CIImage(contentsOf: url, options: [.applyOrientationProperty: true]))
+            let tex = TextureEstimator.measure(ci, context: ctx)
+            let raw = StyleMatcher.stats(of: ci, context: ctx)
+            report += String(format: "\n== %@ == 输入 中位 L*%.1f 彩度 %.1f 颗粒σ %.4f\n", sceneName, raw?.median ?? -1, raw?.chroma ?? -1, tex?.grain ?? -1)
+            for p in LookPresets.all {
+                var g = p.grading
+                if let tex { TextureEstimator.applyGrainTarget(to: &g, raw: tex) }
+                let renderer = StyleRenderer()
+                renderer.update(g)
+                let out = renderer.apply(ci, state: renderer.snapshotState())
+                let st = StyleMatcher.stats(of: out, context: ctx)
+                let ot = TextureEstimator.measure(out, context: ctx)
+                let qs: [Int] = (st?.quantiles ?? []).enumerated().compactMap { (i: Int, v: Double) -> Int? in
+                    [0, 4, 10, 16, 20].contains(i) ? Int(v.rounded()) : nil
+                }
+                let qStr: String = "\(qs)"
+                report += String(format: "%@ 中位 L*%.1f 分位%@ 彩度 %.1f 色偏 a*%.1f b*%.1f | 补颗粒 %.4f → 实测 σ %.4f（目标 %.4f）\n",
+                                 p.id, st?.median ?? -1, qStr,
+                                 st?.chroma ?? -1, st?.cast?.x ?? 0, st?.cast?.y ?? 0,
+                                 g.grainAddSigma, ot?.grain ?? -1, g.grainTarget ?? 0)
+                let e = out.extent
+                let s = min(1, 600 / max(e.width, e.height))
+                let scaled = out.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: s, kCIInputAspectRatioKey: 1])
+                let flat = scaled.composited(over: CIImage(color: .black).cropped(to: scaled.extent))
+                try ctx.writeJPEGRepresentation(of: flat, to: outDir.appendingPathComponent("\(sceneName)_\(p.id).jpg"), colorSpace: srgb,
+                                                options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.85])
+            }
+        }
+        try report.write(to: outDir.appendingPathComponent("presets.txt"), atomically: true, encoding: .utf8)
+    }
+}

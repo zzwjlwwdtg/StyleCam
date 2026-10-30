@@ -1,0 +1,311 @@
+import Foundation
+import SwiftUI
+
+/// 内置滤镜：佳能 / 富士常用的网红风格，按情绪分组。
+/// 参数是按各胶片模拟 / 照片风格公开的观感特征仿制的近似值，并非厂商官方配置。
+/// Lab 色相参考：红 ~30°，橙/肤色 ~60°，黄 ~90°，绿 ~135°，青 ~200°，蓝 ~265°，品红 ~330°
+enum PresetMood: String, CaseIterable, Identifiable {
+    case gentle = "温柔治愈"
+    case nostalgic = "复古怀旧"
+    case cool = "清冷高级"
+    case vivid = "浓郁热烈"
+    case cinematic = "电影叙事"
+    case mono = "黑白经典"
+    var id: String { rawValue }
+    var emoji: String {
+        switch self {
+        case .gentle: return "🌸"
+        case .nostalgic: return "📼"
+        case .cool: return "🌫️"
+        case .vivid: return "🔥"
+        case .cinematic: return "🎬"
+        case .mono: return "🖤"
+        }
+    }
+}
+
+enum PresetBrand: String, CaseIterable, Identifiable {
+    case fuji = "富士"
+    case canon = "佳能"
+    var id: String { rawValue }
+}
+
+struct LookPreset: Identifiable {
+    let id: String
+    let name: String          // 显示名：xxx 同款
+    let brand: PresetBrand
+    let mood: PresetMood
+    let note: String          // 观感说明
+    let grading: GradingParams
+}
+
+enum LookPresets {
+    /// 富士式“高光 / 阴影”色调（-2…+4）→ 21 点影调曲线
+    static func toneCurve(highlights h: Double = 0, shadows s: Double = 0, mids m: Double = 0) -> [Double] {
+        StyleMatcher.grid.map { L in
+            let shadowBump = exp(-pow((L - 22) / 14, 2))
+            let highBump = exp(-pow((L - 80) / 13, 2))
+            let midBump = exp(-pow((L - 50) / 18, 2))
+            return ColorMath.clamp(L - s * 3.0 * shadowBump + h * 3.0 * highBump + m * 3.0 * midBump, 0, 100)
+        }
+    }
+
+    static let typicalPhoneGrain = 0.0028
+
+    private static func make(_ body: (inout GradingParams) -> Void) -> GradingParams {
+        var g = GradingParams()
+        g.skinProtect = 0.5
+        body(&g)
+        if let t = g.grainTarget {
+            // 颗粒按“目标总颗粒”给出；实际补多少由实时测得的画面噪点反推，这里先按 iPhone 原片约 0.0028 估一个初值
+            g.grain = 1
+            g.grainAddSigma = (max(0, t * t - typicalPhoneGrain * typicalPhoneGrain)).squareRoot()
+        }
+        return g
+    }
+
+
+    static let all: [LookPreset] = [
+        // MARK: 温柔治愈
+        LookPreset(id: "canon-portrait", name: "佳能 人像·奶油肤色同款", brand: .canon, mood: .gentle,
+                   note: "佳能照片风格“人像”：肤色偏粉嫩通透，影调柔和，绿色不抢戏",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -0.5, shadows: -0.5, mids: 0.5)
+                       $0.saturation = 0.95; $0.castA = 1.2; $0.castB = 1.5
+                       $0.hsl = [HSLBand(hue: 55, width: 30, dHue: -5, sat: 0.92, dL: 2.5),
+                                 HSLBand(hue: 135, width: 40, sat: 0.85)]
+                       $0.highlightRolloff = 0.08
+                       $0.skinProtect = 0
+                   }),
+        LookPreset(id: "fuji-astia", name: "富士 Astia 同款", brand: .fuji, mood: .gentle,
+                   note: "柔和人像：低反差、肤色细腻，蓝天和衣物颜色仍然清透",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -1, shadows: -1)
+                       $0.saturation = 1.05
+                       $0.hsl = [HSLBand(hue: 265, sat: 1.1), HSLBand(hue: 60, width: 30, sat: 0.95, dL: 1.5)]
+                   }),
+        LookPreset(id: "fuji-reggie-portra", name: "富士 Reggie's Portra 配方同款", brand: .fuji, mood: .gentle,
+                   note: "Fuji X Weekly 热门配方（Classic Chrome 底）：Portra 胶片的暖调与柔和肤色，万能日常",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -1, shadows: -0.5)
+                       $0.saturation = 0.9; $0.castA = 1.5; $0.castB = 4
+                       $0.shadowLift = 0.04; $0.highlightRolloff = 0.08
+                       $0.hsl = [HSLBand(hue: 135, width: 40, dHue: -10, sat: 0.8), HSLBand(hue: 60, width: 30, sat: 1.05)]
+                       $0.grainTarget = 0.0048
+                   }),
+        LookPreset(id: "fuji-reala-ace", name: "富士 Reala Ace 同款", brand: .fuji, mood: .gentle,
+                   note: "富士最新胶片模拟：颜色真实自然、反差适中，日系清新直出",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 0.5)
+                       $0.saturation = 1.05; $0.castB = 1
+                   }),
+
+        // MARK: 复古怀旧
+        LookPreset(id: "fuji-classic-chrome", name: "富士 Classic Chrome 同款", brand: .fuji, mood: .nostalgic,
+                   note: "经典纪实感：颜色克制偏灰、暗部更沉，蓝色偏青、红色偏砖红",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 1.5)
+                       $0.saturation = 0.75; $0.castB = 1
+                       $0.hsl = [HSLBand(hue: 265, dHue: -15, sat: 0.85), HSLBand(hue: 30, dHue: 6, sat: 0.85),
+                                 HSLBand(hue: 135, width: 40, dHue: 8, sat: 0.8)]
+                       $0.grainTarget = 0.0042
+                   }),
+        LookPreset(id: "fuji-kodachrome64", name: "富士 Kodachrome 64 配方同款", brand: .fuji, mood: .nostalgic,
+                   note: "Fuji X Weekly 长年第一的配方：Classic Chrome 底 + 暖白平衡，红黄浓、蓝色深，老杂志感",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 1.5)
+                       $0.saturation = 1.0; $0.castA = 2; $0.castB = 5
+                       $0.hsl = [HSLBand(hue: 30, sat: 1.2), HSLBand(hue: 90, sat: 1.1),
+                                 HSLBand(hue: 265, dHue: -10, sat: 1.1, dL: -4), HSLBand(hue: 135, width: 40, sat: 0.85)]
+                       $0.grainTarget = 0.0048
+                   }),
+        LookPreset(id: "fuji-kodak-gold", name: "富士 Kodak Gold 200 配方同款", brand: .fuji, mood: .nostalgic,
+                   note: "金黄暖调的夏日胶片：黄色和肤色暖、绿色偏黄，适合阳光街拍",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0, shadows: 1)
+                       $0.saturation = 1.05; $0.castA = 1.5; $0.castB = 8
+                       $0.hsl = [HSLBand(hue: 90, sat: 1.2), HSLBand(hue: 135, width: 40, dHue: -12, sat: 0.9)]
+                       $0.highlightTint = SIMD2(1, 3)
+                       $0.grainTarget = 0.0055
+                   }),
+        LookPreset(id: "fuji-nostalgic-neg", name: "富士 Nostalgic Neg 同款", brand: .fuji, mood: .nostalgic,
+                   note: "70 年代美国新彩色摄影风：高光琥珀暖色、暗部浓郁，整体柔和",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -1.5, shadows: 0.5)
+                       $0.saturation = 1.0; $0.castB = 2
+                       $0.highlightTint = SIMD2(2, 7); $0.shadowTint = SIMD2(0, -1)
+                       $0.highlightRolloff = 0.1
+                       $0.grainTarget = 0.0048
+                   }),
+        LookPreset(id: "fuji-classic-neg", name: "富士 Classic Neg 同款", brand: .fuji, mood: .nostalgic,
+                   note: "仿 Superia 负片：反差硬、暗部偏青、高光偏品红，绿色发青黄，街头感强",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 1, shadows: 2)
+                       $0.saturation = 0.85
+                       $0.shadowTint = SIMD2(-3, -4); $0.highlightTint = SIMD2(2, 3)
+                       $0.hsl = [HSLBand(hue: 135, width: 40, dHue: 15, sat: 0.85), HSLBand(hue: 30, dHue: -8, sat: 0.9)]
+                       $0.grainTarget = 0.0055
+                   }),
+        LookPreset(id: "canon-ccd", name: "佳能 IXUS CCD 同款", brand: .canon, mood: .nostalgic,
+                   note: "千禧年卡片机风：偏冷青、高光通透略过曝、轻微光晕，复古数码感",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 2, shadows: 1, mids: 1)
+                       $0.saturation = 1.1; $0.castA = -1; $0.castB = -3
+                       $0.hsl = [HSLBand(hue: 265, dHue: -12, sat: 1.15), HSLBand(hue: 135, width: 40, dHue: -10, sat: 1.1)]
+                       $0.softGlow = 0.35; $0.sharpen = 0.3
+                       $0.grainTarget = 0.0042
+                   }),
+
+        // MARK: 清冷高级
+        LookPreset(id: "fuji-pacific-blues", name: "富士 Pacific Blues 配方同款", brand: .fuji, mood: .cool,
+                   note: "Fuji X Weekly 最热门的 Classic Neg 配方：清冷蓝青调，海边、城市阴天很出片",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0, shadows: 1)
+                       $0.saturation = 0.9; $0.castA = -1; $0.castB = -4
+                       $0.hsl = [HSLBand(hue: 265, dHue: -8, sat: 1.15), HSLBand(hue: 135, width: 40, dHue: 20, sat: 0.85)]
+                       $0.shadowTint = SIMD2(-2, -3)
+                       $0.grainTarget = 0.0048
+                   }),
+        LookPreset(id: "canon-neutral-cool", name: "佳能 中性·清冷同款", brand: .canon, mood: .cool,
+                   note: "照片风格“中性”加冷白平衡：低饱和、干净克制的高级灰",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -0.5, shadows: -0.5)
+                       $0.saturation = 0.75; $0.castB = -3
+                       $0.highlightTint = SIMD2(-1, -2)
+                   }),
+
+        // MARK: 浓郁热烈
+        LookPreset(id: "fuji-velvia", name: "富士 Velvia 同款", brand: .fuji, mood: .vivid,
+                   note: "风光反转片：高饱和、高反差，蓝天绿植极其浓郁",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 1, shadows: 2)
+                       $0.saturation = 1.35
+                       $0.hsl = [HSLBand(hue: 135, width: 40, sat: 1.2), HSLBand(hue: 265, sat: 1.2, dL: -3)]
+                   }),
+        LookPreset(id: "canon-landscape", name: "佳能 风景同款", brand: .canon, mood: .vivid,
+                   note: "照片风格“风景”：蓝绿鲜明、轮廓清晰",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 1)
+                       $0.saturation = 1.15
+                       $0.hsl = [HSLBand(hue: 135, width: 40, dHue: 5, sat: 1.25), HSLBand(hue: 265, sat: 1.25)]
+                       $0.sharpen = 0.3
+                   }),
+        LookPreset(id: "canon-g7x", name: "佳能 G7X 网红色同款", brand: .canon, mood: .vivid,
+                   note: "vlog 网红卡片机直出：明亮、红润、颜色讨喜",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: -0.5, mids: 1.5)
+                       $0.saturation = 1.15; $0.castA = 2; $0.castB = 1
+                       $0.hsl = [HSLBand(hue: 30, sat: 1.15), HSLBand(hue: 350, sat: 1.15), HSLBand(hue: 60, width: 30, dHue: -4, dL: 2)]
+                       $0.skinProtect = 0
+                   }),
+
+        // MARK: 电影叙事
+        LookPreset(id: "fuji-eterna", name: "富士 Eterna 电影同款", brand: .fuji, mood: .cinematic,
+                   note: "电影负片：低饱和、低反差、暗部偏青，适合拍故事感的画面",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -1.5, shadows: -1.5)
+                       $0.saturation = 0.65; $0.shadowLift = 0.05
+                       $0.shadowTint = SIMD2(-2, -3); $0.highlightTint = SIMD2(1, 2)
+                   }),
+        LookPreset(id: "fuji-bleach-bypass", name: "富士 Eterna 漂白效果同款", brand: .fuji, mood: .cinematic,
+                   note: "银留（Bleach Bypass）：去饱和、高反差，冷硬的电影质感",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 2, shadows: 2.5)
+                       $0.saturation = 0.45
+                       $0.grainTarget = 0.0055
+                   }),
+        LookPreset(id: "fuji-cinestill", name: "富士 CineStill 800T 配方同款", brand: .fuji, mood: .cinematic,
+                   note: "Fuji X Weekly 配方（Eterna 底）：钨丝灯片偏冷、灯光带红色光晕，夜景霓虹神器",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 1)
+                       $0.saturation = 0.95; $0.castA = 1; $0.castB = -7
+                       $0.shadowTint = SIMD2(-2, -3)
+                       $0.hsl = [HSLBand(hue: 30, sat: 1.15)]
+                       $0.halation = 0.55
+                       $0.grainTarget = 0.006
+                   }),
+
+        // MARK: 黑白经典
+        LookPreset(id: "fuji-acros", name: "富士 Acros 同款", brand: .fuji, mood: .mono,
+                   note: "富士黑白：层次细腻、中灰丰富、颗粒细",
+                   grading: make {
+                       $0.monochrome = true
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 1)
+                       $0.grainTarget = 0.0055
+                   }),
+        LookPreset(id: "fuji-trix", name: "富士 Tri-X 400 配方同款", brand: .fuji, mood: .mono,
+                   note: "Fuji X Weekly 最热门黑白配方（Acros 底）：高反差、粗颗粒，经典街拍黑白",
+                   grading: make {
+                       $0.monochrome = true
+                       $0.toneCurve = toneCurve(highlights: 1.5, shadows: 2.5)
+                       $0.grainTarget = 0.0085
+                   }),
+        LookPreset(id: "canon-mono", name: "佳能 单色·暖调同款", brand: .canon, mood: .mono,
+                   note: "照片风格“单色”+ 棕褐色调：温暖柔和的黑白",
+                   grading: make {
+                       $0.monochrome = true
+                       $0.castA = 1.5; $0.castB = 5
+                       $0.toneCurve = toneCurve(highlights: -0.5, shadows: 0.5)
+                   }),
+    ]
+
+    static func preset(id: String) -> LookPreset? { all.first { $0.id == id } }
+
+    static func hueName(_ h: Double) -> String {
+        switch (h.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) {
+        case ..<15, 345...: return "品红"
+        case ..<45: return "红"
+        case ..<75: return "橙/肤色"
+        case ..<110: return "黄"
+        case ..<170: return "绿"
+        case ..<230: return "青"
+        case ..<300: return "蓝"
+        default: return "紫"
+        }
+    }
+
+    /// 参数面板里列出的“这个滤镜改了什么”
+    static func changes(for p: LookPreset) -> [ParameterChange] {
+        let g = p.grading
+        var rows: [ParameterChange] = []
+        func row(_ id: String, _ name: String, _ after: String, _ why: String) {
+            rows.append(ParameterChange(id: "preset-" + id, category: .grading, name: name, before: "原片",
+                                        after: after, reason: why, status: .applied))
+        }
+        rows.append(ParameterChange(id: "preset", category: .grading, name: "内置滤镜", before: "无",
+                                    after: p.name, reason: p.note + "（仿色风格，非厂商官方配置）", status: .info))
+        if let c = g.toneCurve {
+            let d = { (i: Int) in c[i] - StyleMatcher.grid[i] }
+            row("tone", "影调曲线", "暗部 \(Fmt.signed(d(4), 1)) · 中间 \(Fmt.signed(d(10), 1)) · 高光 \(Fmt.signed(d(16), 1)) L*",
+                "按胶片模拟的高光 / 阴影色调设定（负值 = 压暗，正值 = 提亮）")
+        }
+        if g.monochrome {
+            row("mono", "黑白", g.castA != 0 || g.castB != 0 ? "黑白 + 染色 a*\(Fmt.signed(g.castA, 1)) b*\(Fmt.signed(g.castB, 1))" : "黑白", "去掉颜色，只保留明暗层次")
+        } else {
+            if abs(g.saturation - 1) > 0.01 { row("sat", "饱和度", Fmt.percent(g.saturation), g.saturation > 1 ? "颜色更浓" : "颜色更克制") }
+            if g.castA != 0 || g.castB != 0 {
+                row("cast", "整体色偏", "\(ColorMath.hueName(a: g.castA, b: g.castB)) a*\(Fmt.signed(g.castA, 1)) b*\(Fmt.signed(g.castB, 1))", "模拟白平衡 / 胶片片基的色调")
+            }
+            if g.shadowTint != .zero || g.highlightTint != .zero {
+                row("split", "分离色调", "暗部 \(ColorMath.hueName(a: g.shadowTint.x, b: g.shadowTint.y)) · 高光 \(ColorMath.hueName(a: g.highlightTint.x, b: g.highlightTint.y))", "暗部和高光分别染色")
+            }
+            for (i, b) in g.hsl.enumerated() {
+                var parts: [String] = []
+                if b.dHue != 0 { parts.append("色相 \(Fmt.signed(b.dHue))°") }
+                if b.sat != 1 { parts.append("饱和 \(Fmt.percent(b.sat))") }
+                if b.dL != 0 { parts.append("亮度 \(Fmt.signed(b.dL, 1))") }
+                row("hsl\(i)", "\(hueName(b.hue))色", parts.joined(separator: " · "), "按色相单独调整")
+            }
+        }
+        if let t = g.grainTarget {
+            row("grain", "颗粒", String(format: "目标总颗粒 σ %.4f", t), "按取景画面已有的噪点反推只补差值，不和 iPhone 降噪 / 压缩噪点叠加")
+        }
+        if g.halation > 0 { row("halation", "高光光晕", Fmt.percent(g.halation), "模拟胶片高光周围的红色光晕") }
+        if g.softGlow > 0 { row("glow", "柔光", Fmt.percent(g.softGlow), "高光微微发散") }
+        if g.sharpen > 0 { row("sharpen", "锐化", Fmt.percent(g.sharpen), "轮廓更清晰") }
+        if g.vignette > 0 { row("vignette", "暗角", Fmt.percent(g.vignette), "四角压暗") }
+        rows.append(ParameterChange(id: "preset-exposure", category: .hardware, name: "曝光 / 白平衡", before: "自动",
+                                    after: "自动", reason: "内置滤镜不锁定硬件参数，只改调色；需要按某张照片调光圈快门时请用参考图", status: .info))
+        return rows
+    }
+}

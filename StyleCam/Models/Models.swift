@@ -139,7 +139,19 @@ struct GradingParams: Equatable {
     var greenTarget: SIMD2<Double>?     // 参考图植物的 a*/b*（分区调色）
     var skyTarget: SIMD2<Double>?       // 参考图天空的 a*/b*
     var regionStrength: Double = 0.6
+    var hsl: [HSLBand] = []             // 按色相分别调整（内置滤镜用）
+    var monochrome = false              // 黑白
+    var grainTarget: Double?            // 内置滤镜：目标总颗粒 σ（观看尺度），按当前画面噪点反推要补多少
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
+}
+
+/// 按色相调整：Lab 色相角 hue（度）附近 ±width 范围内的颜色，色相偏移 dHue、彩度倍率 sat、亮度偏移 dL
+struct HSLBand: Equatable {
+    var hue: Double
+    var width: Double = 35
+    var dHue: Double = 0
+    var sat: Double = 1
+    var dL: Double = 0
 }
 
 struct TempTint: Equatable {
@@ -340,7 +352,7 @@ struct EffectToggles: Equatable {
         if !vignette { o.vignette = 0 }
         if !toneColor {
             o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1; o.toneCurve = nil
-            o.castA = 0; o.castB = 0; o.shadowTint = .zero; o.highlightTint = .zero
+            o.castA = 0; o.castB = 0; o.shadowTint = .zero; o.highlightTint = .zero; o.hsl = []; o.monochrome = false
         }
         return o
     }

@@ -37,6 +37,10 @@ final class AppModel: ObservableObject {
     @Published var overlayOpacity: Double = 0.35
     @Published var outlineImage: UIImage?
     @Published var currentRecipeID: UUID?
+    /// 当前使用的内置滤镜（与参考图二选一）
+    @Published var currentPreset: LookPreset?
+    var hasStyle: Bool { referenceImage != nil || currentPreset != nil }
+    static let lastPresetKey = "lastPresetID"
     @Published var batchProgress: String?
     @Published var effects = EffectToggles() { didSet { camera.setEffects(effects) } }
     /// 按参考图画幅裁切（默认关闭）
@@ -93,6 +97,8 @@ final class AppModel: ObservableObject {
             }.value
             referenceImage = thumb
             referenceData = data
+            currentPreset = nil
+            UserDefaults.standard.removeObject(forKey: Self.lastPresetKey)
             self.profile = profile
             if let recipe {
                 currentRecipeID = recipe.id
@@ -128,6 +134,8 @@ final class AppModel: ObservableObject {
 
     func clearReference() {
         recipes.clearLast()
+        currentPreset = nil
+        UserDefaults.standard.removeObject(forKey: Self.lastPresetKey)
         currentRecipeID = nil
         referenceData = nil
         outlineImage = nil
@@ -177,19 +185,20 @@ final class AppModel: ObservableObject {
     // MARK: - 给相册里已有的照片套用当前风格（另存新照片，原图不动）
 
     func applyStyle(to items: [PhotosPickerItem]) async {
-        guard let profile, !items.isEmpty else { return }
+        guard hasStyle, !items.isEmpty else { return }
         let renderer = camera.renderer
         let base = renderer.snapshotState()
-        let refStats = profile.refStats
-        let v = variant, person = profile.faceCount > 0
-        let summary = "StyleCam 后期套用 | \(v.rawValue) | 强度 \(Fmt.percent(strength))"
+        let refStats = profile?.refStats
+        let refTexture = profile?.refTexture
+        let v = variant, person = (profile?.faceCount ?? 1) > 0
+        let summary = "StyleCam 后期套用 | \(currentPreset?.name ?? "参考图") | \(v.rawValue) | 强度 \(Fmt.percent(strength))"
         var ok = 0
         for (i, item) in items.enumerated() {
             batchProgress = "正在套用 \(i + 1)/\(items.count)…"
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             let err: String? = await withCheckedContinuation { cont in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, ref: refStats, refTexture: profile.refTexture,
+                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, ref: refStats, refTexture: refTexture,
                                                    variant: v, preferPerson: person, summary: summary) { thumb, err in
                         if let thumb { DispatchQueue.main.async { self.camera.lastPhoto = thumb } }
                         cont.resume(returning: err)
@@ -218,9 +227,39 @@ final class AppModel: ObservableObject {
         await loadReference(data, recipe: r)
     }
 
+    // MARK: - 内置滤镜（富士 / 佳能同款）
+
+    func applyPreset(_ p: LookPreset) async {
+        // 内置滤镜不需要参考图：清掉参考图与实时匹配，只换调色
+        recipes.clearLast()
+        currentRecipeID = nil
+        referenceData = nil
+        referenceImage = nil
+        outlineImage = nil
+        overlayMode = .off
+        profile = nil
+        matchAspect = false
+        currentPreset = p
+        UserDefaults.standard.set(p.id, forKey: Self.lastPresetKey)
+        camera.setReference(nil)
+        _ = await withCheckedContinuation { (cont: CheckedContinuation<DeviceSnapshot?, Never>) in
+            camera.resetAndSnapshot { cont.resume(returning: $0) }
+        }
+        var plan = CapturePlan(lens: camera.lens)
+        plan.grading = p.grading
+        plan.grading.strength = strength
+        self.plan = plan
+        changes = LookPresets.changes(for: p)
+        _ = await withCheckedContinuation { (cont: CheckedContinuation<ApplyReport, Never>) in
+            camera.apply(plan) { cont.resume(returning: $0) }
+        }
+    }
+
     private func restoreLast() async {
         guard profile == nil else { return }
-        if let r = recipes.lastUsed {
+        if let id = UserDefaults.standard.string(forKey: Self.lastPresetKey), let p = LookPresets.preset(id: id) {
+            await applyPreset(p)
+        } else if let r = recipes.lastUsed {
             await applyRecipe(r)
         } else if let data = recipes.lastReferenceData() {
             await loadReference(data)
