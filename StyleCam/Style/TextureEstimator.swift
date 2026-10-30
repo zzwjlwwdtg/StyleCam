@@ -36,7 +36,7 @@ enum TextureEstimator {
         g.grainAddSigma = (max(0, ref.grain * ref.grain - raw.grain * raw.grain)).squareRoot()
         let d = ref.edge - raw.edge
         if d > 0.08 {
-            g.blurSigmaView = (ref.edge * ref.edge - raw.edge * raw.edge).squareRoot() * 0.8
+            g.blurSigmaView = (ref.edge * ref.edge - raw.edge * raw.edge).squareRoot()
             g.sharpen = 0
         } else if d < -0.12 {
             g.blurSigmaView = 0
@@ -45,8 +45,9 @@ enum TextureEstimator {
             g.blurSigmaView = 0
             g.sharpen = 0
         }
-        // 参考图四角比当前画面更暗才补暗角（扣除镜头本身已有的暗角）
+        // 暗角：四角亮度很大程度取决于画面内容（参考图角落是深色树干、取景角落是白色打印机），
+        // 差值也不可靠，所以只在参考图明显更暗时补一点点（四角最多暗约 10%；标定：0.12 → 四角/中心 0.89）
         let dv = raw.vignette - ref.vignette
-        g.vignette = dv > 0.04 ? min(1, dv / 0.5) : 0
+        g.vignette = dv > 0.08 ? min(0.12, dv / 0.9) : 0
     }
 }
