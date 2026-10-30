@@ -189,7 +189,7 @@ final class StyleRenderer: @unchecked Sendable {
     /// 注意：CIRandomGenerator 的 alpha 也是随机的，必须把 alpha 固定为 1，否则叠加后会变成大片黑白噪点
     private func addGrain(_ img: CIImage, amount: Double, scale: CGFloat) -> CIImage {
         let extent = img.extent
-        let amp = CGFloat(min(0.35, amount * 0.25))          // 颗粒幅度（围绕 0.5 上下）
+        let amp = CGFloat(min(0.4, amount * 0.32))           // 颗粒幅度（围绕 0.5 上下）
         func noiseLayer(size: CGFloat) -> CIImage? {
             guard let noise = CIFilter.randomGenerator().outputImage else { return nil }
             let w = amp / 3

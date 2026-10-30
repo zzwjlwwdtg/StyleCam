@@ -143,8 +143,10 @@ final class RenderTests: XCTestCase {
             }
         }
         let n = Double(Ls.count)
-        return String(format: "alpha[%.2f,%.2f] L*中位 %.1f 压黑 %.1f%% 过曝 %.1f%% 彩度 %.1f",
-                      aMin, aMax, ColorMath.median(Ls), Double(dark) / n * 100, Double(bright) / n * 100, chroma / n)
+        let sorted = Ls.sorted()
+        let q = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99].map { Int(ColorMath.percentile(sorted, $0).rounded()) }
+        return String(format: "alpha[%.2f,%.2f] L*中位 %.1f 压黑 %.1f%% 过曝 %.1f%% 彩度 %.1f 分位 ",
+                      aMin, aMax, ColorMath.median(Ls), Double(dark) / n * 100, Double(bright) / n * 100, chroma / n) + "\(q)"
     }
 
     private func save(_ img: CIImage, _ url: URL) throws {

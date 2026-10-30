@@ -6,6 +6,7 @@ struct SceneStats: Equatable {
     var quantiles: [Double]          // L* 在 1%,5%,10%,…,95%,99% 处的值
     var chroma: Double
     var cast: SIMD2<Double>?
+    var chromaRel: Double = 0        // 以中性色偏为原点的平均彩度（去掉整体色偏带来的彩度）
     var median: Double { quantiles.count == 21 ? quantiles[10] : 50 }
 }
 
@@ -23,18 +24,25 @@ enum StyleMatcher {
         Ls.reserveCapacity(w * h)
         var chroma = 0.0
         var nA: [Double] = [], nB: [Double] = []
+        var allA: [Double] = [], allB: [Double] = []
+        allA.reserveCapacity(w * h); allB.reserveCapacity(w * h)
         for p in 0..<(w * h) {
             let i = p * 4
             let lab = ColorMath.linearRGBToLab(lut[Int(bytes[i])], lut[Int(bytes[i + 1])], lut[Int(bytes[i + 2])])
             let c = (lab.a * lab.a + lab.b * lab.b).squareRoot()
             Ls.append(lab.L)
+            allA.append(lab.a); allB.append(lab.b)
             chroma += c
             if lab.L > 25, lab.L < 85, c < 22 { nA.append(lab.a); nB.append(lab.b) }
         }
         Ls.sort()
         let n = max(1, Ls.count)
         let cast: SIMD2<Double>? = nA.count > n / 50 ? SIMD2(ColorMath.median(nA), ColorMath.median(nB)) : nil
-        return SceneStats(quantiles: probs.map { ColorMath.percentile(Ls, $0) }, chroma: chroma / Double(n), cast: cast)
+        let o = cast ?? .zero
+        var rel = 0.0
+        for i in 0..<allA.count { rel += ((allA[i] - o.x) * (allA[i] - o.x) + (allB[i] - o.y) * (allB[i] - o.y)).squareRoot() }
+        return SceneStats(quantiles: probs.map { ColorMath.percentile(Ls, $0) }, chroma: chroma / Double(n), cast: cast,
+                          chromaRel: rel / Double(n))
     }
 
     static func stats(of image: CIImage, context: CIContext, maxSide: CGFloat = 96) -> SceneStats? {
@@ -76,7 +84,12 @@ enum StyleMatcher {
             let t = (L - xs[i - 1]) / (xs[i] - xs[i - 1])
             return ys[i - 1] + t * (ys[i] - ys[i - 1])
         }
-        var out = grid.map { L in L + strength * (f(L) - L) }
+        // 黑位/白位（两端）对齐得更充分：中间调 strength，两端最多 +0.35
+        var out = grid.map { L -> Double in
+            let edge = ColorMath.smoothstep(25, 2, L) + ColorMath.smoothstep(75, 98, L)
+            let s = min(1, strength + 0.35 * edge)
+            return L + s * (f(L) - L)
+        }
         // 单调、斜率限制在 0.4–2.5，两端固定在 0…100 范围内
         out[0] = ColorMath.clamp(out[0], 0, 30)
         for i in 1..<out.count {
@@ -105,7 +118,10 @@ enum StyleMatcher {
         } else {
             g.toneCurve = curve
         }
-        let sat = raw.chroma > 0.5 ? ColorMath.clamp(ref.chroma * variant.chromaFactor / raw.chroma, 0.4, 1.6) : 1
+        // 彩度比用“去掉整体色偏后的彩度”，避免色偏补齐后又把彩度推高
+        let rc = ref.chromaRel > 0.5 ? ref.chromaRel : ref.chroma
+        let lc = raw.chromaRel > 0.5 ? raw.chromaRel : raw.chroma
+        let sat = lc > 0.5 ? ColorMath.clamp(rc * variant.chromaFactor / lc, 0.4, 1.6) : 1
         g.saturation += alpha * (sat - g.saturation)
         if let rc = ref.cast, let lc = raw.cast {
             let t = rc * variant.castFactor - lc
