@@ -38,6 +38,15 @@ final class AppModel: ObservableObject {
     @Published var outlineImage: UIImage?
     @Published var currentRecipeID: UUID?
     @Published var batchProgress: String?
+    /// 按参考图画幅裁切（默认关闭）
+    @Published var matchAspect = false {
+        didSet {
+            camera.setMatchAspect(matchAspect)
+            if let i = changes.firstIndex(where: { $0.id == "crop" }) {
+                changes[i].status = matchAspect ? .applied : .info
+            }
+        }
+    }
     private(set) var referenceData: Data?
     private var readySub: AnyCancellable?
 
@@ -156,6 +165,7 @@ final class AppModel: ObservableObject {
             camera.apply(newPlan) { cont.resume(returning: $0) }
         }
         ParameterPlanner.merge(report: report, plan: newPlan, into: &changes)
+        if matchAspect, let i = changes.firstIndex(where: { $0.id == "crop" }) { changes[i].status = .applied }
     }
 
     private func isUnsupported(_ c: ParameterChange) -> Bool {

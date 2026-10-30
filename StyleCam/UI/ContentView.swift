@@ -179,7 +179,7 @@ struct ContentView: View {
                 opacity: model.overlayOpacity,
                 faceRect: model.profile?.faceRect,
                 subjectRect: model.profile?.subjectRect,
-                previewAspect: CompositionOverlay.previewAspect(cropRatio: model.plan?.grading.cropRatio),
+                previewAspect: CompositionOverlay.previewAspect(cropRatio: model.matchAspect ? model.plan?.grading.cropRatio : nil),
                 captureAngle: camera.captureRotationAngle,
                 roll: level.roll,
                 pitch: level.pitch,

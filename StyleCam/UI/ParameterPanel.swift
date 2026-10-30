@@ -36,6 +36,9 @@ struct ParameterPanel: View {
                     if let st = camera.autoMatchStatus, model.autoMatchExposure {
                         Text("当前：" + st).font(.caption2).foregroundStyle(.secondary)
                     }
+                    if let p = model.profile, abs(p.aspect - 4.0 / 3.0) > 0.08 {
+                        Toggle(String(format: "按参考图画幅裁切（%.2f:1）", p.aspect), isOn: $model.matchAspect)
+                    }
                     Toggle("48MP 拍摄", isOn: $model.use48MP)
                     if camera.proRAWSupported {
                         Toggle("同时保存 ProRAW 底片（DNG）", isOn: Binding(

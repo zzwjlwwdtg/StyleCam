@@ -231,10 +231,10 @@ enum ParameterPlanner {
         // ---- 9b. 画幅比例 ----
         if abs(profile.aspect - 4.0 / 3.0) > 0.08 {
             plan.grading.cropRatio = profile.aspect
-            changes.append(.init(id: "crop", category: .hardware, name: "画幅比例",
-                                 before: "4:3", after: String(format: "%.2f:1", profile.aspect),
-                                 reason: "按参考图画幅中心裁切（预览同步显示）。参考图是\(profile.isLandscape ? "横幅，把手机横过来拍更接近" : "竖幅")",
-                                 status: .applied))
+            changes.append(.init(id: "crop", category: .hardware, name: "画幅比例（可选）",
+                                 before: "4:3", after: String(format: "参考图 %.2f:1", profile.aspect),
+                                 reason: "默认不改画幅。在下方「拍摄选项」勾选后按参考图画幅中心裁切（预览同步显示）。参考图是\(profile.isLandscape ? "横幅，裁切时把手机横过来拍更接近" : "竖幅")",
+                                 status: .info))
         }
 
         // ---- 10. 软件调色 ----
