@@ -178,10 +178,11 @@ final class StyleRenderer: @unchecked Sendable {
                 "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
                 "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 1)
             ])
-        let add = CIFilter.additionCompositing()
-        add.inputImage = glow
-        add.backgroundImage = img
-        return add.outputImage?.cropped(to: extent) ?? img
+        // 用“滤色”叠加：结果 alpha 始终为 1（加法叠加会让 alpha 变成 2，后续滤镜反预乘后整张图被压暗）
+        let screen = CIFilter.screenBlendMode()
+        screen.inputImage = glow
+        screen.backgroundImage = img
+        return screen.outputImage?.cropped(to: extent) ?? img
     }
 
     /// 胶片颗粒：两种尺度的单色噪声混合；按亮度调制，中间调最明显、高光和暗部较弱（与真实胶片一致）

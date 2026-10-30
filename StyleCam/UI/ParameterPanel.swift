@@ -30,6 +30,20 @@ struct ParameterPanel: View {
                     }
                 }
 
+                Section {
+                    Toggle("影调与色彩（曲线/饱和度/色偏）", isOn: $model.effects.toneColor)
+                    Toggle("背景虚化补足", isOn: $model.effects.bokeh)
+                    Toggle("肤色保护", isOn: $model.effects.skin)
+                    Toggle("分区调色（植物/天空）", isOn: $model.effects.region)
+                    Toggle("高光光晕", isOn: $model.effects.halation)
+                    Toggle("颗粒", isOn: $model.effects.grain)
+                    Toggle("暗角", isOn: $model.effects.vignette)
+                } header: {
+                    Text("效果开关")
+                } footer: {
+                    Text("画面不对劲时可以逐个关掉，找出是哪个效果的问题；关掉后预览、拍照、视频、套用相册都会同步。")
+                }
+
                 Section("拍摄选项") {
                     Toggle("白平衡偏移跟随场景", isOn: $model.wbFollow)
                     Toggle("实时对齐亮度 / 饱和度 / 色偏", isOn: $model.autoMatchExposure)

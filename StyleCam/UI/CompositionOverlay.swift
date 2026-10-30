@@ -17,6 +17,7 @@ struct CompositionOverlay: View {
     let isLevel: Bool
     let hint: String?
     let aligned: Bool
+    var referenceIsLandscape = false
 
     var body: some View {
         GeometryReader { geo in
@@ -28,8 +29,10 @@ struct CompositionOverlay: View {
             let cw = swapped ? fit.height : fit.width
             let ch = swapped ? fit.width : fit.height
 
+            // 参考图方向与当前拍摄方向不一致时，叠加没有意义，只提示转动手机
+            let orientationMismatch = referenceIsLandscape != swapped
             ZStack {
-                if mode != .off {
+                if mode != .off && !orientationMismatch {
                     overlayContent(width: cw, height: ch)
                         .frame(width: cw, height: ch)
                         .clipped()
@@ -41,7 +44,9 @@ struct CompositionOverlay: View {
                 levelLine(fit: fit, landscape: swapped)
                     .allowsHitTesting(false)
 
-                if let hint {
+                if let hint = (mode != .off && orientationMismatch)
+                    ? (referenceIsLandscape ? "参考图是横幅，把手机横过来拍" : "参考图是竖幅，把手机竖起来拍")
+                    : hint {
                     Text(hint)
                         .font(.caption.bold())
                         .padding(.horizontal, 10).padding(.vertical, 5)

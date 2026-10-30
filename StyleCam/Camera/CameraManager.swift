@@ -99,6 +99,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _preferPerson = true
     private var _variant: StyleVariant = .faithful
     private var _matchAspect = false
+    private var _effects = EffectToggles()
     private var _refFace: CGRect?
     private var _refMagnification: Double?
     private var _captureAngle: Int = 90
@@ -430,10 +431,15 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
     /// 把“计划里的调色参数 + 当前版本（忠实/柔和/浓郁）”交给渲染器（只在 sessionQueue 上调用）
     private func pushGrading() {
-        let (v, crop) = locked { (_variant, _matchAspect) }
-        var g = v.apply(plan.grading)
+        let (v, crop, fx) = locked { (_variant, _matchAspect, _effects) }
+        var g = fx.apply(v.apply(plan.grading))
         if !crop { g.cropRatio = nil }           // 画幅裁切默认关闭，需在参数面板勾选
         renderer.update(g)
+    }
+
+    func setEffects(_ e: EffectToggles) {
+        locked { _effects = e }
+        sessionQueue.async { self.pushGrading() }
     }
 
     func setMatchAspect(_ on: Bool) {

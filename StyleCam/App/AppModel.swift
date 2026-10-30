@@ -38,6 +38,7 @@ final class AppModel: ObservableObject {
     @Published var outlineImage: UIImage?
     @Published var currentRecipeID: UUID?
     @Published var batchProgress: String?
+    @Published var effects = EffectToggles() { didSet { camera.setEffects(effects) } }
     /// 按参考图画幅裁切（默认关闭）
     @Published var matchAspect = false {
         didSet {

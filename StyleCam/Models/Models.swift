@@ -311,3 +311,31 @@ enum NormRect {
         CGRect(x: r.minX, y: 1 - r.maxY, width: r.width, height: r.height)
     }
 }
+
+
+// MARK: - 效果开关（排查问题 / 按喜好关闭）
+
+struct EffectToggles: Equatable {
+    var bokeh = true        // 计算补足的背景虚化
+    var skin = true         // 肤色保护
+    var region = true       // 分区调色（植物 / 天空）
+    var halation = true     // 高光光晕
+    var grain = true        // 颗粒
+    var vignette = true     // 暗角
+    var toneColor = true    // 影调与色彩（曲线、饱和度、色偏、分离色调）
+
+    func apply(_ g: GradingParams) -> GradingParams {
+        var o = g
+        if !bokeh { o.backgroundBlur = 0 }
+        if !skin { o.skinProtect = 0 }
+        if !region { o.greenTarget = nil; o.skyTarget = nil }
+        if !halation { o.halation = 0 }
+        if !grain { o.grain = 0 }
+        if !vignette { o.vignette = 0 }
+        if !toneColor {
+            o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1
+            o.castA = 0; o.castB = 0; o.shadowTint = .zero; o.highlightTint = .zero
+        }
+        return o
+    }
+}
