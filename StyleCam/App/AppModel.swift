@@ -180,8 +180,7 @@ final class AppModel: ObservableObject {
         guard let profile, !items.isEmpty else { return }
         let renderer = camera.renderer
         let base = renderer.snapshotState()
-        let targets = PhotoProcessor.Targets(medianL: profile.medianL, chroma: profile.meanChroma,
-                                             cast: SIMD2(profile.castA, profile.castB))
+        let refStats = profile.refStats
         let v = variant, person = profile.faceCount > 0
         let summary = "StyleCam 后期套用 | \(v.rawValue) | 强度 \(Fmt.percent(strength))"
         var ok = 0
@@ -190,7 +189,7 @@ final class AppModel: ObservableObject {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             let err: String? = await withCheckedContinuation { cont in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, targets: targets,
+                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, ref: refStats,
                                                    variant: v, preferPerson: person, summary: summary) { thumb, err in
                         if let thumb { DispatchQueue.main.async { self.camera.lastPhoto = thumb } }
                         cont.resume(returning: err)

@@ -21,7 +21,7 @@ final class RenderTests: XCTestCase {
         // 1. 参考图分析
         let refURL = try XCTUnwrap(bundle.url(forResource: "reference", withExtension: "jpg"))
         let (profile, _) = try StyleAnalyzer.analyze(data: Data(contentsOf: refURL))
-        report += "== 参考图分析 ==\n" + describe(profile) + "\n"
+        report += "== 参考图分析 ==\n" + describe(profile) + "\n参考图分位: \(profile.refStats.quantiles.map { Int($0.rounded()) }) 彩度 \(fmt(profile.refStats.chroma))\n"
 
         // 2. 参数规划（模拟 18 Pro Max 主摄能力）
         let caps = HardwareCapabilities(
@@ -66,7 +66,12 @@ final class RenderTests: XCTestCase {
             for (name, fx) in configs {
                 for variant in (name == "01_full" ? StyleVariant.allCases : [.faithful]) {
                     let renderer = StyleRenderer()
-                    var g = fx.apply(variant.apply(plan.grading))
+                    // 模拟实时匹配：用未调色画面的统计对齐参考图
+                    var matched = plan.grading
+                    if let raw = StyleMatcher.stats(of: ci, context: ctx) {
+                        StyleMatcher.apply(to: &matched, raw: raw, ref: profile.refStats, variant: variant, alpha: 1)
+                    }
+                    var g = fx.apply(variant.apply(matched))
                     g.cropRatio = nil
                     renderer.update(g)
                     let st = renderer.snapshotState()
@@ -79,10 +84,10 @@ final class RenderTests: XCTestCase {
 
             // 相册套用路径（按照片自适应）
             let renderer = StyleRenderer()
-            renderer.update(plan.grading)
-            let targets = PhotoProcessor.Targets(medianL: profile.medianL, chroma: profile.meanChroma,
-                                                 cast: SIMD2(profile.castA, profile.castB))
-            let adapted = PhotoProcessor.adaptedState(renderer.snapshotState(), for: ci, targets: targets, variant: .faithful)
+            var base = plan.grading
+            base.cropRatio = nil
+            renderer.update(base)
+            let adapted = PhotoProcessor.adaptedState(renderer.snapshotState(), for: ci, ref: profile.refStats, variant: .faithful)
             let out = renderer.apply(ci, state: adapted, masks: PhotoProcessor.masks(for: ci, state: adapted, preferPerson: true))
             report += "09_album_adapted: \(stats(out))  (EV \(String(format: "%.2f", adapted.params.exposureEV)), sat \(String(format: "%.2f", adapted.params.saturation)), cast \(String(format: "%.1f/%.1f", adapted.params.castA, adapted.params.castB)))\n\n"
             try save(out, outDir.appendingPathComponent("\(scene)_09_album_adapted.jpg"))

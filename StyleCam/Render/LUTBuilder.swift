@@ -38,7 +38,9 @@ enum LUTBuilder {
                     let lab = ColorMath.linearRGBToLab(lr, lg, lb)
 
                     // 影调：S 曲线 + 黑白位
-                    var t = ColorMath.clamp(lab.L / 100, 0, 1)
+                    // 影调匹配曲线（分位点对齐参考图），之后再叠加版本带来的对比/褪色
+                    let matchedL = p.toneCurve.map { StyleMatcher.evalCurve($0, lab.L) } ?? lab.L
+                    var t = ColorMath.clamp(matchedL / 100, 0, 1)
                     let tOrig = t
                     t = t - k * sin(twoPi * t) / twoPi
                     t = lift + t * (1 - lift - roll)

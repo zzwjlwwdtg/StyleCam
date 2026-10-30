@@ -239,13 +239,16 @@ enum ParameterPlanner {
 
         // ---- 10. 软件调色 ----
         var g = plan.grading
-        g.contrast = profile.contrast * 0.8
-        g.shadowLift = profile.shadowLift
-        g.highlightRolloff = profile.highlightRolloff
-        g.saturation = ColorMath.clamp(profile.saturation, 0.25, 1.6)
+        // 影调、彩度、色偏不再直接套参考图的绝对值，而是由 StyleMatcher 按“当前画面 → 参考图”实时对齐；
+        // 这里只给初始的中性值
+        g.contrast = 0
+        g.shadowLift = 0
+        g.highlightRolloff = 0
+        g.saturation = 1
         g.shadowTint = profile.shadowTint
         g.highlightTint = profile.highlightTint
-        g.vignette = profile.vignette
+        // 参考图四角偏暗大多是画面内容（如深色树干），只把明显超出的部分当作后期暗角
+        g.vignette = max(0, profile.vignette - 0.35) * 0.6
         g.grain = profile.grain
         g.sharpen = profile.sharpness > 0.3 ? profile.sharpness * 0.5 : 0
         g.softGlow = profile.sharpness < -0.4 ? -profile.sharpness * 0.6 : 0
@@ -261,20 +264,14 @@ enum ParameterPlanner {
             changes.append(.init(id: id, category: .grading, name: name, before: "原始", after: after,
                                  reason: reason, status: .applied))
         }
-        if abs(g.contrast) > 0.08 {
-            gradingRow("contrast", "对比度（S 曲线）", Fmt.signed(g.contrast * 100), g.contrast > 0 ? "参考图反差大" : "参考图反差小、偏柔和")
-        }
-        if g.shadowLift > 0.05 {
-            gradingRow("lift", "黑位提升（褪色）", Fmt.percent(g.shadowLift), "参考图最暗处 L*=\(Int(profile.blackPoint))，没有纯黑，胶片/日系常见")
-        }
-        if g.highlightRolloff > 0.05 {
-            gradingRow("rolloff", "高光压缩", Fmt.percent(g.highlightRolloff), "参考图最亮处 L*=\(Int(profile.whitePoint))，高光不死白")
-        }
-        if abs(g.saturation - 1) > 0.08 {
-            gradingRow("sat", "饱和度", Fmt.percent(g.saturation), g.saturation > 1 ? "参考图色彩浓郁" : "参考图色彩淡雅")
-        }
-        if g.castA != 0 || g.castB != 0 {
-            gradingRow("cast", "整体色偏（软件）", "a*\(Fmt.signed(g.castA, 1)) b*\(Fmt.signed(g.castB, 1))", "当前镜头不支持自定义白平衡增益，改用软件补偿")
+        gradingRow("tone", "影调（亮度分布匹配）",
+                   String(format: "黑 L*%.0f · 中 L*%.0f · 白 L*%.0f", profile.refStats.quantiles.first ?? 0, profile.refStats.median, profile.refStats.quantiles.last ?? 100),
+                   "实时测量取景画面的亮度分布，按 21 个分位点向参考图对齐（忠实 60% / 柔和 40% / 浓郁 80%）；用参考图本身测试时几乎不变")
+        gradingRow("sat", "色彩浓度（匹配）", String(format: "目标平均彩度 %.1f", profile.refStats.chroma),
+                   "按“参考图彩度 ÷ 当前画面彩度”实时调整，场景本身灰就少降、本身艳就多降")
+        if let c = profile.refStats.cast {
+            gradingRow("cast", "整体色偏（匹配）", String(format: "目标中性色 a*%+.1f b*%+.1f", c.x, c.y),
+                       "按“参考图色偏 − 当前画面色偏”补齐，硬件白平衡已覆盖的部分不重复加")
         }
         if Fmt.tint(g.shadowTint) != "无" {
             gradingRow("shadowTint", "暗部色调（分离色调）", Fmt.tint(g.shadowTint), "参考图暗部偏\(ColorMath.hueName(a: g.shadowTint.x, b: g.shadowTint.y))")

@@ -100,6 +100,7 @@ struct StyleProfile: Equatable {
     var histogram: [Double]        // 32 档 L* 直方图（归一化）
     var exif: ReferenceEXIF
     var optics: ReferenceOptics
+    var refStats: SceneStats       // 用于实时匹配的参考图统计
     var aspect: Double             // 长边 / 短边
     var isLandscape: Bool
     var faceRect: CGRect?          // 最大人脸，归一化、左上角原点
@@ -115,6 +116,7 @@ struct StyleProfile: Equatable {
 
 struct GradingParams: Equatable {
     var exposureEV: Double = 0
+    var toneCurve: [Double]?            // 影调匹配曲线：输入 L*=0,5,…,100 时的输出（由 StyleMatcher 实时计算）
     var contrast: Double = 0            // -1...1
     var shadowLift: Double = 0          // 0...1
     var highlightRolloff: Double = 0    // 0...1
@@ -333,7 +335,7 @@ struct EffectToggles: Equatable {
         if !grain { o.grain = 0 }
         if !vignette { o.vignette = 0 }
         if !toneColor {
-            o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1
+            o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1; o.toneCurve = nil
             o.castA = 0; o.castB = 0; o.shadowTint = .zero; o.highlightTint = .zero
         }
         return o

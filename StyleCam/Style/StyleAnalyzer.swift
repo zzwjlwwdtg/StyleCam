@@ -146,6 +146,7 @@ enum StyleAnalyzer {
             histogram: hist,
             exif: exif,
             optics: optics,
+            refStats: StyleMatcher.stats(rgba: px.bytes, width: px.width, height: px.height),
             aspect: Double(max(medium.width, medium.height)) / Double(max(1, min(medium.width, medium.height))),
             isLandscape: medium.width > medium.height,
             faceRect: faceRects.max(by: { $0.height < $1.height }).map(NormRect.fromVision),

@@ -46,7 +46,7 @@ struct ParameterPanel: View {
 
                 Section("拍摄选项") {
                     Toggle("白平衡偏移跟随场景", isOn: $model.wbFollow)
-                    Toggle("实时对齐亮度 / 饱和度 / 色偏", isOn: $model.autoMatchExposure)
+                    Toggle("按参考图实时匹配影调 / 色彩（建议开启）", isOn: $model.autoMatchExposure)
                     if let st = camera.autoMatchStatus, model.autoMatchExposure {
                         Text("当前：" + st).font(.caption2).foregroundStyle(.secondary)
                     }

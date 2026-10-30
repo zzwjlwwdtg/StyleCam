@@ -91,6 +91,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _refMedianL: Double?
     private var _refChroma: Double?
     private var _refCast: SIMD2<Double>?
+    private var _refStats: SceneStats?
     private var _autoMatch = false
     private var _wbFollow = true
     private var _saveOriginal = false
@@ -474,6 +475,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             _refMedianL = profile?.medianL
             _refChroma = profile?.meanChroma
             _refCast = profile.map { SIMD2($0.castA, $0.castB) }
+            _refStats = profile?.refStats
             _refFace = profile?.faceRect
             _refMagnification = profile?.optics.magnification
             _preferPerson = (profile?.faceCount ?? 1) > 0
@@ -663,7 +665,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
     // MARK: - 实时直方图与匹配度
 
-    private func analyzeLive(_ image: CIImage, device d: AVCaptureDevice?) {
+    private func analyzeLive(_ image: CIImage, raw: CIImage, device d: AVCaptureDevice?) {
         let extent = image.extent
         guard extent.width > 0, extent.height > 0 else { return }
         // 用 Lanczos 缩小（会做区域平均），避免颗粒/噪点让亮度统计失真
@@ -698,66 +700,49 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
         let total = Double(w * h)
         hist = hist.map { $0 / total }
-        let liveMedian = ColorMath.median(Ls)
-        let liveChroma = chromaSum / total
-        let liveCast: SIMD2<Double>? = nA.count > Int(total) / 50 ? SIMD2(ColorMath.median(nA), ColorMath.median(nB)) : nil
-
-        let (ref, refMedian, autoMatch) = locked { (_refHistogram, _refMedianL, _autoMatch) }
-        let (refChroma0, refCast0, variant) = locked { (_refChroma, _refCast, _variant) }
-        let refChroma = refChroma0.map { $0 * variant.chromaFactor }
-        let refCast = refCast0.map { $0 * variant.castFactor }
+        let (ref, autoMatch, variant, refStats) = locked { (_refHistogram, _autoMatch, _variant, _refStats) }
         var score: Double?
         if let ref {
             score = zip(ref, hist).reduce(0) { $0 + min($1.0, $1.1) }   // 直方图交集 0...1
         }
 
-        // 闭环对齐（饱和度 / 色偏）：按实际取景内容调整，而不是套固定倍率
-        // （参考图是绿意浓的树林、取景是灰色办公室时，固定倍率会把画面压得过灰）
-        if autoMatch, Date().timeIntervalSince(lastColorMatch) > 0.4 {
-            lastColorMatch = Date()
-            var dSat = 1.0, dA = 0.0, dB = 0.0
-            if let refChroma, liveChroma > 0.5 {
-                let ratio = refChroma / liveChroma
-                if ratio < 0.93 || ratio > 1.07 { dSat = min(1.06, max(0.94, ratio.squareRoot())) }
-            }
-            if let rc = refCast, let lc = liveCast {
-                let ea = rc.x - lc.x, eb = rc.y - lc.y
-                if abs(ea) > 1 { dA = max(-0.8, min(0.8, ea * 0.3)) }
-                if abs(eb) > 1 { dB = max(-0.8, min(0.8, eb * 0.3)) }
-            }
-            if dSat != 1 || dA != 0 || dB != 0 {
-                let (fs, fa, fb) = (dSat, dA, dB)
-                sessionQueue.async {
-                    var g = self.plan.grading
-                    g.saturation = max(0.3, min(1.8, g.saturation * fs))
-                    g.castA = max(-15, min(15, g.castA + fa))
-                    g.castB = max(-15, min(15, g.castB + fb))
-                    self.plan.grading = g
-                    self.pushGrading()
-                    let status = "饱和 \(Fmt.percent(g.saturation)) · 色偏 a*\(Fmt.signed(g.castA, 1)) b*\(Fmt.signed(g.castB, 1))"
-                    DispatchQueue.main.async { self.autoMatchStatus = status }
-                }
-            }
+        // 风格匹配：用“未调色”的取景帧统计，按分位点对齐影调、按比值对齐彩度、按差值对齐色偏（时间平滑防闪烁）
+        guard autoMatch, let refStats, let rawStats = StyleMatcher.stats(of: raw, context: histContext) else {
+            publishReadout(hist: hist, score: score, device: d)
+            return
+        }
+        sessionQueue.async {
+            var g = self.plan.grading
+            StyleMatcher.apply(to: &g, raw: rawStats, ref: refStats, variant: variant, alpha: 0.35)
+            self.plan.grading = g
+            self.pushGrading()
+            let status = String(format: "画面中位 L*%.0f→%.0f · 彩度 %.1f→%.1f（×%.2f）· 色偏 a*%+.1f b*%+.1f",
+                                rawStats.median, refStats.median, rawStats.chroma, refStats.chroma,
+                                g.saturation, g.castA, g.castB)
+            DispatchQueue.main.async { self.autoMatchStatus = status }
         }
 
-        // 闭环亮度对齐：慢慢调曝光补偿，让实时画面的亮度中位数靠近参考图
-        if autoMatch, let refMedian, let d, Date().timeIntervalSince(lastAutoMatch) > 0.4 {
-            let diff = refMedian - liveMedian
-            // 安全限制：自动对齐最多 ±1.5EV；ISO 已经很高（噪点大）或快门已经很慢时不再往亮调
+        // 硬件曝光：让未调色画面的亮度大致接近参考图（只走一半，剩下交给影调曲线），减少暗处拉亮带来的噪点
+        if let d, Date().timeIntervalSince(lastAutoMatch) > 0.4 {
+            let diff = (refStats.median - rawStats.median) * 0.5
+            // 安全限制：最多 ±1EV；ISO 已经很高（噪点大）或快门已经很慢时不再往亮调
             let isoHigh = d.iso > min(1000, d.activeFormat.maxISO * 0.5)
             let slow = d.exposureDuration.seconds >= 1.0 / 20
             if abs(diff) > 3 && !(diff > 0 && (isoHigh || slow)) {
                 lastAutoMatch = Date()
-                let step = Float(max(-0.15, min(0.15, diff * 0.015)))
+                let step = Float(max(-0.1, min(0.1, diff * 0.015)))
                 sessionQueue.async {
                     guard (try? d.lockForConfiguration()) != nil else { return }
-                    let nb = min(max(d.exposureTargetBias + step, max(d.minExposureTargetBias, -1.5)), min(d.maxExposureTargetBias, 1.5))
+                    let nb = min(max(d.exposureTargetBias + step, max(d.minExposureTargetBias, -1)), min(d.maxExposureTargetBias, 1))
                     d.setExposureTargetBias(nb, completionHandler: nil)
                     d.unlockForConfiguration()
                 }
             }
         }
+        publishReadout(hist: hist, score: score, device: d)
+    }
 
+    private func publishReadout(hist: [Double], score: Double?, device d: AVCaptureDevice?) {
         var r = LiveReadout()
         if let d {
             let tt = d.temperatureAndTintValues(for: d.deviceWhiteBalanceGains)
@@ -802,7 +787,7 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
         frameCount += 1
         if frameCount % 12 == 0 {
-            analyzeLive(filtered, device: (connection.inputPorts.first?.input as? AVCaptureDeviceInput)?.device)
+            analyzeLive(filtered, raw: raw, device: (connection.inputPorts.first?.input as? AVCaptureDeviceInput)?.device)
             updateCompositionHint(filtered)
         }
     }

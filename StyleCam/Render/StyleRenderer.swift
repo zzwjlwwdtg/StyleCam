@@ -119,7 +119,7 @@ final class StyleRenderer: @unchecked Sendable {
         if p.vignette > 0.01 && s > 0 {
             let v = CIFilter.vignette()
             v.inputImage = img
-            v.intensity = Float(p.vignette * 1.4 * s)
+            v.intensity = Float(p.vignette * 1.0 * s)
             v.radius = 1.6
             img = v.outputImage ?? img
         }
