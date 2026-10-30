@@ -51,6 +51,7 @@ enum StyleAnalyzer {
         var Ys = [Double](repeating: 0, count: n)
         var sumY = 0.0, sumChroma = 0.0
         var neutralA: [Double] = [], neutralB: [Double] = []
+        var greenA: [Double] = [], greenB: [Double] = [], skyA: [Double] = [], skyB: [Double] = []
         var shA: [Double] = [], shB: [Double] = []
         var hiA: [Double] = [], hiB: [Double] = []
         var hist = [Double](repeating: 0, count: 32)
@@ -74,6 +75,11 @@ enum StyleAnalyzer {
                 if lab.L > 25, lab.L < 85, chroma < 22 { neutralA.append(lab.a); neutralB.append(lab.b) }
                 if lab.L < 30, chroma < 30 { shA.append(lab.a); shB.append(lab.b) }
                 if lab.L > 70, chroma < 30 { hiA.append(lab.a); hiB.append(lab.b) }
+                // 分区颜色：植物（色相 100°–170°）、天空（画面上半部、色相 220°–290°、较亮）
+                var hue = atan2(lab.b, lab.a) * 180 / .pi
+                if hue < 0 { hue += 360 }
+                if chroma > 10, hue > 100, hue < 170 { greenA.append(lab.a); greenB.append(lab.b) }
+                if chroma > 6, hue > 220, hue < 290, lab.L > 45, yy < h / 2 { skyA.append(lab.a); skyB.append(lab.b) }
 
                 let dx = (Double(xx) + 0.5) / Double(w) - 0.5
                 let dy = (Double(yy) + 0.5) / Double(h) - 0.5
@@ -109,7 +115,10 @@ enum StyleAnalyzer {
         let grainNoise = estimateGrain(mpx)
         let points = countPointLights(Y: Ys, w: w, h: h)
         let faceRects = detectFaces(medium)
-        let optics = analyzeOptics(image: medium, px: mpx, exif: exif, faces: faceRects)
+        let (optics, subjectBox) = analyzeOptics(image: medium, px: mpx, exif: exif, faces: faceRects)
+        func regionAB(_ a: [Double], _ b: [Double]) -> SIMD2<Double>? {
+            a.count > n / 50 ? SIMD2(ColorMath.median(a), ColorMath.median(b)) : nil
+        }
         // 景深分类按“远景弥散圆占画面长边的比例”（全画幅参照）：
         // 24mm f/8 风景 ≈ 0%，35mm f/2.8 环境人像 ≈ 0.2%，85mm f/1.8 半身 ≈ 3%
         let dof: DepthOfField = optics.blurFraction < 0.001 ? .deep : (optics.blurFraction < 0.008 ? .medium : .shallow)
@@ -138,7 +147,11 @@ enum StyleAnalyzer {
             exif: exif,
             optics: optics,
             aspect: Double(max(medium.width, medium.height)) / Double(max(1, min(medium.width, medium.height))),
-            isLandscape: medium.width > medium.height)
+            isLandscape: medium.width > medium.height,
+            faceRect: faceRects.max(by: { $0.height < $1.height }).map(NormRect.fromVision),
+            subjectRect: subjectBox,
+            greenAB: regionAB(greenA, greenB),
+            skyAB: regionAB(skyA, skyB))
 
         return (profile, UIImage(cgImage: medium))
     }
@@ -245,7 +258,7 @@ enum StyleAnalyzer {
 
     // MARK: - 光学分析：主体分割 → 离焦量 → 等效入瞳 / 等效光圈
 
-    static func analyzeOptics(image: CGImage, px: RGBAPixels, exif: ReferenceEXIF, faces: [CGRect]) -> ReferenceOptics {
+    static func analyzeOptics(image: CGImage, px: RGBAPixels, exif: ReferenceEXIF, faces: [CGRect]) -> (ReferenceOptics, CGRect?) {
         let w = px.width, h = px.height, n = w * h
         var gray = [Float](repeating: 0, count: n)
         for i in 0..<n {
@@ -305,7 +318,18 @@ enum StyleAnalyzer {
         if let m = o.magnification, let f35 = o.focal35, !o.focal35Assumed {
             o.subjectDistanceM = Optics.subjectDistance(focal35: f35, magnification: m)
         }
-        return o
+        // 主体外接框（归一化、左上角原点），用于构图叠加
+        var minX = w, minY = h, maxX = -1, maxY = -1
+        for y in 0..<h {
+            for x in 0..<w where subject[y * w + x] {
+                minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        let box: CGRect? = maxX > minX && maxY > minY
+            ? CGRect(x: Double(minX) / Double(w), y: Double(minY) / Double(h),
+                     width: Double(maxX - minX) / Double(w), height: Double(maxY - minY) / Double(h))
+            : nil
+        return (o, box)
     }
 
     /// 分割失败时的主体区域：有人脸就取“脸 + 身体”区域，否则取画面中央椭圆

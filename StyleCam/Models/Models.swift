@@ -102,6 +102,10 @@ struct StyleProfile: Equatable {
     var optics: ReferenceOptics
     var aspect: Double             // 长边 / 短边
     var isLandscape: Bool
+    var faceRect: CGRect?          // 最大人脸，归一化、左上角原点
+    var subjectRect: CGRect?       // 主体外接框，归一化、左上角原点
+    var greenAB: SIMD2<Double>?    // 植物颜色（Lab a*/b* 中位数）
+    var skyAB: SIMD2<Double>?      // 天空颜色
 
     /// 实时闭环用：参考图平均彩度
     var meanChroma: Double { saturation * 17 }
@@ -125,6 +129,11 @@ struct GradingParams: Equatable {
     var softGlow: Double = 0
     var backgroundBlur: Double = 0      // 计算补足的背景虚化：弥散圆直径 / 画面长边
     var cropRatio: Double?              // 按参考图画幅裁切（长边 / 短边），沿画面长边方向
+    var halation: Double = 0            // 胶片高光光晕 0...1
+    var skinProtect: Double = 0.7       // 肤色保护强度 0...1（人像区域内的肤色不跟着偏色）
+    var greenTarget: SIMD2<Double>?     // 参考图植物的 a*/b*（分区调色）
+    var skyTarget: SIMD2<Double>?       // 参考图天空的 a*/b*
+    var regionStrength: Double = 0.6
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
 }
 
@@ -221,4 +230,84 @@ struct ApplyReport {
     var exposureStatus: ParameterChange.Status?
     var actualAperture: Float = 0
     var actualShutter: Double = 0
+}
+
+
+// MARK: - 风格版本
+
+enum StyleVariant: String, CaseIterable, Identifiable {
+    case faithful = "忠实"
+    case soft = "柔和"
+    case rich = "浓郁"
+
+    var id: String { rawValue }
+
+    /// 闭环对齐的目标倍率（彩度、色偏）
+    var chromaFactor: Double { self == .soft ? 0.92 : (self == .rich ? 1.12 : 1) }
+    var castFactor: Double { self == .soft ? 0.6 : (self == .rich ? 1.25 : 1) }
+
+    func apply(_ g: GradingParams) -> GradingParams {
+        var o = g
+        switch self {
+        case .faithful:
+            break
+        case .soft:
+            o.contrast *= 0.6
+            o.saturation = 1 + (g.saturation - 1) * 0.6
+            o.castA *= 0.6; o.castB *= 0.6
+            o.shadowTint *= 0.6; o.highlightTint *= 0.6
+            o.vignette *= 0.6; o.grain *= 0.6; o.halation *= 0.6
+            o.shadowLift *= 0.8
+            o.regionStrength *= 0.6
+        case .rich:
+            o.contrast = min(1, g.contrast * 1.3 + 0.08)
+            o.saturation = g.saturation * 1.15
+            o.castA *= 1.25; o.castB *= 1.25
+            o.shadowTint *= 1.3; o.highlightTint *= 1.3
+            o.vignette = min(1, g.vignette * 1.3 + 0.05)
+            o.grain = min(1, g.grain * 1.2)
+            o.halation = min(1, g.halation * 1.3)
+            o.regionStrength = min(1, g.regionStrength * 1.3)
+        }
+        return o
+    }
+}
+
+// MARK: - 构图叠加
+
+enum OverlayMode: String, CaseIterable, Identifiable {
+    case off = "关"
+    case ghost = "半透明"
+    case outline = "轮廓"
+    case box = "主体框"
+    var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .off: return "square.dashed"
+        case .ghost: return "square.on.square"
+        case .outline: return "scribble"
+        case .box: return "person.crop.rectangle"
+        }
+    }
+}
+
+/// 归一化矩形（左上角原点）按顺时针角度旋转
+enum NormRect {
+    static func rotate(_ r: CGRect, clockwise deg: Int) -> CGRect {
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            switch ((deg % 360) + 360) % 360 {
+            case 90: return CGPoint(x: 1 - y, y: x)
+            case 180: return CGPoint(x: 1 - x, y: 1 - y)
+            case 270: return CGPoint(x: y, y: 1 - x)
+            default: return CGPoint(x: x, y: y)
+            }
+        }
+        let a = p(r.minX, r.minY), b = p(r.maxX, r.maxY)
+        return CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+    }
+
+    /// Vision（左下角原点）→ 左上角原点
+    static func fromVision(_ r: CGRect) -> CGRect {
+        CGRect(x: r.minX, y: 1 - r.maxY, width: r.width, height: r.height)
+    }
 }

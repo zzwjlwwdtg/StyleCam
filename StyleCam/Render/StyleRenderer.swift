@@ -1,22 +1,32 @@
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
-/// 实时滤镜：3D LUT → 柔光 → 锐化 → 暗角 → 颗粒。预览与成片共用同一条管线，保证所见即所得。
+/// 渲染时用到的蒙版（白 = 是）
+struct RenderMasks {
+    var subject: CIImage?     // 主体：用于只虚化背景
+    var person: CIImage?      // 人像：用于肤色保护
+}
+
+/// 实时滤镜：背景虚化 → 3D LUT（含分区调色）→ 肤色保护 → 柔光 → 锐化 → 高光光晕 → 暗角 → 颗粒 → 画幅裁切。
+/// 预览与成片共用同一条管线，保证所见即所得。
 final class StyleRenderer: @unchecked Sendable {
 
     struct State {
         var params: GradingParams
         var lut: Data
+        var skinLut: Data
         var enabled: Bool
     }
 
     private let lock = NSLock()
-    private var state = State(params: GradingParams(), lut: LUTBuilder.build(GradingParams()), enabled: true)
+    private var state = State(params: GradingParams(), lut: LUTBuilder.build(GradingParams()),
+                              skinLut: LUTBuilder.build(GradingParams(), skinVersion: true), enabled: true)
     private let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
 
     func update(_ p: GradingParams) {
         let lut = LUTBuilder.build(p)
-        lock.lock(); state.params = p; state.lut = lut; lock.unlock()
+        let skin = LUTBuilder.build(p, skinVersion: true)
+        lock.lock(); state.params = p; state.lut = lut; state.skinLut = skin; lock.unlock()
     }
 
     func setEnabled(_ on: Bool) {
@@ -28,19 +38,22 @@ final class StyleRenderer: @unchecked Sendable {
         return state
     }
 
-    /// subjectMask：主体蒙版（白 = 主体），用于只虚化背景
-    func apply(_ input: CIImage, state st: State, subjectMask: CIImage? = nil) -> CIImage {
+    /// 是否需要人像蒙版 / 主体蒙版（调用方据此决定要不要跑分割）
+    static func needsPersonMask(_ st: State) -> Bool { st.enabled && st.params.skinProtect > 0.01 && st.params.strength > 0 }
+    static func needsSubjectMask(_ st: State) -> Bool { st.enabled && st.params.backgroundBlur > 0.002 && st.params.strength > 0 }
+
+    func apply(_ input: CIImage, state st: State, masks: RenderMasks = RenderMasks()) -> CIImage {
         guard st.enabled else { return input }
         let p = st.params
         let s = ColorMath.clamp(p.strength, 0, 1)
         let extent = input.extent
         // 以 1920px 长边为基准，让暗角/颗粒/锐化在预览和 48MP 成片里看起来一致
         let scale = max(1, max(extent.width, extent.height) / 1920)
+        let longEdge = Double(max(extent.width, extent.height))
         var img = input
 
-        // 计算补足的背景虚化（先于调色，模拟光学虚化发生在镜头里）
-        if p.backgroundBlur > 0.002 && s > 0, let mask = subjectMask {
-            let longEdge = Double(max(extent.width, extent.height))
+        // 1. 计算补足的背景虚化（先于调色，模拟光学虚化发生在镜头里）
+        if p.backgroundBlur > 0.002 && s > 0, let mask = masks.subject {
             let sigma = p.backgroundBlur * longEdge / 4 * s          // 弥散圆直径 ≈ 4σ
             let background = mask.applyingFilter("CIColorInvert")
                 .clampedToExtent()
@@ -52,14 +65,34 @@ final class StyleRenderer: @unchecked Sendable {
             blur.radius = Float(sigma)
             img = blur.outputImage?.cropped(to: extent) ?? img
         }
+        let ungraded = img
 
-        let cube = CIFilter.colorCubeWithColorSpace()
-        cube.inputImage = img
-        cube.cubeDimension = Float(LUTBuilder.dimension)
-        cube.cubeData = st.lut
-        cube.colorSpace = srgb
-        img = cube.outputImage ?? img
+        // 2. 调色 LUT
+        img = cube(ungraded, st.lut)
 
+        // 3. 肤色保护：人像区域 × 肤色可能性 → 用“只调影调、不偏色”的版本
+        if p.skinProtect > 0.01 && s > 0, let person = masks.person {
+            let skinVersion = cube(ungraded, st.skinLut)
+            let likelihood = cube(ungraded, LUTBuilder.skinLikelihood)
+            let personMask = person.clampedToExtent().applyingGaussianBlur(sigma: Double(2 * scale)).cropped(to: extent)
+            let combined = CIFilter.multiplyCompositing()
+            combined.inputImage = likelihood
+            combined.backgroundImage = personMask
+            if var m = combined.outputImage?.cropped(to: extent) {
+                m = m.applyingFilter("CIColorMatrix", parameters: [
+                    "inputRVector": CIVector(x: p.skinProtect, y: 0, z: 0, w: 0),
+                    "inputGVector": CIVector(x: 0, y: p.skinProtect, z: 0, w: 0),
+                    "inputBVector": CIVector(x: 0, y: 0, z: p.skinProtect, w: 0)
+                ])
+                let blend = CIFilter.blendWithMask()
+                blend.inputImage = skinVersion
+                blend.backgroundImage = img
+                blend.maskImage = m
+                img = blend.outputImage?.cropped(to: extent) ?? img
+            }
+        }
+
+        // 4. 柔光
         if p.softGlow > 0.01 && s > 0 {
             let bloom = CIFilter.bloom()
             bloom.inputImage = img
@@ -68,6 +101,7 @@ final class StyleRenderer: @unchecked Sendable {
             img = bloom.outputImage?.cropped(to: extent) ?? img
         }
 
+        // 5. 锐化
         if p.sharpen > 0.01 && s > 0 {
             let sh = CIFilter.sharpenLuminance()
             sh.inputImage = img
@@ -76,6 +110,12 @@ final class StyleRenderer: @unchecked Sendable {
             img = sh.outputImage ?? img
         }
 
+        // 6. 胶片高光光晕（halation）：高光向外渗出的橙红色光
+        if p.halation > 0.01 && s > 0 {
+            img = addHalation(img, amount: p.halation * s, longEdge: longEdge)
+        }
+
+        // 7. 暗角
         if p.vignette > 0.01 && s > 0 {
             let v = CIFilter.vignette()
             v.inputImage = img
@@ -84,6 +124,7 @@ final class StyleRenderer: @unchecked Sendable {
             img = v.outputImage ?? img
         }
 
+        // 8. 颗粒
         if p.grain > 0.01 && s > 0 {
             img = addGrain(img, amount: p.grain * s, scale: scale)
         }
@@ -91,6 +132,15 @@ final class StyleRenderer: @unchecked Sendable {
         img = img.cropped(to: extent)
         if let r = p.cropRatio, r > 1 { img = Self.centerCrop(img, ratio: r) }
         return img
+    }
+
+    private func cube(_ img: CIImage, _ data: Data) -> CIImage {
+        let f = CIFilter.colorCubeWithColorSpace()
+        f.inputImage = img
+        f.cubeDimension = Float(LUTBuilder.dimension)
+        f.cubeData = data
+        f.colorSpace = srgb
+        return f.outputImage ?? img
     }
 
     /// 沿画面长边方向裁成 长:短 = ratio
@@ -105,29 +155,83 @@ final class StyleRenderer: @unchecked Sendable {
         return img.cropped(to: rect)
     }
 
-    /// 单色胶片颗粒：随机噪声 → 灰度 → 柔光叠加
+    /// 高光光晕：取亮度 > 0.75 的部分 → 大半径模糊 → 染成橙红 → 叠加回去
+    private func addHalation(_ img: CIImage, amount: Double, longEdge: Double) -> CIImage {
+        let extent = img.extent
+        let k: CGFloat = 4
+        let luma = CIVector(x: 0.2126 * k, y: 0.7152 * k, z: 0.0722 * k, w: 0)
+        let highlights = img.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": luma, "inputGVector": luma, "inputBVector": luma,
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+            "inputBiasVector": CIVector(x: -3, y: -3, z: -3, w: 0)
+        ]).applyingFilter("CIColorClamp")
+        let a = CGFloat(min(0.8, amount * 0.6))
+        let glow = highlights
+            .clampedToExtent()
+            .applyingGaussianBlur(sigma: longEdge * 0.008)
+            .cropped(to: extent)
+            .applyingFilter("CIColorMatrix", parameters: [
+                "inputRVector": CIVector(x: 1.0 * a, y: 0, z: 0, w: 0),
+                "inputGVector": CIVector(x: 0.35 * a, y: 0, z: 0, w: 0),
+                "inputBVector": CIVector(x: 0.15 * a, y: 0, z: 0, w: 0),
+                "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1)
+            ])
+        let add = CIFilter.additionCompositing()
+        add.inputImage = glow
+        add.backgroundImage = img
+        return add.outputImage?.cropped(to: extent) ?? img
+    }
+
+    /// 胶片颗粒：两种尺度的单色噪声叠加；按亮度调制，中间调最明显、高光和暗部较弱（与真实胶片一致）
     private func addGrain(_ img: CIImage, amount: Double, scale: CGFloat) -> CIImage {
-        guard let noise = CIFilter.randomGenerator().outputImage else { return img }
-        let grainSize = scale * 1.2
-        let moved = noise
-            .transformed(by: CGAffineTransform(scaleX: grainSize, y: grainSize))
-            .transformed(by: CGAffineTransform(translationX: CGFloat.random(in: 0...512), y: CGFloat.random(in: 0...512)))
-            .transformed(by: CGAffineTransform(translationX: img.extent.minX, y: img.extent.minY))
-
-        let amp = CGFloat(min(0.4, amount * 0.3))
-        let w = amp / 3
-        let mono = CIFilter.colorMatrix()
-        mono.inputImage = moved
-        mono.rVector = CIVector(x: w, y: w, z: w, w: 0)
-        mono.gVector = CIVector(x: w, y: w, z: w, w: 0)
-        mono.bVector = CIVector(x: w, y: w, z: w, w: 0)
-        mono.aVector = CIVector(x: 0, y: 0, z: 0, w: 1)
-        mono.biasVector = CIVector(x: 0.5 - amp / 2, y: 0.5 - amp / 2, z: 0.5 - amp / 2, w: 0)
-        guard let grain = mono.outputImage?.cropped(to: img.extent) else { return img }
-
+        let extent = img.extent
+        func noiseLayer(size: CGFloat, weight: CGFloat) -> CIImage? {
+            guard let noise = CIFilter.randomGenerator().outputImage else { return nil }
+            let w = weight / 3
+            return noise
+                .transformed(by: CGAffineTransform(scaleX: size, y: size))
+                .transformed(by: CGAffineTransform(translationX: CGFloat.random(in: 0...512) + extent.minX,
+                                                   y: CGFloat.random(in: 0...512) + extent.minY))
+                .applyingFilter("CIColorMatrix", parameters: [
+                    "inputRVector": CIVector(x: w, y: w, z: w, w: 0),
+                    "inputGVector": CIVector(x: w, y: w, z: w, w: 0),
+                    "inputBVector": CIVector(x: w, y: w, z: w, w: 0),
+                    "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+                    "inputBiasVector": CIVector(x: -weight / 2, y: -weight / 2, z: -weight / 2, w: 0)
+                ])
+                .cropped(to: extent)
+        }
+        let amp = CGFloat(min(0.45, amount * 0.35))
+        guard let fine = noiseLayer(size: scale * 1.1, weight: amp * 0.7),
+              let coarse = noiseLayer(size: scale * 2.6, weight: amp * 0.5) else { return img }
+        let sum = CIFilter.additionCompositing()
+        sum.inputImage = fine
+        sum.backgroundImage = coarse
+        guard let zeroCentered = sum.outputImage?.cropped(to: extent) else { return img }
+        // 加 0.5 变成柔光叠加用的中性灰底
+        let grain = zeroCentered.applyingFilter("CIColorMatrix", parameters: [
+            "inputBiasVector": CIVector(x: 0.5, y: 0.5, z: 0.5, w: 0)
+        ])
         let blend = CIFilter.softLightBlendMode()
         blend.inputImage = grain
         blend.backgroundImage = img
-        return blend.outputImage ?? img
+        guard let grained = blend.outputImage?.cropped(to: extent) else { return img }
+
+        // 中间调蒙版：亮度经曲线 0→0.2, 0.5→1, 1→0.15
+        let lumaV = CIVector(x: 0.2126, y: 0.7152, z: 0.0722, w: 0)
+        let mid = img.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": lumaV, "inputGVector": lumaV, "inputBVector": lumaV
+        ]).applyingFilter("CIToneCurve", parameters: [
+            "inputPoint0": CIVector(x: 0, y: 0.2),
+            "inputPoint1": CIVector(x: 0.25, y: 0.75),
+            "inputPoint2": CIVector(x: 0.5, y: 1),
+            "inputPoint3": CIVector(x: 0.75, y: 0.7),
+            "inputPoint4": CIVector(x: 1, y: 0.15)
+        ])
+        let mix = CIFilter.blendWithMask()
+        mix.inputImage = grained
+        mix.backgroundImage = img
+        mix.maskImage = mid
+        return mix.outputImage?.cropped(to: extent) ?? grained
     }
 }

@@ -21,14 +21,7 @@ enum PhotoProcessor {
         guard let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
             completion(nil, "照片解码失败"); return
         }
-        var mask: CIImage?
-        if state.enabled && state.params.backgroundBlur > 0.002 {
-            let handler = VNImageRequestHandler(ciImage: ci, options: [:])
-            if let pb = SubjectMasker.mask(handler: handler, preferPerson: preferPerson, personQuality: .accurate) {
-                mask = SubjectMasker.ciMask(pb, fitting: ci.extent)
-            }
-        }
-        let out = renderer.apply(ci, state: state, subjectMask: mask)
+        let out = renderer.apply(ci, state: state, masks: masks(for: ci, state: state, preferPerson: preferPerson))
         guard let p3 = CGColorSpace(name: CGColorSpace.displayP3),
               let cg = context.createCGImage(out, from: out.extent, format: .RGBA8, colorSpace: p3) else {
             completion(nil, "渲染失败"); return
@@ -68,5 +61,27 @@ enum PhotoProcessor {
                 completion(thumb, ok ? nil : "保存失败：\(err?.localizedDescription ?? "未知错误")")
             }
         }
+    }
+
+    /// 成片用高质量分割
+    static func masks(for ci: CIImage, state: StyleRenderer.State, preferPerson: Bool) -> RenderMasks {
+        var m = RenderMasks()
+        let needPerson = StyleRenderer.needsPersonMask(state)
+        let needSubject = StyleRenderer.needsSubjectMask(state)
+        guard needPerson || needSubject else { return m }
+        let handler = VNImageRequestHandler(ciImage: ci, options: [:])
+        if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {
+            m.person = SubjectMasker.ciMask(pb, fitting: ci.extent)
+        }
+        if needSubject {
+            if preferPerson, let p = m.person {
+                m.subject = p
+            } else if let pb = SubjectMasker.foregroundMask(handler) {
+                m.subject = SubjectMasker.ciMask(pb, fitting: ci.extent)
+            } else {
+                m.subject = m.person
+            }
+        }
+        return m
     }
 }

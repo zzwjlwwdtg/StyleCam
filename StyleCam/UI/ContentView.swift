@@ -5,11 +5,13 @@ import AVKit
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var camera: CameraManager
+    @EnvironmentObject var level: LevelMonitor
 
     @State private var pickerItem: PhotosPickerItem?
     @State private var showPanel = false
     @State private var holdOriginal = false
     @State private var flash = false
+    @State private var showLibrary = false
 
     var body: some View {
         ZStack {
@@ -41,6 +43,10 @@ struct ContentView: View {
                 .environmentObject(model)
                 .environmentObject(camera)
         }
+        .sheet(isPresented: $showLibrary) {
+            RecipeLibraryView(store: model.recipes)
+                .environmentObject(model)
+        }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task {
@@ -55,7 +61,10 @@ struct ContentView: View {
             flash = true
             withAnimation(.easeOut(duration: 0.25)) { flash = false }
         }
-        .onAppear { camera.start() }
+        .onAppear {
+            camera.start()
+            level.start()
+        }
         // Camera Control / 音量键 按下即拍
         .onCameraCaptureEvent { event in
             if event.phase == .ended { camera.capturePhoto() }
@@ -96,6 +105,26 @@ struct ContentView: View {
             Spacer()
 
             if model.referenceImage != nil {
+                Button {
+                    let all = OverlayMode.allCases
+                    model.overlayMode = all[((all.firstIndex(of: model.overlayMode) ?? 0) + 1) % all.count]
+                } label: {
+                    VStack(spacing: 1) {
+                        Image(systemName: model.overlayMode.symbol).font(.title3)
+                        Text("构图·" + model.overlayMode.rawValue).font(.system(size: 9))
+                    }
+                    .foregroundStyle(model.overlayMode == .off ? Color.white : Color.yellow)
+                }
+            }
+
+            Button { showLibrary = true } label: {
+                VStack(spacing: 1) {
+                    Image(systemName: "books.vertical").font(.title3)
+                    Text("风格库").font(.system(size: 9))
+                }
+            }
+
+            if model.referenceImage != nil {
                 Button { model.clearReference() } label: {
                     Image(systemName: "xmark.circle.fill").font(.title3).foregroundStyle(.secondary)
                 }
@@ -115,6 +144,23 @@ struct ContentView: View {
                 .gesture(DragGesture(minimumDistance: 0)
                     .onChanged { _ in if model.referenceImage != nil { holdOriginal = true } }
                     .onEnded { _ in holdOriginal = false })
+
+            CompositionOverlay(
+                reference: model.referenceImage,
+                outline: model.outlineImage,
+                mode: model.overlayMode,
+                opacity: model.overlayOpacity,
+                faceRect: model.profile?.faceRect,
+                subjectRect: model.profile?.subjectRect,
+                previewAspect: CompositionOverlay.previewAspect(cropRatio: model.plan?.grading.cropRatio),
+                captureAngle: camera.captureRotationAngle,
+                roll: level.roll,
+                pitch: level.pitch,
+                isLevel: level.isLevel,
+                hint: model.referenceImage == nil || holdOriginal ? nil : camera.compositionHint,
+                aligned: camera.compositionAligned)
+                .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                .allowsHitTesting(false)
 
             readoutBar.padding(.top, 8)
 
@@ -156,10 +202,25 @@ struct ContentView: View {
     // MARK: - 风格强度
 
     private var strengthBar: some View {
-        HStack {
-            Image(systemName: "camera.filters").foregroundStyle(.secondary)
-            Slider(value: $model.strength, in: 0...1).tint(.yellow)
-            Text(Fmt.percent(model.strength)).font(.caption.monospacedDigit()).frame(width: 40)
+        VStack(spacing: 6) {
+            Picker("版本", selection: $model.variant) {
+                ForEach(StyleVariant.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 260)
+
+            HStack {
+                Image(systemName: "camera.filters").foregroundStyle(.secondary)
+                Slider(value: $model.strength, in: 0...1).tint(.yellow)
+                Text(Fmt.percent(model.strength)).font(.caption.monospacedDigit()).frame(width: 40)
+            }
+            if model.overlayMode == .ghost {
+                HStack {
+                    Image(systemName: "square.on.square").foregroundStyle(.secondary)
+                    Slider(value: $model.overlayOpacity, in: 0.1...0.7).tint(.white)
+                    Text(Fmt.percent(model.overlayOpacity)).font(.caption.monospacedDigit()).frame(width: 40)
+                }
+            }
         }
         .padding(.horizontal, 24)
     }

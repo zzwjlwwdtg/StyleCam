@@ -9,6 +9,7 @@ struct StyleCamApp: App {
             ContentView()
                 .environmentObject(model)
                 .environmentObject(model.camera)
+                .environmentObject(model.level)
                 .preferredColorScheme(.dark)
                 .statusBarHidden()
         }

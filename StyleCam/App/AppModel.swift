@@ -1,10 +1,13 @@
 import SwiftUI
 import Combine
+import CoreImage
 
 /// 串起整个流程：参考图 → 分析 → 选镜头 → 读“修改前” → 规划 → 应用 → 回读“实测”
 @MainActor
 final class AppModel: ObservableObject {
     let camera = CameraManager()
+    let recipes = RecipeStore()
+    let level = LevelMonitor()
 
     @Published var referenceImage: UIImage?
     @Published var profile: StyleProfile?
@@ -20,6 +23,21 @@ final class AppModel: ObservableObject {
     @Published var autoMatchExposure = true { didSet { camera.setAutoMatch(autoMatchExposure) } }
     @Published var use48MP = false { didSet { camera.setUse48MP(use48MP) } }
     @Published var saveOriginal = false { didSet { camera.setSaveOriginal(saveOriginal) } }
+    @Published var variant: StyleVariant = .faithful {
+        didSet {
+            camera.setVariant(variant)
+            if let id = currentRecipeID, var r = recipes.recipes.first(where: { $0.id == id }), r.variant != variant.rawValue {
+                r.variant = variant.rawValue
+                recipes.update(r)
+            }
+        }
+    }
+    @Published var overlayMode: OverlayMode = .off
+    @Published var overlayOpacity: Double = 0.35
+    @Published var outlineImage: UIImage?
+    @Published var currentRecipeID: UUID?
+    private(set) var referenceData: Data?
+    private var readySub: AnyCancellable?
 
     private var suppressSync = false
 
@@ -28,6 +46,10 @@ final class AppModel: ObservableObject {
 
     init() {
         camera.setAutoMatch(true)
+        // 相机就绪后自动恢复上次的风格（保存一次，以后打开就是同一风格）
+        readySub = camera.$isReady.filter { $0 }.first().sink { [weak self] _ in
+            Task { @MainActor in await self?.restoreLast() }
+        }
         // Camera Control 实体键拨动后，同步界面和“已修改参数”
         camera.onStrengthFromControl = { [weak self] v in
             guard let self else { return }
@@ -49,7 +71,7 @@ final class AppModel: ObservableObject {
 
     // MARK: - 载入参考图
 
-    func loadReference(_ data: Data) async {
+    func loadReference(_ data: Data, recipe: StyleRecipe? = nil) async {
         isAnalyzing = true
         errorMessage = nil
         defer { isAnalyzing = false }
@@ -58,7 +80,21 @@ final class AppModel: ObservableObject {
                 try StyleAnalyzer.analyze(data: data)
             }.value
             referenceImage = thumb
+            referenceData = data
             self.profile = profile
+            if let recipe {
+                currentRecipeID = recipe.id
+                recipes.markLast(recipe)
+                if let v = StyleVariant(rawValue: recipe.variant) { variant = v }
+                strength = recipe.strength
+            } else {
+                currentRecipeID = nil
+                recipes.saveLastReference(data)
+            }
+            Task.detached(priority: .utility) {
+                let outline = AppModel.makeOutline(thumb)
+                await MainActor.run { self.outlineImage = outline }
+            }
             camera.setReference(profile)
             let (lens, why) = ParameterPlanner.chooseLens(profile: profile)
             await rebuildPlan(profile: profile, lens: lens, lensReason: why)
@@ -79,6 +115,11 @@ final class AppModel: ObservableObject {
     }
 
     func clearReference() {
+        recipes.clearLast()
+        currentRecipeID = nil
+        referenceData = nil
+        outlineImage = nil
+        overlayMode = .off
         referenceImage = nil
         profile = nil
         plan = nil
@@ -118,5 +159,54 @@ final class AppModel: ObservableObject {
     private func isUnsupported(_ c: ParameterChange) -> Bool {
         if case .unsupported = c.status { return true }
         return false
+    }
+
+    // MARK: - 风格库
+
+    func saveRecipe(name: String) {
+        guard let data = referenceData else { return }
+        let r = recipes.save(name: name, referenceData: data, thumbnail: referenceImage, variant: variant, strength: strength)
+        currentRecipeID = r.id
+    }
+
+    func applyRecipe(_ r: StyleRecipe) async {
+        guard let data = recipes.referenceData(r) else {
+            errorMessage = "找不到这个风格的参考图"
+            return
+        }
+        await loadReference(data, recipe: r)
+    }
+
+    private func restoreLast() async {
+        guard profile == nil else { return }
+        if let r = recipes.lastUsed {
+            await applyRecipe(r)
+        } else if let data = recipes.lastReferenceData() {
+            await loadReference(data)
+        }
+    }
+
+    // MARK: - 构图轮廓：参考图边缘 → 黄色线稿
+
+    nonisolated static func makeOutline(_ image: UIImage) -> UIImage? {
+        guard let cg = image.cgImage else { return nil }
+        let ci = CIImage(cgImage: cg)
+        let e = ci.extent
+        let edges = ci.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0])
+            .clampedToExtent()
+            .applyingGaussianBlur(sigma: max(1, Double(e.width) / 800))
+            .cropped(to: e)
+            .applyingFilter("CIEdges", parameters: [kCIInputIntensityKey: 8])
+            .applyingFilter("CIColorControls", parameters: [kCIInputContrastKey: 2.0, kCIInputBrightnessKey: -0.05])
+        let yellow = CIImage(color: CIColor(red: 1, green: 0.85, blue: 0.15)).cropped(to: e)
+        let clear = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: 0)).cropped(to: e)
+        let out = yellow.applyingFilter("CIBlendWithMask", parameters: [
+            kCIInputBackgroundImageKey: clear,
+            kCIInputMaskImageKey: edges
+        ])
+        let ctx = CIContext()
+        guard let result = ctx.createCGImage(out, from: e, format: .RGBA8,
+                                             colorSpace: CGColorSpace(name: CGColorSpace.sRGB)) else { return nil }
+        return UIImage(cgImage: result)
     }
 }

@@ -249,6 +249,12 @@ enum ParameterPlanner {
         g.grain = profile.grain
         g.sharpen = profile.sharpness > 0.3 ? profile.sharpness * 0.5 : 0
         g.softGlow = profile.sharpness < -0.4 ? -profile.sharpness * 0.6 : 0
+        // 胶片感（有颗粒 + 黑位提升或高光压缩）→ 加一点高光光晕
+        let filmLook = profile.grain > 0.15 && (profile.shadowLift > 0.1 || profile.highlightRolloff > 0.1)
+        g.halation = filmLook ? min(0.6, 0.2 + profile.grain * 0.5) : 0
+        g.greenTarget = profile.greenAB
+        g.skyTarget = profile.skyAB
+        g.skinProtect = profile.faceCount > 0 || abs(profile.castA) + abs(profile.castB) > 4 ? 0.7 : 0.5
         plan.grading = g
 
         func gradingRow(_ id: String, _ name: String, _ after: String, _ reason: String) {
@@ -280,6 +286,17 @@ enum ParameterPlanner {
         if g.grain > 0.05 { gradingRow("grain", "胶片颗粒", Fmt.percent(g.grain), "参考图平坦区域有明显颗粒（用软件模拟，而不是提高 ISO 造噪点）") }
         if g.sharpen > 0.05 { gradingRow("sharpen", "锐化", Fmt.percent(g.sharpen), "参考图焦点处细节锐利") }
         if g.softGlow > 0.05 { gradingRow("glow", "柔光（Bloom）", Fmt.percent(g.softGlow), "参考图整体偏柔焦、有光晕感") }
+        if g.halation > 0.05 { gradingRow("halation", "胶片高光光晕", Fmt.percent(g.halation), "参考图有颗粒且黑位/高光被压，属于胶片质感 → 高光边缘渗出橙红色光晕") }
+        if let t = g.greenTarget {
+            gradingRow("green", "分区调色：植物", "\(ColorMath.hueName(a: t.x, b: t.y)) 色相 \(Int(atan2(t.y, t.x) * 180 / .pi))°",
+                       "画面里的绿色植物向参考图植物的色相/浓度靠拢（只作用于绿色区域，不影响其他颜色）")
+        }
+        if let t = g.skyTarget {
+            gradingRow("sky", "分区调色：天空", "\(ColorMath.hueName(a: t.x, b: t.y)) 色相 \(Int((atan2(t.y, t.x) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)))°",
+                       "蓝天向参考图天空的颜色靠拢")
+        }
+        gradingRow("skin", "肤色保护", Fmt.percent(g.skinProtect),
+                   "人像区域内的肤色只跟随影调（明暗/对比），不跟着整体色偏变黄变绿；识别不到人像时不起作用")
 
         return (plan, changes)
     }

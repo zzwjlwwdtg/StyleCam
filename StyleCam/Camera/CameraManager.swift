@@ -46,6 +46,10 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     @Published var isSaving = false
     @Published var autoMatchStatus: String?
     @Published var captureIsLandscape = false
+    @Published var captureRotationAngle: CGFloat = 90   // 照片相对传感器的旋转角（90 = 竖拍）
+    @Published var compositionHint: String?
+    @Published var compositionAligned = false
+    @Published var isReady = false
 
     /// Camera Control 实体键改动后的回调（主线程）
     var onStrengthFromControl: ((Double) -> Void)?
@@ -78,9 +82,14 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _use48MP = false
     private var _planSummary = ""
     private var _preferPerson = true
+    private var _variant: StyleVariant = .faithful
+    private var _refFace: CGRect?
+    private var _refMagnification: Double?
+    private var _captureAngle: Int = 90
 
-    // 实时主体分割（只在 videoQueue 上使用）
-    private var liveMask: CIImage?
+    // 实时分割（只在 videoQueue 上使用）
+    private var livePerson: CIImage?
+    private var liveSubject: CIImage?
     private lazy var personSeg: VNGeneratePersonSegmentationRequest = {
         let r = VNGeneratePersonSegmentationRequest()
         r.qualityLevel = .balanced
@@ -137,6 +146,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
         setLens(.wide)
         configured = true
+        DispatchQueue.main.async { self.isReady = true }
     }
 
     // MARK: - 镜头切换
@@ -204,7 +214,11 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             c.videoRotationAngle = angle
         }
         let landscape = angle == 0 || angle == 180
-        DispatchQueue.main.async { if self.captureIsLandscape != landscape { self.captureIsLandscape = landscape } }
+        locked { _captureAngle = Int(angle.rounded()) }
+        DispatchQueue.main.async {
+            if self.captureIsLandscape != landscape { self.captureIsLandscape = landscape }
+            if self.captureRotationAngle != angle { self.captureRotationAngle = angle }
+        }
     }
 
     static func readCapabilities(_ d: AVCaptureDevice) -> HardwareCapabilities {
@@ -262,7 +276,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     func apply(_ newPlan: CapturePlan, completion: @escaping (ApplyReport) -> Void) {
         sessionQueue.async {
             self.plan = newPlan
-            self.renderer.update(newPlan.grading)
+            self.pushGrading()
             self.locked { self._use48MP = newPlan.use48MP; self._planSummary = Self.summary(of: newPlan) }
             guard let d = self.device else { DispatchQueue.main.async { completion(ApplyReport()) }; return }
 
@@ -396,10 +410,20 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
     // MARK: - 开关
 
+    /// 把“计划里的调色参数 + 当前版本（忠实/柔和/浓郁）”交给渲染器（只在 sessionQueue 上调用）
+    private func pushGrading() {
+        renderer.update(locked({ _variant }).apply(plan.grading))
+    }
+
+    func setVariant(_ v: StyleVariant) {
+        locked { _variant = v }
+        sessionQueue.async { self.pushGrading() }
+    }
+
     func setStrength(_ v: Double) {
         sessionQueue.async {
             self.plan.grading.strength = v
-            self.renderer.update(self.plan.grading)
+            self.pushGrading()
         }
     }
 
@@ -418,9 +442,11 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             _refMedianL = profile?.medianL
             _refChroma = profile?.meanChroma
             _refCast = profile.map { SIMD2($0.castA, $0.castB) }
+            _refFace = profile?.faceRect
+            _refMagnification = profile?.optics.magnification
             _preferPerson = (profile?.faceCount ?? 1) > 0
         }
-        if profile == nil { DispatchQueue.main.async { self.matchScore = nil; self.autoMatchStatus = nil } }
+        if profile == nil { DispatchQueue.main.async { self.matchScore = nil; self.autoMatchStatus = nil; self.compositionHint = nil } }
     }
 
     func setFilterEnabled(_ on: Bool) { renderer.setEnabled(on) }
@@ -440,7 +466,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         strength.setActionQueue(sessionQueue) { [weak self] v in
             guard let self else { return }
             self.plan.grading.strength = Double(v)
-            self.renderer.update(self.plan.grading)
+            self.pushGrading()
             DispatchQueue.main.async { self.onStrengthFromControl?(Double(v)) }
         }
         controls.append(strength)
@@ -550,7 +576,9 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         let liveCast: SIMD2<Double>? = nA.count > Int(total) / 50 ? SIMD2(ColorMath.median(nA), ColorMath.median(nB)) : nil
 
         let (ref, refMedian, autoMatch) = locked { (_refHistogram, _refMedianL, _autoMatch) }
-        let (refChroma, refCast) = locked { (_refChroma, _refCast) }
+        let (refChroma0, refCast0, variant) = locked { (_refChroma, _refCast, _variant) }
+        let refChroma = refChroma0.map { $0 * variant.chromaFactor }
+        let refCast = refCast0.map { $0 * variant.castFactor }
         var score: Double?
         if let ref {
             score = zip(ref, hist).reduce(0) { $0 + min($1.0, $1.1) }   // 直方图交集 0...1
@@ -578,7 +606,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                     g.castA = max(-15, min(15, g.castA + fa))
                     g.castB = max(-15, min(15, g.castB + fb))
                     self.plan.grading = g
-                    self.renderer.update(g)
+                    self.pushGrading()
                     let status = "饱和 \(Fmt.percent(g.saturation)) · 色偏 a*\(Fmt.signed(g.castA, 1)) b*\(Fmt.signed(g.castB, 1))"
                     DispatchQueue.main.async { self.autoMatchStatus = status }
                 }
@@ -625,33 +653,86 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let raw = CIImage(cvPixelBuffer: pb)
         let st = renderer.snapshotState()
-        var mask: CIImage?
-        if st.enabled && st.params.backgroundBlur > 0.002 {
-            let every = locked({ _preferPerson }) ? 3 : 10
-            if liveMask == nil || frameCount % every == 0 { updateLiveMask(pb, extent: raw.extent) }
-            mask = liveMask
-        } else {
-            liveMask = nil
-        }
-        let filtered = renderer.apply(raw, state: st, subjectMask: mask)
+        let masks = updateLiveMasks(pb, extent: raw.extent, state: st)
+        let filtered = renderer.apply(raw, state: st, masks: masks)
         frameStore.set(raw: raw, filtered: filtered)
         frameCount += 1
         if frameCount % 12 == 0 {
             analyzeLive(filtered, device: (connection.inputPorts.first?.input as? AVCaptureDeviceInput)?.device)
+            updateCompositionHint(filtered)
         }
     }
 }
 
 extension CameraManager {
-    /// 实时主体分割：人像用人像分割（balanced，约每 3 帧），其他主体用前景实例分割（约每 10 帧）
-    fileprivate func updateLiveMask(_ pb: CVPixelBuffer, extent: CGRect) {
-        let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: .up, options: [:])
-        var out: CVPixelBuffer?
-        if locked({ _preferPerson }), (try? handler.perform([personSeg])) != nil {
-            out = personSeg.results?.first?.pixelBuffer
+    /// 实时分割：人像分割（balanced，每 3 帧）用于肤色保护和人像背景虚化；非人像主体用前景实例分割（每 10 帧）
+    fileprivate func updateLiveMasks(_ pb: CVPixelBuffer, extent: CGRect, state st: StyleRenderer.State) -> RenderMasks {
+        let needPerson = StyleRenderer.needsPersonMask(st)
+        let needSubject = StyleRenderer.needsSubjectMask(st)
+        let preferPerson = locked({ _preferPerson })
+        guard needPerson || needSubject else {
+            livePerson = nil; liveSubject = nil
+            return RenderMasks()
         }
-        if out == nil { out = SubjectMasker.foregroundMask(handler) }
-        if let out { liveMask = SubjectMasker.ciMask(out, fitting: extent) }
+        let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: .up, options: [:])
+        if (needPerson || preferPerson) && (livePerson == nil || frameCount % 3 == 0),
+           (try? handler.perform([personSeg])) != nil, let out = personSeg.results?.first?.pixelBuffer {
+            livePerson = SubjectMasker.ciMask(out, fitting: extent)
+        }
+        if needSubject && !preferPerson && (liveSubject == nil || frameCount % 10 == 0),
+           let out = SubjectMasker.foregroundMask(handler) {
+            liveSubject = SubjectMasker.ciMask(out, fitting: extent)
+        }
+        return RenderMasks(subject: needSubject ? (preferPerson ? livePerson : (liveSubject ?? livePerson)) : nil,
+                           person: needPerson ? livePerson : nil)
+    }
+
+    /// 构图提示：比较实时画面与参考图里人脸的位置和大小（都换算到“照片方向”的归一化坐标）
+    fileprivate func updateCompositionHint(_ frame: CIImage) {
+        let (refFace, refM, angle) = locked { (_refFace, _refMagnification, _captureAngle) }
+        guard let refFace else {
+            DispatchQueue.main.async { if self.compositionHint != nil { self.compositionHint = nil } }
+            return
+        }
+        let req = VNDetectFaceRectanglesRequest()
+        try? VNImageRequestHandler(ciImage: frame, options: [:]).perform([req])
+        guard let face = req.results?.max(by: { $0.boundingBox.height < $1.boundingBox.height }) else {
+            DispatchQueue.main.async {
+                self.compositionHint = "参考图里有人物，把人放进画面"
+                self.compositionAligned = false
+            }
+            return
+        }
+        // 预览帧 → 照片方向：顺时针旋转 (angle − 90)°
+        let rot = ((angle - 90) % 360 + 360) % 360
+        let live = NormRect.rotate(NormRect.fromVision(face.boundingBox), clockwise: rot)
+        let e = frame.extent
+        let (pw, ph) = (rot == 90 || rot == 270) ? (e.height, e.width) : (e.width, e.height)
+        let liveFaceFrac = Double(live.height * ph / max(pw, ph))
+
+        var hints: [String] = []
+        let sizeRatio = Double(live.height / max(refFace.height, 0.001))
+        if sizeRatio < 0.85 || sizeRatio > 1.18 {
+            let f35 = sessionLens.focal35
+            if let refM {
+                let mLive = liveFaceFrac * Optics.ffLongEdge / Optics.faceHeightMM
+                let target = Optics.subjectDistance(focal35: f35, magnification: refM)
+                let now = Optics.subjectDistance(focal35: f35, magnification: mLive)
+                let d = abs(now - target)
+                hints.append(now > target ? String(format: "靠近约 %.1fm", d) : String(format: "后退约 %.1fm", d))
+            } else {
+                hints.append(sizeRatio < 1 ? "靠近一点" : "后退一点")
+            }
+        }
+        let dx = Double(live.midX - refFace.midX), dy = Double(live.midY - refFace.midY)
+        if abs(dx) > 0.06 { hints.append(dx > 0 ? "镜头向右转" : "镜头向左转") }
+        if abs(dy) > 0.06 { hints.append(dy > 0 ? "镜头向下压" : "镜头向上抬") }
+        let aligned = hints.isEmpty
+        let text = aligned ? "✓ 构图已对齐参考图" : hints.joined(separator: " · ")
+        DispatchQueue.main.async {
+            if self.compositionHint != text { self.compositionHint = text }
+            if self.compositionAligned != aligned { self.compositionAligned = aligned }
+        }
     }
 }
 
