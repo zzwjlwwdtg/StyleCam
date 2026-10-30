@@ -32,7 +32,10 @@ struct ParameterPanel: View {
 
                 Section("拍摄选项") {
                     Toggle("白平衡偏移跟随场景", isOn: $model.wbFollow)
-                    Toggle("自动对齐亮度（闭环曝光）", isOn: $model.autoMatchExposure)
+                    Toggle("实时对齐亮度 / 饱和度 / 色偏", isOn: $model.autoMatchExposure)
+                    if let st = camera.autoMatchStatus, model.autoMatchExposure {
+                        Text("当前：" + st).font(.caption2).foregroundStyle(.secondary)
+                    }
                     Toggle("48MP 拍摄", isOn: $model.use48MP)
                     Toggle("同时保存未调色原图", isOn: $model.saveOriginal)
                 }

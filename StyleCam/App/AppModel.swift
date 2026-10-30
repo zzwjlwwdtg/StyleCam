@@ -17,7 +17,7 @@ final class AppModel: ObservableObject {
         didSet { if !suppressSync { camera.setStrength(strength) } }
     }
     @Published var wbFollow = true { didSet { camera.setWBFollow(wbFollow) } }
-    @Published var autoMatchExposure = false { didSet { camera.setAutoMatch(autoMatchExposure) } }
+    @Published var autoMatchExposure = true { didSet { camera.setAutoMatch(autoMatchExposure) } }
     @Published var use48MP = false { didSet { camera.setUse48MP(use48MP) } }
     @Published var saveOriginal = false { didSet { camera.setSaveOriginal(saveOriginal) } }
 
@@ -27,6 +27,7 @@ final class AppModel: ObservableObject {
     var modifiedCount: Int { changes.filter { $0.status != .info }.count }
 
     init() {
+        camera.setAutoMatch(true)
         // Camera Control 实体键拨动后，同步界面和“已修改参数”
         camera.onStrengthFromControl = { [weak self] v in
             guard let self else { return }

@@ -3,15 +3,18 @@ import Foundation
 /// 离焦量估计（Zhuo & Sim, "Defocus map estimation from a single image", 2011 的多尺度版本）
 ///
 /// 原理：对图像再做一次已知 σ0 的高斯模糊，比较边缘处模糊前后的梯度比 R，
-/// 则该边缘原有的模糊 σ = σ0 / √(R² − 1)。分别统计“主体”和“背景”区域的边缘，
-/// 背景超出主体的那部分模糊 √(σ_bg² − σ_subj²) 就是光学虚化（自动扣除压缩/缩放带来的整体发软）。
-/// 大虚化在原尺寸下会饱和，所以在 5 层金字塔上各测一次取最大值。
-/// 合成图标定：弥散圆直径 d ≈ 3.6·σ·(1 + 0.015·σ)，在 d = 4…48px 范围内误差约 10%。
+/// 则该边缘原有的模糊 σ = σ0 / √(R² − 1)。
+/// - 主体：主体区域所有边缘 σ 的中位数（对焦清晰度）。
+/// - 背景：把背景分成 8×6 块，取各块中位数的第 80 百分位，即“最虚的远景”。
+///   与主体同一距离的树干、地面同样清晰，平均值会被它们拉低，所以只看远景。
+/// - 背景超出主体的模糊 √(σ_bg² − σ_subj²) 即光学虚化（自动扣除压缩/缩放带来的整体发软）。
+/// - 金字塔：当本层背景 σ > 2.2（测量开始饱和）时才下探到下一层，避免粗层的系统偏差。
+/// 合成图标定：弥散圆直径 d ≈ 3.6·σ·(1 + 0.015·σ)，d = 0…48px（含“只有一半背景虚化”）误差约 10%。
 enum DefocusEstimator {
 
     struct Result {
         var subjectSigma: Double       // 原尺寸下主体的模糊 σ（像素）
-        var excessSigma: Double        // 背景超出主体的模糊 σ（像素）
+        var excessSigma: Double        // 远景超出主体的模糊 σ（像素）
         var blurDiameterPx: Double     // 换算成弥散圆直径（像素）
         var subjectEdges: Int
         var backgroundEdges: Int
@@ -20,58 +23,75 @@ enum DefocusEstimator {
     static func estimate(gray: [Float], width: Int, height: Int, subject: [Bool]) -> Result {
         var img = gray, w = width, h = height
         var mask = labels(subject, w, h, radius: max(3, max(w, h) / 200))
-        var best = 0.0, subj0 = 1.0, sEdges = 0, bEdges = 0
+        var excess = 0.0, subj0 = 1.0, sEdges = 0, bEdges = 0
         for level in 0..<5 {
             guard min(w, h) >= 60 else { break }
-            let (s, ns, b, nb) = regionSigmas(img, w, h, mask)
-            if level == 0 { sEdges = ns; bEdges = nb }
-            if let s, let b {
-                let scale = Double(1 << level)
-                let ss = s * scale, bb = b * scale
-                if level == 0 { subj0 = ss }
-                best = max(best, (max(0, bb * bb - ss * ss)).squareRoot())
-            }
+            let r = measure(img, w, h, mask, minTileEdges: max(10, 30 >> level))
+            if level == 0 { sEdges = r.subjectEdges; bEdges = r.backgroundEdges }
+            guard let s = r.subject, let b = r.farBackground else { break }
+            let scale = Double(1 << level)
+            if level == 0 { subj0 = s }
+            excess = (max(0, b * b - s * s)).squareRoot() * scale
+            if b < 2.2 { break }                      // 本层未饱和 → 结果可信
             (img, mask, w, h) = downsample(img, mask, w, h)
         }
-        let d = 3.6 * best * (1 + 0.015 * best)
-        return Result(subjectSigma: subj0, excessSigma: best, blurDiameterPx: d,
+        let d = 3.6 * excess * (1 + 0.015 * excess)
+        return Result(subjectSigma: subj0, excessSigma: excess, blurDiameterPx: d,
                       subjectEdges: sEdges, backgroundEdges: bEdges)
     }
 
     // MARK: - 单层
 
-    private static func regionSigmas(_ img: [Float], _ w: Int, _ h: Int, _ mask: [Int8])
-        -> (Double?, Int, Double?, Int) {
+    private struct LevelResult {
+        var subject: Double?
+        var farBackground: Double?
+        var subjectEdges = 0
+        var backgroundEdges = 0
+    }
+
+    private static func measure(_ img: [Float], _ w: Int, _ h: Int, _ mask: [Int8], minTileEdges: Int) -> LevelResult {
         let s0: Float = 1.5
         let g = gradient(img, w, h)
         let g1 = gradient(gaussian(img, w, h, sigma: s0), w, h)
+        let gx = 8, gy = 6
 
-        func sigmas(_ want: Int8) -> [Double] {
+        func threshold(_ want: Int8) -> Float? {
             var vals: [Float] = []
             for i in 0..<(w * h) where mask[i] == want { vals.append(g[i]) }
-            guard vals.count > 500 else { return [] }
+            guard vals.count > 500 else { return nil }
             vals.sort()
-            let thr = vals[Int(Double(vals.count - 1) * 0.85)]
-            var out: [Double] = []
-            for y in 1..<(h - 1) {
-                for x in 1..<(w - 1) {
-                    let i = y * w + x
-                    guard mask[i] == want else { continue }
-                    let v = g[i]
-                    guard v > thr, g1[i] > 1e-4 else { continue }
-                    let hMax = v >= g[i - 1] && v >= g[i + 1]
-                    let vMax = v >= g[i - w] && v >= g[i + w]
-                    guard hMax || vMax else { continue }
-                    let r = Double(v / g1[i])
-                    guard r > 1.02 else { continue }
-                    out.append(min(Double(s0) / (r * r - 1).squareRoot(), 15))
+            return vals[Int(Double(vals.count - 1) * 0.85)]
+        }
+        let tS = threshold(1), tB = threshold(0)
+        var subj: [Double] = []
+        var tiles = [[Double]](repeating: [], count: gx * gy)
+        for y in 1..<(h - 1) {
+            for x in 1..<(w - 1) {
+                let i = y * w + x
+                let lab = mask[i]
+                guard lab >= 0, let thr = (lab == 1 ? tS : tB) else { continue }
+                let v = g[i]
+                guard v > thr, g1[i] > 1e-4 else { continue }
+                let hMax = v >= g[i - 1] && v >= g[i + 1]
+                let vMax = v >= g[i - w] && v >= g[i + w]
+                guard hMax || vMax else { continue }
+                let r = Double(v / g1[i])
+                guard r > 1.02 else { continue }
+                let sigma = min(Double(s0) / (r * r - 1).squareRoot(), 15)
+                if lab == 1 {
+                    subj.append(sigma)
+                } else {
+                    tiles[min(gy - 1, y * gy / h) * gx + min(gx - 1, x * gx / w)].append(sigma)
                 }
             }
-            return out
         }
-        let s = sigmas(1), b = sigmas(0)
-        return (s.count > 100 ? ColorMath.median(s) : nil, s.count,
-                b.count > 100 ? ColorMath.median(b) : nil, b.count)
+        var out = LevelResult()
+        out.subjectEdges = subj.count
+        out.backgroundEdges = tiles.reduce(0) { $0 + $1.count }
+        if subj.count > 100 { out.subject = ColorMath.median(subj) }
+        let tileMedians = tiles.filter { $0.count >= minTileEdges }.map { ColorMath.median($0) }.sorted()
+        if tileMedians.count >= 4 { out.farBackground = ColorMath.percentile(tileMedians, 0.8) }
+        return out
     }
 
     /// 1 = 主体，0 = 背景，-1 = 两者交界（腐蚀 radius 像素后丢弃，避免主体轮廓被当成背景边缘）

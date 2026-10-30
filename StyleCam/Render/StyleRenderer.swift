@@ -88,7 +88,21 @@ final class StyleRenderer: @unchecked Sendable {
             img = addGrain(img, amount: p.grain * s, scale: scale)
         }
 
-        return img.cropped(to: extent)
+        img = img.cropped(to: extent)
+        if let r = p.cropRatio, r > 1 { img = Self.centerCrop(img, ratio: r) }
+        return img
+    }
+
+    /// 沿画面长边方向裁成 长:短 = ratio
+    static func centerCrop(_ img: CIImage, ratio r: Double) -> CIImage {
+        let e = img.extent
+        let w = Double(e.width), h = Double(e.height)
+        let long = max(w, h), short = min(w, h)
+        var nl = long, ns = long / r
+        if ns > short { ns = short; nl = short * r }
+        let (nw, nh) = w >= h ? (nl, ns) : (ns, nl)
+        let rect = CGRect(x: Double(e.midX) - nw / 2, y: Double(e.midY) - nh / 2, width: nw, height: nh).integral
+        return img.cropped(to: rect)
     }
 
     /// 单色胶片颗粒：随机噪声 → 灰度 → 柔光叠加

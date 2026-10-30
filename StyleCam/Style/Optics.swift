@@ -12,7 +12,7 @@ enum Optics {
     static let ffLongEdge = 36.0          // 全画幅长边 mm
     static let ffCoC = 0.03               // 全画幅容许弥散圆 mm
     static let faceHeightMM = 200.0       // Vision 人脸框高度（眉毛~下巴）对应的真实尺寸
-    static let backgroundFactor = 0.6     // k 的默认假设：背景在主体后方约 1.5 倍距离处
+    static let backgroundFactor = 0.85    // k：测的是“最虚的远景”，远景距离约为主体的 6~7 倍
     static let assumedMagnification = 0.02 // 无人脸、无 EXIF 时假设的“中景”放大率（≈50mm 在 2.5m）
     static let assumedFocal35 = 50.0
 
@@ -103,9 +103,13 @@ struct ReferenceOptics: Equatable {
     var source: Source = .assumed
 
     var summary: String {
-        var s = "背景虚化 \(String(format: "%.1f", blurFraction * 100))% 画幅"
+        var s = "远景虚化 \(String(format: "%.2f", blurFraction * 100))% 画幅"
         if let d = pupilMM, let n = equivalentF, let f = focal35 {
-            s += " · ≈ 全画幅 \(Int(f))mm \(Optics.fmtF(n))（入瞳 \(String(format: "%.1f", d))mm）"
+            if focal35Assumed && d > 0.3 {
+                s += " · ≈ 全画幅 35mm \(Optics.fmtF(35 / d)) 或 50mm \(Optics.fmtF(50 / d))（入瞳 \(String(format: "%.1f", d))mm）"
+            } else {
+                s += " · ≈ 全画幅 \(Int(f))mm \(Optics.fmtF(n))（入瞳 \(String(format: "%.1f", d))mm）"
+            }
         }
         return s
     }

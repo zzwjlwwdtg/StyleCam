@@ -47,14 +47,15 @@ struct CameraPreview: UIViewRepresentable {
             let ext = image.extent
             guard ext.width > 0, ext.height > 0, size.width > 0 else { return }
 
-            // 等比填满
-            let s = max(size.width / ext.width, size.height / ext.height)
+            // 等比完整显示（按参考图裁切画幅时会留黑边）
+            let s = min(size.width / ext.width, size.height / ext.height)
             var img = image
                 .transformed(by: CGAffineTransform(translationX: -ext.minX, y: -ext.minY))
                 .transformed(by: CGAffineTransform(scaleX: s, y: s))
             img = img.transformed(by: CGAffineTransform(translationX: (size.width - img.extent.width) / 2,
                                                         y: (size.height - img.extent.height) / 2))
 
+            img = img.composited(over: CIImage(color: .black).cropped(to: CGRect(origin: .zero, size: size)))
             let dest = CIRenderDestination(width: Int(size.width), height: Int(size.height),
                                            pixelFormat: view.colorPixelFormat, commandBuffer: cb) { drawable.texture }
             dest.colorSpace = displayColorSpace

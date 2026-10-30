@@ -13,13 +13,15 @@ enum ParameterPlanner {
         }
         let main = Optics.lens(.wide), tele = Optics.lens(.tele)
         let mainMax = main.pupil(1.48), teleD = tele.pupil(tele.fixedF ?? 2.8)
-        if (1...2).contains(profile.faceCount), let d = profile.optics.pupilMM, d > mainMax * 1.25 {
+        let m = profile.optics.magnification ?? 0
+        // 只有近景人像（脸占画面较大）才换长焦；环境人像换长焦要站 10m 以外，透视也会变
+        if (1...2).contains(profile.faceCount), m >= 0.015, let d = profile.optics.pupilMM, d > mainMax * 1.25 {
             return (.tele, "参考图虚化需要入瞳约 \(mm(d))，超过主摄极限 \(mm(mainMax))；4x 长焦入瞳 \(mm(teleD)) 更大，同样构图下背景更虚（要站到约 4 倍远保持构图）")
         }
-        if profile.faceCount == 1 && profile.depthOfField != .deep {
+        if profile.faceCount == 1 && profile.depthOfField != .deep && m >= 0.012 {
             return (.wide2x, "单人人像 → 48mm 人像焦段（仍是主摄，可调光圈）")
         }
-        return (.wide, "无焦距信息，使用主摄（唯一带可变光圈的镜头）")
+        return (.wide, profile.faceCount > 0 ? "环境人像（人在画面中较小）→ 主摄 24mm，保持参考图的透视与可调光圈" : "无焦距信息，使用主摄（唯一带可变光圈的镜头）")
     }
 
     static func mm(_ v: Double) -> String { String(format: v < 10 ? "%.1fmm" : "%.0fmm", v) }
@@ -155,7 +157,9 @@ enum ParameterPlanner {
         }
 
         // ---- 4. 曝光补偿：匹配参考图的明暗基调 ----
-        let rawBias = log2(max(profile.meanLuminance, 0.004) / 0.18) * 0.6
+        // 按亮度中位数（而不是平均值，避免被大片亮天空拉高）对比 18% 灰
+        let medY = pow((profile.medianL + 16) / 116, 3)
+        let rawBias = log2(max(medY, 0.004) / 0.18) * 0.7
         var bias = Float((rawBias * 3).rounded() / 3)
         bias = ColorMath.clamp(bias, max(caps.biasRange.lowerBound, -2), min(caps.biasRange.upperBound, 2))
         plan.bias = bias
@@ -222,6 +226,15 @@ enum ParameterPlanner {
             changes.append(.init(id: "quality", category: .hardware, name: "拍照处理优先级",
                                  before: "质量优先（多帧合成）", after: "速度优先",
                                  reason: "苹果文档：要让锁定的光圈/快门/ISO 在拍照时真正生效，必须用 speed，否则系统会在暗光下改写曝光"))
+        }
+
+        // ---- 9b. 画幅比例 ----
+        if abs(profile.aspect - 4.0 / 3.0) > 0.08 {
+            plan.grading.cropRatio = profile.aspect
+            changes.append(.init(id: "crop", category: .hardware, name: "画幅比例",
+                                 before: "4:3", after: String(format: "%.2f:1", profile.aspect),
+                                 reason: "按参考图画幅中心裁切（预览同步显示）。参考图是\(profile.isLandscape ? "横幅，把手机横过来拍更接近" : "竖幅")",
+                                 status: .applied))
         }
 
         // ---- 10. 软件调色 ----

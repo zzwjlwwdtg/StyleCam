@@ -110,8 +110,9 @@ enum StyleAnalyzer {
         let points = countPointLights(Y: Ys, w: w, h: h)
         let faceRects = detectFaces(medium)
         let optics = analyzeOptics(image: medium, px: mpx, exif: exif, faces: faceRects)
-        // 景深分类按“背景弥散圆占画面长边的比例”：<0.3% 基本清晰，0.3–1% 微虚，>1% 明显虚化
-        let dof: DepthOfField = optics.blurFraction < 0.003 ? .deep : (optics.blurFraction < 0.01 ? .medium : .shallow)
+        // 景深分类按“远景弥散圆占画面长边的比例”（全画幅参照）：
+        // 24mm f/8 风景 ≈ 0%，35mm f/2.8 环境人像 ≈ 0.2%，85mm f/1.8 半身 ≈ 3%
+        let dof: DepthOfField = optics.blurFraction < 0.001 ? .deep : (optics.blurFraction < 0.008 ? .medium : .shallow)
 
         let profile = StyleProfile(
             meanLuminance: sumY / Double(n),
@@ -135,7 +136,9 @@ enum StyleAnalyzer {
             faceCount: faceRects.count,
             histogram: hist,
             exif: exif,
-            optics: optics)
+            optics: optics,
+            aspect: Double(max(medium.width, medium.height)) / Double(max(1, min(medium.width, medium.height))),
+            isLandscape: medium.width > medium.height)
 
         return (profile, UIImage(cgImage: medium))
     }

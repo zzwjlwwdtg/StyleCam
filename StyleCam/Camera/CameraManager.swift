@@ -44,6 +44,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     @Published var statusMessage: String?
     @Published var captureFlash = 0
     @Published var isSaving = false
+    @Published var autoMatchStatus: String?
+    @Published var captureIsLandscape = false
 
     /// Camera Control 实体键改动后的回调（主线程）
     var onStrengthFromControl: ((Double) -> Void)?
@@ -68,6 +70,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private let stateLock = NSLock()
     private var _refHistogram: [Double]?
     private var _refMedianL: Double?
+    private var _refChroma: Double?
+    private var _refCast: SIMD2<Double>?
     private var _autoMatch = false
     private var _wbFollow = true
     private var _saveOriginal = false
@@ -88,7 +92,10 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
     private var frameCount = 0
     private var lastAutoMatch = Date.distantPast
+    private var lastColorMatch = Date.distantPast
     private var wbTimer: DispatchSourceTimer?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var rotationObservation: NSKeyValueObservation?
     private lazy var histContext = CIContext(options: [.cacheIntermediates: false])
     private let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
 
@@ -161,8 +168,15 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             } catch {
                 DispatchQueue.main.async { self.statusMessage = "镜头切换失败：\(error.localizedDescription)" }
             }
+            // 取景帧固定竖屏；照片方向跟随手机姿态（横拍得到横幅照片）
             for conn in [videoOutput.connection(with: .video), photoOutput.connection(with: .video)] {
                 if let c = conn, c.isVideoRotationAngleSupported(90) { c.videoRotationAngle = 90 }
+            }
+            let coordinator = AVCaptureDevice.RotationCoordinator(device: dev, previewLayer: nil)
+            rotationCoordinator = coordinator
+            rotationObservation = coordinator.observe(\.videoRotationAngleForHorizonLevelCapture, options: [.initial, .new]) { [weak self] c, _ in
+                let angle = c.videoRotationAngleForHorizonLevelCapture
+                self?.sessionQueue.async { self?.setPhotoRotation(angle) }
             }
             if let biggest = dev.activeFormat.supportedMaxPhotoDimensions.max(by: { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }) {
                 photoOutput.maxPhotoDimensions = biggest
@@ -183,6 +197,14 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             self.lens = lens
             self.capabilities = caps
         }
+    }
+
+    private func setPhotoRotation(_ angle: CGFloat) {
+        if let c = photoOutput.connection(with: .video), c.isVideoRotationAngleSupported(angle) {
+            c.videoRotationAngle = angle
+        }
+        let landscape = angle == 0 || angle == 180
+        DispatchQueue.main.async { if self.captureIsLandscape != landscape { self.captureIsLandscape = landscape } }
     }
 
     static func readCapabilities(_ d: AVCaptureDevice) -> HardwareCapabilities {
@@ -394,9 +416,11 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         locked {
             _refHistogram = profile?.histogram
             _refMedianL = profile?.medianL
+            _refChroma = profile?.meanChroma
+            _refCast = profile.map { SIMD2($0.castA, $0.castB) }
             _preferPerson = (profile?.faceCount ?? 1) > 0
         }
-        if profile == nil { DispatchQueue.main.async { self.matchScore = nil } }
+        if profile == nil { DispatchQueue.main.async { self.matchScore = nil; self.autoMatchStatus = nil } }
     }
 
     func setFilterEnabled(_ on: Bool) { renderer.setEnabled(on) }
@@ -507,21 +531,58 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         var hist = [Double](repeating: 0, count: 32)
         var Ls: [Double] = []
         Ls.reserveCapacity(w * h)
+        var chromaSum = 0.0
+        var nA: [Double] = [], nB: [Double] = []
         for p in 0..<(w * h) {
             let i = p * 4
-            let y = ColorMath.luminance(lut[Int(buf[i])], lut[Int(buf[i + 1])], lut[Int(buf[i + 2])])
-            let L = ColorMath.luminanceToL(y)
+            let lab = ColorMath.linearRGBToLab(lut[Int(buf[i])], lut[Int(buf[i + 1])], lut[Int(buf[i + 2])])
+            let L = lab.L
             Ls.append(L)
             hist[min(31, max(0, Int(L / 100 * 32)))] += 1
+            let c = (lab.a * lab.a + lab.b * lab.b).squareRoot()
+            chromaSum += c
+            if L > 25, L < 85, c < 22 { nA.append(lab.a); nB.append(lab.b) }
         }
         let total = Double(w * h)
         hist = hist.map { $0 / total }
         let liveMedian = ColorMath.median(Ls)
+        let liveChroma = chromaSum / total
+        let liveCast: SIMD2<Double>? = nA.count > Int(total) / 50 ? SIMD2(ColorMath.median(nA), ColorMath.median(nB)) : nil
 
         let (ref, refMedian, autoMatch) = locked { (_refHistogram, _refMedianL, _autoMatch) }
+        let (refChroma, refCast) = locked { (_refChroma, _refCast) }
         var score: Double?
         if let ref {
             score = zip(ref, hist).reduce(0) { $0 + min($1.0, $1.1) }   // 直方图交集 0...1
+        }
+
+        // 闭环对齐（饱和度 / 色偏）：按实际取景内容调整，而不是套固定倍率
+        // （参考图是绿意浓的树林、取景是灰色办公室时，固定倍率会把画面压得过灰）
+        if autoMatch, Date().timeIntervalSince(lastColorMatch) > 0.4 {
+            lastColorMatch = Date()
+            var dSat = 1.0, dA = 0.0, dB = 0.0
+            if let refChroma, liveChroma > 0.5 {
+                let ratio = refChroma / liveChroma
+                if ratio < 0.93 || ratio > 1.07 { dSat = min(1.06, max(0.94, ratio.squareRoot())) }
+            }
+            if let rc = refCast, let lc = liveCast {
+                let ea = rc.x - lc.x, eb = rc.y - lc.y
+                if abs(ea) > 1 { dA = max(-0.8, min(0.8, ea * 0.3)) }
+                if abs(eb) > 1 { dB = max(-0.8, min(0.8, eb * 0.3)) }
+            }
+            if dSat != 1 || dA != 0 || dB != 0 {
+                let (fs, fa, fb) = (dSat, dA, dB)
+                sessionQueue.async {
+                    var g = self.plan.grading
+                    g.saturation = max(0.3, min(1.8, g.saturation * fs))
+                    g.castA = max(-15, min(15, g.castA + fa))
+                    g.castB = max(-15, min(15, g.castB + fb))
+                    self.plan.grading = g
+                    self.renderer.update(g)
+                    let status = "饱和 \(Fmt.percent(g.saturation)) · 色偏 a*\(Fmt.signed(g.castA, 1)) b*\(Fmt.signed(g.castB, 1))"
+                    DispatchQueue.main.async { self.autoMatchStatus = status }
+                }
+            }
         }
 
         // 闭环亮度对齐：慢慢调曝光补偿，让实时画面的亮度中位数靠近参考图

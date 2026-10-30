@@ -100,6 +100,11 @@ struct StyleProfile: Equatable {
     var histogram: [Double]        // 32 档 L* 直方图（归一化）
     var exif: ReferenceEXIF
     var optics: ReferenceOptics
+    var aspect: Double             // 长边 / 短边
+    var isLandscape: Bool
+
+    /// 实时闭环用：参考图平均彩度
+    var meanChroma: Double { saturation * 17 }
 }
 
 // MARK: - 软件调色参数（实时滤镜）
@@ -119,6 +124,7 @@ struct GradingParams: Equatable {
     var sharpen: Double = 0
     var softGlow: Double = 0
     var backgroundBlur: Double = 0      // 计算补足的背景虚化：弥散圆直径 / 画面长边
+    var cropRatio: Double?              // 按参考图画幅裁切（长边 / 短边），沿画面长边方向
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
 }
 
