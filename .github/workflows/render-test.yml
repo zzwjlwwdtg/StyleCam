@@ -1,0 +1,61 @@
+# 在 iPhone 模拟器里用 App 同一套代码渲染测试图，结果推到 render-test 分支
+name: Render Test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成工程
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: 选择模拟器
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          best=None
+          for rt,devs in d.items():
+              if "iOS" not in rt: continue
+              for x in devs:
+                  if x["name"].startswith("iPhone"):
+                      best=(rt,x["udid"],x["name"])
+          print(best[1] if best else "")')
+          echo "udid=$UDID" >> $GITHUB_OUTPUT
+          xcrun simctl list devices available | grep -i iphone | tail -5
+
+      - name: 运行渲染测试
+        run: |
+          set -o pipefail
+          mkdir -p out
+          TEST_RUNNER_OUTPUT_DIR="$PWD/out" xcodebuild test \
+            -project StyleCam.xcodeproj -scheme StyleCam \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log | grep -E "error:|Test Case|passed|failed|TEST " || true
+          cp test.log out/ || true
+          grep -E "error:" test.log | head -50 > out/errors.txt || true
+
+      - name: 推送结果到 render-test 分支
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          mkdir -p /tmp/rt && cp -R out/. /tmp/rt/
+          git checkout -q --orphan render-test
+          git rm -rfq --cached .
+          git clean -fdq
+          cp -R /tmp/rt/. .
+          git add -f .
+          git commit -qm "render test for ${GITHUB_SHA::7}"
+          git push -qf origin render-test
