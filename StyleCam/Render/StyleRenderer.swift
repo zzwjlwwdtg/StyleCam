@@ -158,14 +158,15 @@ final class StyleRenderer: @unchecked Sendable {
     /// 高光光晕：取亮度 > 0.75 的部分 → 大半径模糊 → 染成橙红 → 叠加回去
     private func addHalation(_ img: CIImage, amount: Double, longEdge: Double) -> CIImage {
         let extent = img.extent
-        let k: CGFloat = 4
+        // 只取真正的高光（亮度 > 0.85），亮度 1.0 时为满值
+        let k: CGFloat = 6.67
         let luma = CIVector(x: 0.2126 * k, y: 0.7152 * k, z: 0.0722 * k, w: 0)
         let highlights = img.applyingFilter("CIColorMatrix", parameters: [
             "inputRVector": luma, "inputGVector": luma, "inputBVector": luma,
-            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
-            "inputBiasVector": CIVector(x: -3, y: -3, z: -3, w: 0)
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBiasVector": CIVector(x: -5.67, y: -5.67, z: -5.67, w: 1)
         ]).applyingFilter("CIColorClamp")
-        let a = CGFloat(min(0.8, amount * 0.6))
+        let a = CGFloat(min(0.4, amount * 0.35))
         let glow = highlights
             .clampedToExtent()
             .applyingGaussianBlur(sigma: longEdge * 0.008)
@@ -174,7 +175,8 @@ final class StyleRenderer: @unchecked Sendable {
                 "inputRVector": CIVector(x: 1.0 * a, y: 0, z: 0, w: 0),
                 "inputGVector": CIVector(x: 0.35 * a, y: 0, z: 0, w: 0),
                 "inputBVector": CIVector(x: 0.15 * a, y: 0, z: 0, w: 0),
-                "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1)
+                "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+                "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 1)
             ])
         let add = CIFilter.additionCompositing()
         add.inputImage = glow
@@ -182,12 +184,14 @@ final class StyleRenderer: @unchecked Sendable {
         return add.outputImage?.cropped(to: extent) ?? img
     }
 
-    /// 胶片颗粒：两种尺度的单色噪声叠加；按亮度调制，中间调最明显、高光和暗部较弱（与真实胶片一致）
+    /// 胶片颗粒：两种尺度的单色噪声混合；按亮度调制，中间调最明显、高光和暗部较弱（与真实胶片一致）
+    /// 注意：CIRandomGenerator 的 alpha 也是随机的，必须把 alpha 固定为 1，否则叠加后会变成大片黑白噪点
     private func addGrain(_ img: CIImage, amount: Double, scale: CGFloat) -> CIImage {
         let extent = img.extent
-        func noiseLayer(size: CGFloat, weight: CGFloat) -> CIImage? {
+        let amp = CGFloat(min(0.35, amount * 0.25))          // 颗粒幅度（围绕 0.5 上下）
+        func noiseLayer(size: CGFloat) -> CIImage? {
             guard let noise = CIFilter.randomGenerator().outputImage else { return nil }
-            let w = weight / 3
+            let w = amp / 3
             return noise
                 .transformed(by: CGAffineTransform(scaleX: size, y: size))
                 .transformed(by: CGAffineTransform(translationX: CGFloat.random(in: 0...512) + extent.minX,
@@ -196,22 +200,20 @@ final class StyleRenderer: @unchecked Sendable {
                     "inputRVector": CIVector(x: w, y: w, z: w, w: 0),
                     "inputGVector": CIVector(x: w, y: w, z: w, w: 0),
                     "inputBVector": CIVector(x: w, y: w, z: w, w: 0),
-                    "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
-                    "inputBiasVector": CIVector(x: -weight / 2, y: -weight / 2, z: -weight / 2, w: 0)
+                    "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+                    "inputBiasVector": CIVector(x: 0.5 - amp / 2, y: 0.5 - amp / 2, z: 0.5 - amp / 2, w: 1)
                 ])
                 .cropped(to: extent)
         }
-        let amp = CGFloat(min(0.45, amount * 0.35))
-        guard let fine = noiseLayer(size: scale * 1.1, weight: amp * 0.7),
-              let coarse = noiseLayer(size: scale * 2.6, weight: amp * 0.5) else { return img }
-        let sum = CIFilter.additionCompositing()
-        sum.inputImage = fine
-        sum.backgroundImage = coarse
-        guard let zeroCentered = sum.outputImage?.cropped(to: extent) else { return img }
-        // 加 0.5 变成柔光叠加用的中性灰底
-        let grain = zeroCentered.applyingFilter("CIColorMatrix", parameters: [
-            "inputBiasVector": CIVector(x: 0.5, y: 0.5, z: 0.5, w: 0)
-        ])
+        guard let fine = noiseLayer(size: scale * 1.1),
+              let coarse = noiseLayer(size: scale * 2.6) else { return img }
+        // 两层取加权平均（0.6 细 + 0.4 粗）
+        let mix = CIFilter.dissolveTransition()
+        mix.inputImage = fine
+        mix.targetImage = coarse
+        mix.time = 0.4
+        guard let grain = mix.outputImage?.cropped(to: extent).applyingFilter("CIColorClamp") else { return img }
+
         let blend = CIFilter.softLightBlendMode()
         blend.inputImage = grain
         blend.backgroundImage = img
@@ -220,18 +222,20 @@ final class StyleRenderer: @unchecked Sendable {
         // 中间调蒙版：亮度经曲线 0→0.2, 0.5→1, 1→0.15
         let lumaV = CIVector(x: 0.2126, y: 0.7152, z: 0.0722, w: 0)
         let mid = img.applyingFilter("CIColorMatrix", parameters: [
-            "inputRVector": lumaV, "inputGVector": lumaV, "inputBVector": lumaV
-        ]).applyingFilter("CIToneCurve", parameters: [
+            "inputRVector": lumaV, "inputGVector": lumaV, "inputBVector": lumaV,
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 1)
+        ]).applyingFilter("CIColorClamp").applyingFilter("CIToneCurve", parameters: [
             "inputPoint0": CIVector(x: 0, y: 0.2),
             "inputPoint1": CIVector(x: 0.25, y: 0.75),
             "inputPoint2": CIVector(x: 0.5, y: 1),
             "inputPoint3": CIVector(x: 0.75, y: 0.7),
             "inputPoint4": CIVector(x: 1, y: 0.15)
         ])
-        let mix = CIFilter.blendWithMask()
-        mix.inputImage = grained
-        mix.backgroundImage = img
-        mix.maskImage = mid
-        return mix.outputImage?.cropped(to: extent) ?? grained
+        let out = CIFilter.blendWithMask()
+        out.inputImage = grained
+        out.backgroundImage = img
+        out.maskImage = mid
+        return out.outputImage?.cropped(to: extent) ?? grained
     }
 }

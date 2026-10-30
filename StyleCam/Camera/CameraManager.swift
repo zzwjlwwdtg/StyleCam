@@ -651,8 +651,11 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private func analyzeLive(_ image: CIImage, device d: AVCaptureDevice?) {
         let extent = image.extent
         guard extent.width > 0, extent.height > 0 else { return }
+        // 用 Lanczos 缩小（会做区域平均），避免颗粒/噪点让亮度统计失真
         let s = 64 / max(extent.width, extent.height)
-        let small = image.transformed(by: CGAffineTransform(scaleX: s, y: s))
+        let small = image.applyingFilter("CILanczosScaleTransform", parameters: [
+            kCIInputScaleKey: s, kCIInputAspectRatioKey: 1
+        ])
         let w = Int(small.extent.width), h = Int(small.extent.height)
         guard w > 0, h > 0 else { return }
         var buf = [UInt8](repeating: 0, count: w * h * 4)
@@ -725,12 +728,15 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         // 闭环亮度对齐：慢慢调曝光补偿，让实时画面的亮度中位数靠近参考图
         if autoMatch, let refMedian, let d, Date().timeIntervalSince(lastAutoMatch) > 0.4 {
             let diff = refMedian - liveMedian
-            if abs(diff) > 3 {
+            // 安全限制：自动对齐最多 ±1.5EV；ISO 已经很高（噪点大）或快门已经很慢时不再往亮调
+            let isoHigh = d.iso > min(1000, d.activeFormat.maxISO * 0.5)
+            let slow = d.exposureDuration.seconds >= 1.0 / 20
+            if abs(diff) > 3 && !(diff > 0 && (isoHigh || slow)) {
                 lastAutoMatch = Date()
-                let step = Float(max(-0.2, min(0.2, diff * 0.02)))
+                let step = Float(max(-0.15, min(0.15, diff * 0.015)))
                 sessionQueue.async {
                     guard (try? d.lockForConfiguration()) != nil else { return }
-                    let nb = min(max(d.exposureTargetBias + step, max(d.minExposureTargetBias, -3)), min(d.maxExposureTargetBias, 3))
+                    let nb = min(max(d.exposureTargetBias + step, max(d.minExposureTargetBias, -1.5)), min(d.maxExposureTargetBias, 1.5))
                     d.setExposureTargetBias(nb, completionHandler: nil)
                     d.unlockForConfiguration()
                 }
