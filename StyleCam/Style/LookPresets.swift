@@ -453,13 +453,22 @@ extension LookPreset {
             let co = (o.a * o.a + o.b * o.b).squareRoot(), ci = max(1, (r.a * r.a + r.b * r.b).squareRoot())
             return (i, co * pow(co / ci, 1.5), atan2(o.b, o.a) * 180 / .pi, co)
         }
-        let first = scored.max { $0.score < $1.score }!
-        // 副色：和主色色相差得多、又不太灰的那个
-        let second = scored.filter { $0.i != first.i }.max { a, b in
-            func d(_ x: Double) -> Double { let v = abs(x - first.hue).truncatingRemainder(dividingBy: 360); return min(v, 360 - v) }
-            return d(a.hue) * a.chroma < d(b.hue) * b.chroma
-        }!
+        // 清冷款偏向蓝灰：越接近蓝色（Lab 色相约 250°）权重越高
+        func hueDist(_ x: Double, _ y: Double) -> Double { let v = abs(x - y).truncatingRemainder(dividingBy: 360); return min(v, 360 - v) }
+        func bias(_ hue: Double) -> Double {
+            mood == .cool ? 1 + 3 * max(0, 1 - hueDist(hue < 0 ? hue + 360 : hue, 250) / 70) : 1
+        }
+        let first = scored.max { $0.score * bias($0.hue) < $1.score * bias($1.hue) }!
+        // 副色：色相和主色拉开（>35°）的里面，被这个滤镜加强得最多的那个
+        let others = scored.filter { $0.i != first.i }
+        let apart = others.filter { hueDist($0.hue, first.hue) > 35 }
+        let second = (apart.isEmpty ? others : apart).max { $0.score * bias($0.hue) < $1.score * bias($1.hue) }!
         return Packaging(primary: color(mapped[first.i]), secondary: color(mapped[second.i]),
                          paper: color(paperC), ink: color(inkC), darkBody: mood == .cinematic)
     }
+}
+
+extension LookPreset {
+    /// 在同一情绪组里的序号（决定片盒色块用这一组的第几种版式）
+    var moodIndex: Int { LookPresets.all.filter { $0.mood == mood }.firstIndex { $0.id == id } ?? 0 }
 }

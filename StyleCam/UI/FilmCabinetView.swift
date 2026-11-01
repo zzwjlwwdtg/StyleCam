@@ -527,44 +527,112 @@ struct PackagingBlocks: View {
         Canvas { ctx, size in
             let w = size.width, h = size.height
             let all = Path(CGRect(origin: .zero, size: size))
-            // 上半部分留给标签（纸色 / 电影款为深色），色块都在下半部分
-            switch preset.mood {
-            case .gentle:
-                ctx.fill(all, with: .color(pk.paper))
+            // 上半部分留给标签（纸色 / 电影款为深色），色块都在下半部分；同一情绪组内按序号换版式
+            let v = preset.moodIndex
+            let P = pk.primary, S = pk.secondary, I = pk.ink
+            func rect(_ x: CGFloat, _ y: CGFloat, _ rw: CGFloat, _ rh: CGFloat, _ c: Color) {
+                ctx.fill(Path(CGRect(x: x * w, y: y * h, width: rw * w + 0.5, height: rh * h + 0.5)), with: .color(c))
+            }
+            func poly(_ pts: [(CGFloat, CGFloat)], _ c: Color) {
+                var p = Path()
+                p.move(to: CGPoint(x: pts[0].0 * w, y: pts[0].1 * h))
+                for q in pts.dropFirst() { p.addLine(to: CGPoint(x: q.0 * w, y: q.1 * h)) }
+                p.closeSubpath()
+                ctx.fill(p, with: .color(c))
+            }
+            func circle(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat, _ c: Color) {
+                ctx.fill(Path(ellipseIn: CGRect(x: cx * w - r * w, y: cy * h - r * w, width: 2 * r * w, height: 2 * r * w)), with: .color(c))
+            }
+            ctx.fill(all, with: .color(preset.mood == .cinematic ? I : pk.paper))
+            switch (preset.mood, v % 6) {
+            // 温柔：圆润、柔和
+            case (.gentle, 0):
                 var arc = Path()
                 arc.move(to: CGPoint(x: 0, y: h * 0.72))
                 arc.addQuadCurve(to: CGPoint(x: w, y: h * 0.6), control: CGPoint(x: w * 0.5, y: h * 0.46))
                 arc.addLine(to: CGPoint(x: w, y: h)); arc.addLine(to: CGPoint(x: 0, y: h)); arc.closeSubpath()
-                ctx.fill(arc, with: .color(pk.primary))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.9, width: w, height: h * 0.1)), with: .color(pk.secondary))
-            case .nostalgic:
-                ctx.fill(all, with: .color(pk.paper))
-                let top = h * 0.6, band = h * 0.4 / 3
-                ctx.fill(Path(CGRect(x: 0, y: top, width: w, height: band + 1)), with: .color(pk.primary))
-                ctx.fill(Path(CGRect(x: 0, y: top + band, width: w, height: band + 1)), with: .color(pk.secondary))
-                ctx.fill(Path(CGRect(x: 0, y: top + band * 2, width: w, height: band)), with: .color(pk.ink.opacity(0.85)))
-            case .cool:
-                ctx.fill(all, with: .color(pk.paper))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.6, width: w, height: h * 0.4)), with: .color(pk.primary))
-                ctx.fill(Path(CGRect(x: w * 0.62, y: h * 0.6, width: w * 0.38, height: h * 0.4)), with: .color(pk.secondary))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.58, width: w, height: h * 0.012)), with: .color(pk.ink.opacity(0.6)))
-            case .vivid:
-                ctx.fill(all, with: .color(pk.paper))
-                var blk = Path()
-                blk.move(to: CGPoint(x: 0, y: h * 0.62)); blk.addLine(to: CGPoint(x: w, y: h * 0.56))
-                blk.addLine(to: CGPoint(x: w, y: h)); blk.addLine(to: CGPoint(x: 0, y: h)); blk.closeSubpath()
-                ctx.fill(blk, with: .color(pk.primary))
-                var tri = Path()
-                tri.move(to: CGPoint(x: 0, y: h)); tri.addLine(to: CGPoint(x: w, y: h * 0.74)); tri.addLine(to: CGPoint(x: w, y: h)); tri.closeSubpath()
-                ctx.fill(tri, with: .color(pk.secondary))
-            case .cinematic:
-                ctx.fill(all, with: .color(pk.ink))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.66, width: w, height: h * 0.14)), with: .color(pk.primary))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.8, width: w, height: h * 0.04)), with: .color(pk.secondary))
-            case .mono:
-                ctx.fill(all, with: .color(pk.paper))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.62, width: w, height: h * 0.38)), with: .color(pk.ink))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.58, width: w, height: h * 0.04)), with: .color(pk.secondary))
+                ctx.fill(arc, with: .color(P))
+                rect(0, 0.9, 1, 0.1, S)
+            case (.gentle, 1):
+                circle(0.72, 0.86, 0.5, P)
+                circle(0.15, 0.95, 0.3, S)
+            case (.gentle, 2):
+                for i in 0..<3 {
+                    var wave = Path()
+                    let y0 = h * (0.64 + CGFloat(i) * 0.12)
+                    wave.move(to: CGPoint(x: 0, y: y0))
+                    wave.addCurve(to: CGPoint(x: w, y: y0), control1: CGPoint(x: w * 0.3, y: y0 - h * 0.06), control2: CGPoint(x: w * 0.7, y: y0 + h * 0.06))
+                    wave.addLine(to: CGPoint(x: w, y: h)); wave.addLine(to: CGPoint(x: 0, y: h)); wave.closeSubpath()
+                    ctx.fill(wave, with: .color(i == 1 ? S : P.opacity(i == 0 ? 0.55 : 1)))
+                }
+            case (.gentle, _):
+                ctx.fill(Path(roundedRect: CGRect(x: w * 0.08, y: h * 0.6, width: w * 0.84, height: h * 0.32), cornerRadius: w * 0.2), with: .color(P))
+                circle(0.7, 0.68, 0.12, S)
+            // 复古：70 年代条纹、日出、色带
+            case (.nostalgic, 0):
+                let top: CGFloat = 0.6, band: CGFloat = 0.4 / 3
+                rect(0, top, 1, band, P); rect(0, top + band, 1, band, S); rect(0, top + band * 2, 1, band, I.opacity(0.85))
+            case (.nostalgic, 1):
+                poly([(0, 0.82), (1, 0.52), (1, 0.64), (0, 0.94)], P)
+                poly([(0, 0.94), (1, 0.64), (1, 0.76), (0, 1.06)], S)
+            case (.nostalgic, 2):
+                rect(0, 0.84, 1, 0.16, S)
+                var sun = Path()
+                sun.addArc(center: CGPoint(x: w * 0.5, y: h * 0.84), radius: w * 0.36, startAngle: .degrees(180), endAngle: .degrees(360), clockwise: false)
+                ctx.fill(sun, with: .color(P))
+            case (.nostalgic, 3):
+                for i in 0..<5 { rect(0, 0.6 + CGFloat(i) * 0.08, 1, 0.045, i % 2 == 0 ? P : S) }
+            case (.nostalgic, 4):
+                rect(0, 0.6, 0.5, 0.4, P); rect(0.5, 0.6, 0.5, 0.4, S); rect(0, 0.92, 1, 0.08, I.opacity(0.85))
+            case (.nostalgic, _):
+                // 千禧数码：像素方格
+                let n = 6, cell = 1.0 / CGFloat(n)
+                for r in 0..<4 {
+                    for c in 0..<n where (r + c) % 2 == 0 || r == 3 {
+                        rect(CGFloat(c) * cell, 0.62 + CGFloat(r) * 0.095, cell, 0.095, r % 2 == 0 ? P : S)
+                    }
+                }
+            // 清冷：干净的分割与细线
+            case (.cool, 0):
+                rect(0, 0.6, 1, 0.4, P); rect(0.62, 0.6, 0.38, 0.4, S); rect(0, 0.58, 1, 0.012, I.opacity(0.6))
+            case (.cool, _):
+                rect(0, 0.6, 1, 0.4, P.opacity(0.85))
+                for i in 0..<6 { rect(CGFloat(i) * 0.18 + 0.04, 0.6, 0.018, 0.4, pk.paper.opacity(0.7)) }
+                rect(0, 0.92, 1, 0.08, S)
+            // 浓郁：大块斜切
+            case (.vivid, 0):
+                poly([(0, 0.62), (1, 0.56), (1, 1), (0, 1)], P); poly([(0, 1), (1, 0.74), (1, 1)], S)
+            case (.vivid, 1):
+                poly([(0, 0.56), (0.62, 0.56), (0.32, 1), (0, 1)], P); poly([(0.62, 0.56), (1, 0.56), (1, 1), (0.32, 1)], S)
+            case (.vivid, _):
+                rect(0, 0.58, 1, 0.42, S)
+                circle(0.5, 0.82, 0.3, P)
+            // 电影：深色盒身 + 宽银幕色带
+            case (.cinematic, 0):
+                rect(0, 0.66, 1, 0.14, P); rect(0, 0.8, 1, 0.04, S)
+            case (.cinematic, 1):
+                rect(0, 0.64, 1, 0.22, P.opacity(0.75)); rect(0, 0.64, 1, 0.02, pk.paper.opacity(0.7)); rect(0, 0.84, 1, 0.02, pk.paper.opacity(0.7))
+            case (.cinematic, _):
+                // 霓虹：两条发光色带
+                rect(0, 0.66, 1, 0.06, P); rect(0, 0.76, 1, 0.06, S)
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.62, width: w, height: h * 0.24)), with: .color(P.opacity(0.18)))
+            // 黑白：对半、网点
+            case (.mono, 0):
+                rect(0, 0.62, 1, 0.38, I); rect(0, 0.58, 1, 0.04, S)
+            case (.mono, 1):
+                poly([(0, 0.6), (1, 0.6), (1, 1), (0, 1)], S)
+                poly([(0, 0.75), (1, 0.6), (1, 1), (0, 1)], I)
+            case (.mono, _):
+                rect(0, 0.6, 1, 0.4, I)
+                let step: CGFloat = 0.12
+                var y: CGFloat = 0.63
+                while y < 1 {
+                    var x: CGFloat = 0.06
+                    while x < 1 { circle(x, y, 0.025, S); x += step }
+                    y += 0.07
+                }
+            default:
+                rect(0, 0.6, 1, 0.4, P)
             }
         }
     }
