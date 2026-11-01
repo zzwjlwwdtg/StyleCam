@@ -43,7 +43,7 @@ struct FilmCabinetView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .background(CabinetBackground(tint: focused.stock.color))
+            .background(CabinetBackground(tint: focused.packaging.primary))
             .safeAreaInset(edge: .bottom) { actionBar }
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -128,9 +128,9 @@ struct FilmCabinetView: View {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(p.brand.rawValue)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(p.stock.label)
+                    .foregroundStyle(p.packaging.paper)
                     .padding(.horizontal, 9).padding(.vertical, 3)
-                    .background(p.stock.color.opacity(0.55), in: Capsule())
+                    .background(p.packaging.primary.opacity(0.55), in: Capsule())
                 Text("ISO \(p.stock.iso)")
                     .font(.system(.subheadline, design: .serif))
                     .foregroundStyle(Palette.mist)
@@ -203,7 +203,7 @@ struct FilmCabinetView: View {
                             if m == mood {
                                 Button(m.rawValue) { mood = m }
                                     .buttonStyle(.glassProminent)
-                                    .tint(focused.stock.color)
+                                    .tint(focused.packaging.primary)
                             } else {
                                 Button(m.rawValue) {
                                     withAnimation(.snappy) { mood = m }
@@ -248,7 +248,7 @@ struct FilmCabinetView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.glassProminent)
-                .tint(p.stock.color)
+                .tint(p.packaging.primary)
                 .controlSize(.large)
             }
         }
@@ -276,7 +276,7 @@ struct ShelfRow: View {
                                 CanisterArt(preset: p)
                                     .frame(width: 62, height: 100)
                                     .offset(y: on ? -10 : 0)
-                                    .shadow(color: p.stock.color.opacity(on ? 0.55 : 0), radius: 14, y: 6)
+                                    .shadow(color: p.packaging.primary.opacity(on ? 0.55 : 0), radius: 14, y: 6)
                                 HStack(spacing: 3) {
                                     if currentID == p.id {
                                         Circle().fill(Palette.fog).frame(width: 5, height: 5)
@@ -414,45 +414,42 @@ struct FilmStrip: View {
     }
 }
 
-// MARK: - 片盒（原创图案：按滤镜情绪选纹样，按滤镜调色后的颜色配色）
+// MARK: - 片盒：StyleCam 自有包装（相机图标 + 色块），配色全部来自滤镜本身
 
 struct CanisterArt: View {
     let preset: LookPreset
 
     var body: some View {
+        let pk = preset.packaging
         GeometryReader { g in
             let w = g.size.width, h = g.size.height
             let capH = max(3, h * 0.085)
             let bodyW = w * 0.86
+            let bodyH = h - capH * 3.4
             ZStack(alignment: .top) {
-                // 顶部轴心
-                RoundedRectangle(cornerRadius: w * 0.05)
-                    .fill(metal)
+                RoundedRectangle(cornerRadius: w * 0.05).fill(metal)
                     .frame(width: w * 0.28, height: capH * 0.9)
-                // 上盖
                 cap.frame(width: w * 0.92, height: capH).offset(y: capH * 0.7)
-                // 盒身（标签纹样 + 圆柱明暗）
                 ZStack {
-                    LabelPattern(preset: preset)
-                    labelText(w: bodyW, h: h)
+                    PackagingBlocks(preset: preset, pk: pk)
+                    if w > 30 { label(pk: pk, w: bodyW, h: bodyH) }
+                    // 圆柱明暗
                     LinearGradient(stops: [
-                        .init(color: .black.opacity(0.55), location: 0),
-                        .init(color: .black.opacity(0.05), location: 0.22),
-                        .init(color: .white.opacity(0.35), location: 0.32),
-                        .init(color: .white.opacity(0.0), location: 0.45),
-                        .init(color: .black.opacity(0.10), location: 0.75),
-                        .init(color: .black.opacity(0.6), location: 1)
+                        .init(color: .black.opacity(0.5), location: 0),
+                        .init(color: .black.opacity(0.04), location: 0.2),
+                        .init(color: .white.opacity(0.32), location: 0.3),
+                        .init(color: .white.opacity(0.0), location: 0.44),
+                        .init(color: .black.opacity(0.08), location: 0.75),
+                        .init(color: .black.opacity(0.55), location: 1)
                     ], startPoint: .leading, endPoint: .trailing)
                 }
-                .frame(width: bodyW, height: h - capH * 3.4)
+                .frame(width: bodyW, height: bodyH)
                 .clipShape(Rectangle())
                 .offset(y: capH * 1.7)
-                // 出片口（绒布唇）
                 Rectangle()
                     .fill(Color(red: 0.08, green: 0.06, blue: 0.05))
                     .frame(width: max(2, w * 0.07), height: h * 0.42)
                     .offset(x: bodyW / 2 - w * 0.01, y: h * 0.33)
-                // 下盖
                 cap.frame(width: w * 0.92, height: capH).offset(y: h - capH * 1.7)
             }
             .frame(width: w, height: h, alignment: .top)
@@ -468,7 +465,6 @@ struct CanisterArt: View {
     private var cap: some View {
         ZStack {
             Capsule().fill(metal)
-            // 压纹
             HStack(spacing: 2) {
                 ForEach(0..<9, id: \.self) { _ in Rectangle().fill(Color.black.opacity(0.18)).frame(width: 0.6) }
             }
@@ -476,120 +472,99 @@ struct CanisterArt: View {
         }
     }
 
-    @ViewBuilder
-    private func labelText(w: CGFloat, h: CGFloat) -> some View {
-        if w > 30 {
-            // 小标签贴在下半部，让纹样露出来
-            let dark = preset.mood == .mono || preset.mood == .cinematic
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                VStack(spacing: 0) {
-                    Text(preset.labelTitle)
-                        .font(.system(size: w * 0.15, weight: .black, design: .serif))
-                        .lineLimit(1).minimumScaleFactor(0.5)
-                    HStack(spacing: 2) {
-                        Text("\(preset.stock.iso)")
-                            .font(.system(size: w * 0.15, weight: .black, design: .rounded))
-                        Text("36")
-                            .font(.system(size: w * 0.08, weight: .bold, design: .monospaced))
-                            .baselineOffset(w * 0.05)
-                    }
-                }
-                .foregroundStyle(dark ? Palette.fog : Color(red: 0.12, green: 0.09, blue: 0.07))
-                .padding(.vertical, 2).padding(.horizontal, 4)
-                .frame(maxWidth: .infinity)
-                .background((dark ? Color.black : Palette.fog).opacity(0.62))
-                .padding(.bottom, h * 0.06)
-            }
-            .overlay(alignment: .top) {
+    /// 统一的标签版式：顶部相机图标 + 字标，下部 ISO 大数字 + 名称
+    private func label(pk: Packaging, w: CGFloat, h: CGFloat) -> some View {
+        let onDark = pk.darkBody
+        let ink = onDark ? pk.paper : pk.ink
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: w * 0.05) {
+                CameraGlyph().stroke(ink, style: StrokeStyle(lineWidth: max(0.8, w * 0.025), lineJoin: .round))
+                    .frame(width: w * 0.2, height: w * 0.15)
                 Text("StyleCam")
-                    .font(.system(size: w * 0.1, weight: .heavy, design: .serif).italic())
-                    .tracking(0.6)
-                    .foregroundStyle((dark ? Palette.fog : Color.black).opacity(0.55))
-                    .padding(.top, h * 0.05)
+                    .font(.system(size: w * 0.12, weight: .bold, design: .serif).italic())
+                    .foregroundStyle(ink)
+                    .lineLimit(1).minimumScaleFactor(0.5)
             }
+            .padding(.top, h * 0.06)
+            Text("\(preset.stock.iso)")
+                .font(.system(size: w * 0.3, weight: .heavy, design: .rounded))
+                .foregroundStyle(ink)
+                .minimumScaleFactor(0.5)
+                .padding(.top, h * 0.02)
+            Text(preset.labelTitle)
+                .font(.system(size: w * 0.13, weight: .semibold))
+                .foregroundStyle(ink.opacity(0.85))
+                .lineLimit(1).minimumScaleFactor(0.5)
+            Spacer(minLength: 0)
         }
+        .padding(.leading, w * 0.1)
+        .frame(width: w, height: h, alignment: .leading)
     }
 }
 
-/// 片盒标签纹样：温柔 → 柔光圆斑；复古 → 70 年代彩条；清冷 → 细竖纹；浓郁 → 大色块；电影 → 片孔条；黑白 → 网点
-struct LabelPattern: View {
+/// 原创相机图标：机身 + 取景器凸起 + 镜头
+struct CameraGlyph: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        let body = CGRect(x: r.minX, y: r.minY + r.height * 0.22, width: r.width, height: r.height * 0.78)
+        p.addRoundedRect(in: body, cornerSize: CGSize(width: r.width * 0.12, height: r.width * 0.12))
+        p.addRoundedRect(in: CGRect(x: r.minX + r.width * 0.12, y: r.minY, width: r.width * 0.28, height: r.height * 0.24),
+                         cornerSize: CGSize(width: r.width * 0.04, height: r.width * 0.04))
+        let d = min(body.width, body.height) * 0.62
+        p.addEllipse(in: CGRect(x: body.midX - d / 2 + r.width * 0.06, y: body.midY - d / 2, width: d, height: d))
+        p.addEllipse(in: CGRect(x: body.maxX - r.width * 0.2, y: body.minY + body.height * 0.18,
+                                width: r.width * 0.08, height: r.width * 0.08))
+        return p
+    }
+}
+
+/// 色块：同一套版式语言，几何按情绪变化（温柔 = 圆弧，复古 = 三条横带，清冷 = 竖分割，浓郁 = 斜切大块，电影 = 深底窄条，黑白 = 上下对半）
+struct PackagingBlocks: View {
     let preset: LookPreset
+    let pk: Packaging
 
     var body: some View {
-        let pal = preset.palette
-        let mood = preset.mood
-        let seed = preset.seed
         Canvas { ctx, size in
-            var rng = SplitMix(seed: seed)
             let w = size.width, h = size.height
-            let bg = pal[6], ink = pal[5]
-            switch mood {
+            let all = Path(CGRect(origin: .zero, size: size))
+            // 上半部分留给标签（纸色 / 电影款为深色），色块都在下半部分
+            switch preset.mood {
             case .gentle:
-                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(bg))
-                for _ in 0..<14 {
-                    let r = CGFloat(rng.next(in: 0.15...0.5)) * w
-                    let c = CGPoint(x: CGFloat(rng.next(in: -0.1...1.1)) * w, y: CGFloat(rng.next(in: 0...1)) * h)
-                    let col = [pal[0], pal[1], pal[4], pal[3]][Int(rng.next(in: 0...3.99))]
-                    ctx.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
-                             with: .radialGradient(Gradient(colors: [col.opacity(0.75), col.opacity(0)]),
-                                                   center: c, startRadius: 0, endRadius: r))
-                }
+                ctx.fill(all, with: .color(pk.paper))
+                var arc = Path()
+                arc.move(to: CGPoint(x: 0, y: h * 0.72))
+                arc.addQuadCurve(to: CGPoint(x: w, y: h * 0.6), control: CGPoint(x: w * 0.5, y: h * 0.46))
+                arc.addLine(to: CGPoint(x: w, y: h)); arc.addLine(to: CGPoint(x: 0, y: h)); arc.closeSubpath()
+                ctx.fill(arc, with: .color(pk.primary))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.9, width: w, height: h * 0.1)), with: .color(pk.secondary))
             case .nostalgic:
-                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(bg))
-                let cols = [pal[4], pal[0], pal[3], pal[5]]
-                let band = h * 0.075
-                for (i, col) in cols.enumerated() {
-                    var p = Path()
-                    let y0 = h * 0.62 + CGFloat(i) * band
-                    p.move(to: CGPoint(x: -w, y: y0 + w * 0.5))
-                    p.addLine(to: CGPoint(x: w * 2, y: y0 - w * 0.6))
-                    ctx.stroke(p, with: .color(col), lineWidth: band * 0.92)
-                }
-                // 太阳
-                let r = w * 0.32
-                ctx.fill(Path(ellipseIn: CGRect(x: w * 0.55 - r, y: h * 0.18 - r, width: r * 2, height: r * 2)), with: .color(pal[4].opacity(0.85)))
+                ctx.fill(all, with: .color(pk.paper))
+                let top = h * 0.6, band = h * 0.4 / 3
+                ctx.fill(Path(CGRect(x: 0, y: top, width: w, height: band + 1)), with: .color(pk.primary))
+                ctx.fill(Path(CGRect(x: 0, y: top + band, width: w, height: band + 1)), with: .color(pk.secondary))
+                ctx.fill(Path(CGRect(x: 0, y: top + band * 2, width: w, height: band)), with: .color(pk.ink.opacity(0.85)))
             case .cool:
-                ctx.fill(Path(CGRect(origin: .zero, size: size)),
-                         with: .linearGradient(Gradient(colors: [pal[6], pal[1]]), startPoint: .zero, endPoint: CGPoint(x: 0, y: h)))
-                var x: CGFloat = 0
-                while x < w {
-                    ctx.fill(Path(CGRect(x: x, y: 0, width: 0.7, height: h)), with: .color(ink.opacity(0.25)))
-                    x += CGFloat(rng.next(in: 2.5...5))
-                }
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.78, width: w, height: h * 0.05)), with: .color(pal[1]))
+                ctx.fill(all, with: .color(pk.paper))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.6, width: w, height: h * 0.4)), with: .color(pk.primary))
+                ctx.fill(Path(CGRect(x: w * 0.62, y: h * 0.6, width: w * 0.38, height: h * 0.4)), with: .color(pk.secondary))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.58, width: w, height: h * 0.012)), with: .color(pk.ink.opacity(0.6)))
             case .vivid:
-                let cols = [pal[3], pal[4], pal[2], pal[1], pal[0]]
-                let n = cols.count
-                for (i, col) in cols.enumerated() {
-                    ctx.fill(Path(CGRect(x: 0, y: h * CGFloat(i) / CGFloat(n), width: w, height: h / CGFloat(n) + 1)), with: .color(col))
-                }
-                let r = w * 0.45
-                ctx.fill(Path(ellipseIn: CGRect(x: -r * 0.4, y: h * 0.7 - r, width: r * 2, height: r * 2)), with: .color(pal[6].opacity(0.25)))
+                ctx.fill(all, with: .color(pk.paper))
+                var blk = Path()
+                blk.move(to: CGPoint(x: 0, y: h * 0.62)); blk.addLine(to: CGPoint(x: w, y: h * 0.56))
+                blk.addLine(to: CGPoint(x: w, y: h)); blk.addLine(to: CGPoint(x: 0, y: h)); blk.closeSubpath()
+                ctx.fill(blk, with: .color(pk.primary))
+                var tri = Path()
+                tri.move(to: CGPoint(x: 0, y: h)); tri.addLine(to: CGPoint(x: w, y: h * 0.74)); tri.addLine(to: CGPoint(x: w, y: h)); tri.closeSubpath()
+                ctx.fill(tri, with: .color(pk.secondary))
             case .cinematic:
-                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(pal[5]))
-                ctx.fill(Path(CGRect(x: 0, y: h * 0.62, width: w, height: h * 0.2)),
-                         with: .linearGradient(Gradient(colors: [pal[1], pal[3], pal[0]]), startPoint: .zero, endPoint: CGPoint(x: w, y: 0)))
-                var x: CGFloat = 2
-                while x < w {
-                    ctx.fill(Path(roundedRect: CGRect(x: x, y: h * 0.58, width: 3, height: 3), cornerRadius: 0.6), with: .color(pal[6].opacity(0.7)))
-                    ctx.fill(Path(roundedRect: CGRect(x: x, y: h * 0.835, width: 3, height: 3), cornerRadius: 0.6), with: .color(pal[6].opacity(0.7)))
-                    x += 6
-                }
+                ctx.fill(all, with: .color(pk.ink))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.66, width: w, height: h * 0.14)), with: .color(pk.primary))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.8, width: w, height: h * 0.04)), with: .color(pk.secondary))
             case .mono:
-                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(pal[6]))
-                let step: CGFloat = 4
-                var y: CGFloat = 0
-                while y < h {
-                    var x: CGFloat = (Int(y / step) % 2 == 0) ? 0 : step / 2
-                    while x < w {
-                        let t = y / h
-                        let r = step * 0.5 * t
-                        ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(ink))
-                        x += step
-                    }
-                    y += step
-                }
+                ctx.fill(all, with: .color(pk.paper))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.62, width: w, height: h * 0.38)), with: .color(pk.ink))
+                ctx.fill(Path(CGRect(x: 0, y: h * 0.58, width: w, height: h * 0.04)), with: .color(pk.secondary))
             }
         }
     }

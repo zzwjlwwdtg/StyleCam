@@ -303,11 +303,11 @@ final class FilmCabinetSnapshotTests: XCTestCase {
         }
         // 片盒一览（放大看纹样）
         let gallery = ScrollView {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(120)), count: 3), spacing: 14) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(96)), count: 3), spacing: 16) {
                 ForEach(LookPresets.all) { p in
                     VStack(spacing: 4) {
-                        CanisterArt(preset: p).frame(width: 84, height: 136)
-                        Text(p.id).font(.system(size: 9, design: .monospaced)).foregroundStyle(.white)
+                        CanisterArt(preset: p).frame(width: 80, height: 130)
+                        Text(p.name).font(.system(size: 8)).foregroundStyle(.white).lineLimit(2).multilineTextAlignment(.center)
                     }
                 }
             }

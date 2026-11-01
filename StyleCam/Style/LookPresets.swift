@@ -315,38 +315,33 @@ enum LookPresets {
 struct FilmStock {
     let code: String      // 片边印字
     let iso: Int
-    let color: Color      // 片盒主色
-    let label: Color      // 片盒标签色
 }
 
 extension LookPreset {
     var stock: FilmStock {
-        func c(_ hex: UInt32) -> Color {
-            Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
-        }
         switch id {
-        case "canon-portrait":     return FilmStock(code: "PORTRAIT", iso: 200, color: c(0xC8343A), label: c(0xF4E6D8))
-        case "fuji-astia":         return FilmStock(code: "ASTIA 100F", iso: 100, color: c(0x2E8B57), label: c(0xF2C9D6))
-        case "fuji-reggie-portra": return FilmStock(code: "PORTRA 400 RCP", iso: 400, color: c(0xD9B26F), label: c(0xF6EBD5))
-        case "fuji-reala-ace":     return FilmStock(code: "REALA ACE", iso: 100, color: c(0x2F7D4F), label: c(0xE9F1EA))
-        case "fuji-classic-chrome":return FilmStock(code: "CLASSIC CHROME", iso: 200, color: c(0x5D6B5E), label: c(0xD9D4C7))
-        case "fuji-kodachrome64":  return FilmStock(code: "KODACHROME 64 RCP", iso: 64, color: c(0xE8B23A), label: c(0xC2382F))
-        case "fuji-kodak-gold":    return FilmStock(code: "GOLD 200 RCP", iso: 200, color: c(0xF0B429), label: c(0xB5311F))
-        case "fuji-nostalgic-neg": return FilmStock(code: "NOSTALGIC NEG", iso: 400, color: c(0xC77B30), label: c(0xF3DFC1))
-        case "fuji-classic-neg":   return FilmStock(code: "CLASSIC NEG", iso: 400, color: c(0x3B7A57), label: c(0xE7D8B5))
-        case "canon-ccd":          return FilmStock(code: "IXUS CCD", iso: 100, color: c(0xA9B4C2), label: c(0x3D6FB6))
-        case "fuji-pacific-blues": return FilmStock(code: "PACIFIC BLUES RCP", iso: 400, color: c(0x2F6690), label: c(0xCFE3F0))
-        case "canon-neutral-cool": return FilmStock(code: "NEUTRAL COOL", iso: 100, color: c(0x6E7F8D), label: c(0xE3E8EC))
-        case "fuji-velvia":        return FilmStock(code: "VELVIA 50", iso: 50, color: c(0x7A3E8E), label: c(0xF0D7F2))
-        case "canon-landscape":    return FilmStock(code: "LANDSCAPE", iso: 100, color: c(0xB8322F), label: c(0xD8EBD0))
-        case "canon-g7x":          return FilmStock(code: "G7X VLOG", iso: 200, color: c(0xE0839A), label: c(0xFFF1F3))
-        case "fuji-eterna":        return FilmStock(code: "ETERNA 250D", iso: 250, color: c(0x2A6F73), label: c(0xD5E5E4))
-        case "fuji-bleach-bypass": return FilmStock(code: "ETERNA BB", iso: 500, color: c(0x5A5A5A), label: c(0xD0D0D0))
-        case "fuji-cinestill":     return FilmStock(code: "800T RCP", iso: 800, color: c(0xB3262E), label: c(0x1F2A44))
-        case "fuji-acros":         return FilmStock(code: "ACROS 100", iso: 100, color: c(0x222222), label: c(0xEDEDED))
-        case "fuji-trix":          return FilmStock(code: "TRI-X 400 RCP", iso: 400, color: c(0xE2B124), label: c(0x111111))
-        case "canon-mono":         return FilmStock(code: "MONO SEPIA", iso: 100, color: c(0x7B5A3C), label: c(0xF1E3CF))
-        default:                   return FilmStock(code: name, iso: 200, color: .gray, label: .white)
+        case "canon-portrait":     return FilmStock(code: "PORTRAIT", iso: 200)
+        case "fuji-astia":         return FilmStock(code: "ASTIA 100F", iso: 100)
+        case "fuji-reggie-portra": return FilmStock(code: "PORTRA 400 RCP", iso: 400)
+        case "fuji-reala-ace":     return FilmStock(code: "REALA ACE", iso: 100)
+        case "fuji-classic-chrome":return FilmStock(code: "CLASSIC CHROME", iso: 200)
+        case "fuji-kodachrome64":  return FilmStock(code: "KODACHROME 64 RCP", iso: 64)
+        case "fuji-kodak-gold":    return FilmStock(code: "GOLD 200 RCP", iso: 200)
+        case "fuji-nostalgic-neg": return FilmStock(code: "NOSTALGIC NEG", iso: 400)
+        case "fuji-classic-neg":   return FilmStock(code: "CLASSIC NEG", iso: 400)
+        case "canon-ccd":          return FilmStock(code: "IXUS CCD", iso: 100)
+        case "fuji-pacific-blues": return FilmStock(code: "PACIFIC BLUES RCP", iso: 400)
+        case "canon-neutral-cool": return FilmStock(code: "NEUTRAL COOL", iso: 100)
+        case "fuji-velvia":        return FilmStock(code: "VELVIA 50", iso: 50)
+        case "canon-landscape":    return FilmStock(code: "LANDSCAPE", iso: 100)
+        case "canon-g7x":          return FilmStock(code: "G7X VLOG", iso: 200)
+        case "fuji-eterna":        return FilmStock(code: "ETERNA 250D", iso: 250)
+        case "fuji-bleach-bypass": return FilmStock(code: "ETERNA BB", iso: 500)
+        case "fuji-cinestill":     return FilmStock(code: "800T RCP", iso: 800)
+        case "fuji-acros":         return FilmStock(code: "ACROS 100", iso: 100)
+        case "fuji-trix":          return FilmStock(code: "TRI-X 400 RCP", iso: 400)
+        case "canon-mono":         return FilmStock(code: "MONO SEPIA", iso: 100)
+        default:                   return FilmStock(code: name, iso: 200)
         }
     }
 }
@@ -423,4 +418,48 @@ struct SampleLink: Identifiable {
     let title: String
     let url: URL
     var id: String { url.absoluteString }
+}
+
+// MARK: - StyleCam 自有包装配色：全部由滤镜本身推导
+
+struct Packaging {
+    let primary: Color      // 主色块：这个滤镜最“提”的那个颜色
+    let secondary: Color    // 副色块：与主色色相拉开的颜色
+    let paper: Color        // 底色：纸白经过滤镜后的颜色
+    let ink: Color          // 文字 / 图标
+    let darkBody: Bool      // 深色盒身（电影 / 黑白）
+}
+
+extension LookPreset {
+    var packaging: Packaging {
+        let base: [(Double, Double, Double)] = [(0.87, 0.67, 0.55), (0.45, 0.65, 0.88), (0.35, 0.60, 0.30),
+                                                (0.80, 0.22, 0.20), (0.95, 0.80, 0.30)]
+        var g = grading
+        g.strength = 1
+        func lab(_ c: (Double, Double, Double)) -> (L: Double, a: Double, b: Double) {
+            ColorMath.linearRGBToLab(ColorMath.srgbToLinear(c.0), ColorMath.srgbToLinear(c.1), ColorMath.srgbToLinear(c.2))
+        }
+        func color(_ c: (Double, Double, Double)) -> Color { Color(red: c.0, green: c.1, blue: c.2) }
+        let mapped = base.map { LUTBuilder.mapColor($0.0, $0.1, $0.2, g) }
+        let paperC = LUTBuilder.mapColor(0.93, 0.91, 0.86, g)
+        let inkC = LUTBuilder.mapColor(0.14, 0.13, 0.13, g)
+        if grading.monochrome {
+            let mid = LUTBuilder.mapColor(0.55, 0.55, 0.55, g)
+            return Packaging(primary: color(inkC), secondary: color(mid), paper: color(paperC), ink: color(inkC), darkBody: false)
+        }
+        // 主色：输出彩度 ×（滤镜对它的增强比例）^1.5，取最有性格的那个
+        let scored: [(i: Int, score: Double, hue: Double, chroma: Double)] = base.indices.map { i in
+            let o = lab(mapped[i]), r = lab(base[i])
+            let co = (o.a * o.a + o.b * o.b).squareRoot(), ci = max(1, (r.a * r.a + r.b * r.b).squareRoot())
+            return (i, co * pow(co / ci, 1.5), atan2(o.b, o.a) * 180 / .pi, co)
+        }
+        let first = scored.max { $0.score < $1.score }!
+        // 副色：和主色色相差得多、又不太灰的那个
+        let second = scored.filter { $0.i != first.i }.max { a, b in
+            func d(_ x: Double) -> Double { let v = abs(x - first.hue).truncatingRemainder(dividingBy: 360); return min(v, 360 - v) }
+            return d(a.hue) * a.chroma < d(b.hue) * b.chroma
+        }!
+        return Packaging(primary: color(mapped[first.i]), secondary: color(mapped[second.i]),
+                         paper: color(paperC), ink: color(inkC), darkBody: mood == .cinematic)
+    }
 }
