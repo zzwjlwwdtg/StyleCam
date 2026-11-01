@@ -27,6 +27,7 @@ struct FilmCabinetView: View {
                         .font(.caption2).foregroundStyle(Retro.dim)
                         .padding(.horizontal, 4).padding(.bottom, 90)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
             }
             .background(RetroBackground())
