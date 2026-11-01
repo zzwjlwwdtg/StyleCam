@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var holdOriginal = false
     @State private var flash = false
     @State private var showLibrary = false
+    @State private var showCabinet = false
     @State private var batchItems: [PhotosPickerItem] = []
 
     var body: some View {
@@ -53,6 +54,9 @@ struct ContentView: View {
             ParameterPanel()
                 .environmentObject(model)
                 .environmentObject(camera)
+        }
+        .sheet(isPresented: $showCabinet) {
+            FilmCabinetView().environmentObject(model)
         }
         .sheet(isPresented: $showLibrary) {
             RecipeLibraryView(store: model.recipes)
@@ -124,7 +128,7 @@ struct ContentView: View {
                     Text("上传一张喜欢的照片").font(.subheadline.bold())
                 }
                 Text(model.currentPreset.map { "\($0.mood.rawValue) · 按住取景框看原图" }
-                     ?? (model.referenceImage == nil ? "或在风格库选富士 / 佳能同款滤镜" : "按住取景框可看原图对比"))
+                     ?? (model.referenceImage == nil ? "或点下方「胶卷柜」选富士 / 佳能同款" : "按住取景框可看原图对比"))
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
@@ -299,6 +303,21 @@ struct ContentView: View {
                         .foregroundStyle(camera.videoMode == video ? Color.yellow : Color.white.opacity(0.7))
                 }
             }
+            Button { showCabinet = true } label: {
+                HStack(spacing: 6) {
+                    if let p = model.currentPreset {
+                        FilmCanister(stock: p.stock).frame(width: 12, height: 17)
+                    } else {
+                        Image(systemName: "film.stack")
+                    }
+                    Text(model.currentPreset?.stock.code ?? "胶卷柜")
+                        .font(.system(size: 12, weight: .semibold, design: .serif))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 4)
+            }
+            .buttonStyle(.glass)
+            .disabled(camera.isRecording)
             if camera.isRecording {
                 Text(String(format: "● %02d:%02d", camera.recordingSeconds / 60, camera.recordingSeconds % 60))
                     .font(.caption.monospacedDigit()).foregroundStyle(.red)

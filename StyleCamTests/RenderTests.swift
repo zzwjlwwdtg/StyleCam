@@ -1,6 +1,7 @@
 import XCTest
 import CoreImage
 import UIKit
+import SwiftUI
 @testable import StyleCam
 
 /// 在 iPhone 模拟器里用 App 的同一套代码跑完整流程：
@@ -271,5 +272,32 @@ final class PresetTests: XCTestCase {
             }
         }
         try report.write(to: outDir.appendingPathComponent("presets.txt"), atomically: true, encoding: .utf8)
+    }
+}
+
+// MARK: - 胶卷柜界面截图（检查复古 + 液态玻璃的整体效果）
+
+final class FilmCabinetSnapshotTests: XCTestCase {
+    @MainActor
+    func testCabinetSnapshot() throws {
+        let outDir = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
+            .appendingPathComponent("render-out/presets", isDirectory: true)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
+            throw XCTSkip("没有窗口场景")
+        }
+        let model = AppModel()
+        for (name, height) in [("cabinet_top", 874.0), ("cabinet_long", 3200.0)] {
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 402, height: height)
+            window.rootViewController = UIHostingController(rootView: FilmCabinetView().environmentObject(model))
+            window.makeKeyAndVisible()
+            RunLoop.main.run(until: Date().addingTimeInterval(6))
+            let img = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            try img.jpegData(compressionQuality: 0.85)?.write(to: outDir.appendingPathComponent("\(name).jpg"))
+            window.isHidden = true
+        }
     }
 }
