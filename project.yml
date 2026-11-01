@@ -20,6 +20,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""                              # 填你的 Team ID，或在 Xcode 里选
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: 同款相机
         INFOPLIST_KEY_NSCameraUsageDescription: 需要使用相机来拍摄与参考图同款风格的照片
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: 需要把拍好的照片保存到相册
@@ -40,6 +41,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.stylecam.tests
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
 schemes:

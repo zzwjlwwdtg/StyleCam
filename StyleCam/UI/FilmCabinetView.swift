@@ -508,7 +508,7 @@ struct CameraGlyph: Shape {
         var p = Path()
         let body = CGRect(x: r.minX, y: r.minY + r.height * 0.22, width: r.width, height: r.height * 0.78)
         p.addRoundedRect(in: body, cornerSize: CGSize(width: r.width * 0.12, height: r.width * 0.12))
-        p.addRoundedRect(in: CGRect(x: r.minX + r.width * 0.12, y: r.minY, width: r.width * 0.28, height: r.height * 0.24),
+        p.addRoundedRect(in: CGRect(x: r.minX + r.width * 0.17, y: r.minY, width: r.width * 0.28, height: r.height * 0.24),
                          cornerSize: CGSize(width: r.width * 0.04, height: r.width * 0.04))
         let d = min(body.width, body.height) * 0.62
         p.addEllipse(in: CGRect(x: body.midX - d / 2 + r.width * 0.06, y: body.midY - d / 2, width: d, height: d))
