@@ -292,6 +292,8 @@ final class FilmCabinetSnapshotTests: XCTestCase {
             window.frame = CGRect(x: 0, y: 0, width: 402, height: height)
             window.rootViewController = UIHostingController(rootView: FilmCabinetView().environmentObject(model))
             window.makeKeyAndVisible()
+            window.rootViewController?.view.frame = window.bounds
+            window.layoutIfNeeded()
             RunLoop.main.run(until: Date().addingTimeInterval(6))
             let img = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
@@ -311,7 +313,7 @@ final class FilmCabinetSnapshotTests: XCTestCase {
             }
             .padding()
         }
-        .background(RetroBackground())
+        .background(CabinetBackground(tint: .brown))
         let window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 1500)
         window.rootViewController = UIHostingController(rootView: gallery)

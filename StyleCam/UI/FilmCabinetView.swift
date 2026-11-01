@@ -3,39 +3,52 @@ import CoreImage
 import PhotosUI
 
 /// 胶卷柜：内置的富士 / 佳能同款滤镜。
-/// 复古的部分只放在内容里（片盒、拉出来的胶片、片边印字、暖色颗粒底），
-/// 操作控件全部用 iOS 27 液态玻璃，保持系统的干净感。
+/// 结构：上半屏是当前这卷（片盒 + 拉出来的胶片 = 样片），下半屏是按情绪分组的胶卷货架。
+/// 颜色跟着胶卷走：背景和主按钮取自当前胶卷的配色；控件用 iOS 27 液态玻璃。
 /// 片盒都是原创设计：图案和配色由每个滤镜自己的风格生成，不复刻厂商包装。
 struct FilmCabinetView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
     @StateObject private var thumbs = PresetThumbnails()
     @ObservedObject private var samples = PresetSampleStore.shared
+    @State private var mood: PresetMood = .gentle
     @State private var brand: PresetBrand?
+    @State private var focusedID: String = LookPresets.all[0].id
+    @State private var pullOut: CGFloat = 1          // 胶片拉出的进度（换胶卷时从 0 动画到 1）
     @State private var viewer: FrameViewerItem?
+    @State private var pick: [PhotosPickerItem] = []
+    @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var presets: [LookPreset] { LookPresets.all.filter { brand == nil || $0.brand == brand } }
+    private var focused: LookPreset { LookPresets.preset(id: focusedID) ?? LookPresets.all[0] }
+    private var shelf: [LookPreset] { LookPresets.all.filter { $0.mood == mood && (brand == nil || $0.brand == brand) } }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    header
-                    controls
-                    ForEach(Array(PresetMood.allCases.enumerated()), id: \.element) { idx, mood in
-                        let items = presets.filter { $0.mood == mood }
-                        if !items.isEmpty { section(mood, index: idx + 1, items: items) }
-                    }
-                    Text("片盒是按每个滤镜的风格生成的原创图案。仿色风格：参数按各胶片模拟 / 照片风格公开的观感特征近似，非厂商官方配置。")
-                        .font(.caption2).foregroundStyle(Retro.dim)
-                        .padding(.horizontal, 4).padding(.bottom, 90)
+                VStack(alignment: .leading, spacing: 0) {
+                    hero
+                        .padding(.top, 4)
+                    details
+                        .padding(.horizontal, 20)
+                        .padding(.top, 18)
+                    shelfSection
+                        .padding(.top, 30)
+                    Text("片盒为按风格生成的原创图案。滤镜参数按各胶片模拟与照片风格的公开观感近似，并非厂商官方配置。")
+                        .font(.footnote)
+                        .foregroundStyle(Palette.mist)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 24)
+                        .padding(.bottom, 110)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
             }
-            .background(RetroBackground())
-            .safeAreaInset(edge: .bottom) { currentBar }
+            .scrollIndicators(.hidden)
+            .background(CabinetBackground(tint: focused.stock.color))
+            .safeAreaInset(edge: .bottom) { actionBar }
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("胶卷柜").font(.system(.headline, design: .serif))
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完成") { dismiss() }
                 }
@@ -45,218 +58,256 @@ struct FilmCabinetView: View {
         .preferredColorScheme(.dark)
         .presentationDetents([.large])
         .onAppear {
+            if let cur = model.currentPreset {
+                focusedID = cur.id
+                mood = cur.mood
+            }
             thumbs.render(live: model.camera.frameStore.latest(original: true))
+        }
+        .onChange(of: pick) { _, items in
+            guard !items.isEmpty else { return }
+            let id = focusedID
+            Task {
+                for item in items {
+                    if let data = try? await item.loadTransferable(type: Data.self) { samples.add(data, for: id) }
+                }
+                pick = []
+            }
         }
         .fullScreenCover(item: $viewer) { item in
             FrameViewer(item: item) { viewer = nil }
         }
     }
 
-    // MARK: - 标题
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("FILM CABINET · NO.\(String(format: "%02d", LookPresets.all.count))")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .tracking(2.5)
-                .foregroundStyle(Retro.amber)
-            Text("胶卷柜")
-                .font(.system(size: 34, weight: .bold, design: .serif))
-                .foregroundStyle(Retro.paper)
-            Text("富士 / 佳能同款，按心情挑一卷")
-                .font(.system(.subheadline, design: .serif))
-                .foregroundStyle(Retro.dim)
-        }
-        .padding(.top, 8)
+    private func focus(_ p: LookPreset) {
+        guard p.id != focusedID else { return }
+        focusedID = p.id
+        if reduceMotion { pullOut = 1; return }
+        pullOut = 0
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.86)) { pullOut = 1 }
     }
 
-    // MARK: - 品牌筛选（液态玻璃）
+    // MARK: - 主角：片盒 + 拉出来的胶片
 
-    private var controls: some View {
-        GlassEffectContainer(spacing: 10) {
-            HStack(spacing: 8) {
-                brandButton(nil, "全部")
-                ForEach(PresetBrand.allCases) { brandButton($0, $0.rawValue) }
-                Spacer(minLength: 0)
+    private var hero: some View {
+        let p = focused
+        return ZStack(alignment: .leading) {
+            FilmStrip(stock: p.stock, frames: frames(for: p), progress: pullOut) { i, frames in
+                viewer = FrameViewerItem(frames: frames, start: i, title: p.name) { PresetSampleStore.shared.remove($0) }
             }
+            .frame(height: 236)
+            .padding(.leading, 52)
+            CanisterArt(preset: p)
+                .frame(width: 92, height: 150)
+                .padding(.leading, 8)
+                .id(p.id)
+                .transition(.opacity)
         }
+        .animation(.easeOut(duration: 0.2), value: focusedID)
     }
 
-    @ViewBuilder
-    private func brandButton(_ b: PresetBrand?, _ title: String) -> some View {
-        if brand == b {
-            Button(title) { brand = b }
-                .font(.caption.weight(.semibold))
-                .buttonStyle(.glassProminent)
-                .tint(Retro.amber)
-        } else {
-            Button(title) { withAnimation(.snappy) { brand = b } }
-                .font(.caption.weight(.semibold))
-                .buttonStyle(.glass)
+    /// 胶片上的帧：你添加的真实样片在前，后面是当前取景 / 示例图套这个滤镜的效果
+    private func frames(for p: LookPreset) -> [FilmFrameContent] {
+        var f: [FilmFrameContent] = samples.images(for: p.id).map {
+            FilmFrameContent(id: $0.url.absoluteString, image: $0.image, caption: "我的样片", deletable: $0.url)
         }
+        if let live = thumbs.images[p.id + "|live"] {
+            f.append(FilmFrameContent(id: p.id + "|live", image: live, caption: "当前取景", deletable: nil))
+        }
+        if let ex = thumbs.images[p.id + "|sample"] {
+            f.append(FilmFrameContent(id: p.id + "|sample", image: ex, caption: "示例", deletable: nil))
+        }
+        return f
     }
 
-    // MARK: - 按情绪分组
+    // MARK: - 说明
 
-    private func section(_ mood: PresetMood, index: Int, items: [LookPreset]) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 8) {
-                Text(String(format: "%02d", index))
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Retro.amber)
-                Text("\(mood.emoji) \(mood.rawValue)")
-                    .font(.system(.title3, design: .serif).weight(.semibold))
-                    .foregroundStyle(Retro.paper)
-                Rectangle().fill(Retro.paper.opacity(0.18)).frame(height: 1)
-                Text("\(items.count) 卷")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(Retro.dim)
-            }
-            ForEach(items) { p in
-                PresetCard(preset: p, thumbs: thumbs, samples: samples,
-                           selected: model.currentPreset?.id == p.id,
-                           onUse: {
-                               Task {
-                                   await model.applyPreset(p)
-                                   dismiss()
-                               }
-                           },
-                           onOpenFrame: { viewer = $0 })
-            }
-        }
-    }
-
-    // MARK: - 底部：当前使用
-
-    @ViewBuilder
-    private var currentBar: some View {
-        if let p = model.currentPreset {
-            HStack(spacing: 10) {
-                CanisterArt(preset: p).frame(width: 20, height: 30)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("正在使用").font(.system(size: 10)).foregroundStyle(.secondary)
-                    Text(p.name).font(.system(.footnote, design: .serif).weight(.semibold)).lineLimit(1)
-                }
+    private var details: some View {
+        let p = focused
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(p.brand.rawValue)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(p.stock.label)
+                    .padding(.horizontal, 9).padding(.vertical, 3)
+                    .background(p.stock.color.opacity(0.55), in: Capsule())
+                Text("ISO \(p.stock.iso)")
+                    .font(.system(.subheadline, design: .serif))
+                    .foregroundStyle(Palette.mist)
                 Spacer()
-                Button("不用滤镜") { model.clearReference() }
-                    .font(.caption.weight(.semibold))
-                    .buttonStyle(.glass)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 10)
-            .glassEffect(.regular, in: Capsule())
-            .padding(.horizontal, 16).padding(.bottom, 6)
-        }
-    }
-}
-
-// MARK: - 一卷胶卷：片盒 + 拉出来的胶片（样片）+ 说明 + 操作
-
-struct PresetCard: View {
-    let preset: LookPreset
-    @ObservedObject var thumbs: PresetThumbnails
-    @ObservedObject var samples: PresetSampleStore
-    let selected: Bool
-    let onUse: () -> Void
-    let onOpenFrame: (FrameViewerItem) -> Void
-    @State private var pick: [PhotosPickerItem] = []
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        let s = preset.stock
-        VStack(alignment: .leading, spacing: 12) {
-            // 片盒 + 拉出来的胶片
-            HStack(alignment: .center, spacing: -6) {
-                CanisterArt(preset: preset)
-                    .frame(width: 64, height: 104)
-                    .zIndex(1)
-                PulledFilm(stock: s, frames: frames, onTap: onOpenFrame)
-                    .frame(height: 84)
-            }
-
-            // 说明
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    Text(s.code)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .tracking(1)
-                        .foregroundStyle(Retro.amber)
-                        .lineLimit(1)
-                    Text("· ISO \(s.iso) · \(preset.brand.rawValue)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Retro.dim)
-                    Spacer(minLength: 0)
-                    if selected {
-                        Label("使用中", systemImage: "checkmark.circle.fill")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Retro.amber)
-                    }
+                if model.currentPreset?.id == p.id {
+                    Label("正在使用", systemImage: "checkmark.circle.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Palette.fog)
                 }
-                Text(preset.name)
-                    .font(.system(.headline, design: .serif))
-                    .foregroundStyle(Retro.paper)
-                Text(preset.note)
-                    .font(.caption)
-                    .foregroundStyle(Retro.dim)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            // 操作（液态玻璃）
+            Text(p.name)
+                .font(.system(size: 28, weight: .regular, design: .serif))
+                .foregroundStyle(Palette.fog)
+                .fixedSize(horizontal: false, vertical: true)
+                .contentTransition(.opacity)
+            Text(p.note)
+                .font(.callout)
+                .lineSpacing(3)
+                .foregroundStyle(Palette.mist)
+                .fixedSize(horizontal: false, vertical: true)
             GlassEffectContainer(spacing: 8) {
                 HStack(spacing: 8) {
-                    Button(action: onUse) {
-                        Label(selected ? "使用中" : "用这卷", systemImage: "camera.aperture")
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1).fixedSize()
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(Retro.amber)
-
                     Menu {
-                        ForEach(preset.sampleLinks) { link in
+                        ForEach(p.sampleLinks) { link in
                             Button(link.title) { openURL(link.url) }
                         }
                     } label: {
-                        Label("网上样片", systemImage: "safari")
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1).fixedSize()
+                        Label("网上样片", systemImage: "safari").lineLimit(1).fixedSize()
                     }
                     .buttonStyle(.glass)
-
                     PhotosPicker(selection: $pick, maxSelectionCount: 6, matching: .images) {
-                        Label("添加样片", systemImage: "plus.viewfinder")
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1).fixedSize()
+                        Label("添加样片", systemImage: "plus").lineLimit(1).fixedSize()
                     }
                     .buttonStyle(.glass)
                 }
+                .font(.subheadline.weight(.medium))
             }
+            .padding(.top, 4)
         }
-        .padding(14)
-        .glassEffect(.regular.tint(s.color.opacity(selected ? 0.26 : 0.10)), in: RoundedRectangle(cornerRadius: 26))
-        .overlay(RoundedRectangle(cornerRadius: 26).stroke(Retro.amber.opacity(selected ? 0.8 : 0), lineWidth: 1.5))
-        .onChange(of: pick) { _, items in
-            guard !items.isEmpty else { return }
-            Task {
-                for item in items {
-                    if let data = try? await item.loadTransferable(type: Data.self) { samples.add(data, for: preset.id) }
-                }
-                pick = []
-            }
-        }
+        .animation(.easeOut(duration: 0.2), value: focusedID)
     }
 
-    /// 胶片上的帧：你添加的真实样片在前，后面是用当前取景 / 示例图套这个滤镜的效果
-    private var frames: [FilmFrameContent] {
-        var f: [FilmFrameContent] = samples.images(for: preset.id).map {
-            FilmFrameContent(id: $0.url.absoluteString, image: $0.image, caption: "样片", deletable: $0.url)
+    // MARK: - 胶卷货架
+
+    private var shelfSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("按心情挑一卷")
+                    .font(.system(.title3, design: .serif))
+                    .foregroundStyle(Palette.fog)
+                Spacer()
+                Menu {
+                    Picker("品牌", selection: $brand) {
+                        Text("全部品牌").tag(PresetBrand?.none)
+                        ForEach(PresetBrand.allCases) { Text($0.rawValue).tag(PresetBrand?.some($0)) }
+                    }
+                } label: {
+                    Label(brand?.rawValue ?? "全部品牌", systemImage: "line.3.horizontal.decrease")
+                        .font(.footnote.weight(.medium)).lineLimit(1).fixedSize()
+                }
+                .buttonStyle(.glass)
+            }
+            .padding(.horizontal, 20)
+
+            ScrollView(.horizontal) {
+                GlassEffectContainer(spacing: 6) {
+                    HStack(spacing: 6) {
+                        ForEach(PresetMood.allCases) { m in
+                            let n = LookPresets.all.filter { $0.mood == m && (brand == nil || $0.brand == brand) }.count
+                            if m == mood {
+                                Button(m.rawValue) { mood = m }
+                                    .buttonStyle(.glassProminent)
+                                    .tint(focused.stock.color)
+                            } else {
+                                Button(m.rawValue) {
+                                    withAnimation(.snappy) { mood = m }
+                                }
+                                .buttonStyle(.glass)
+                                .disabled(n == 0)
+                            }
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 20)
+                }
+            }
+            .scrollIndicators(.hidden)
+
+            ShelfRow(items: shelf, focusedID: focusedID, currentID: model.currentPreset?.id) { focus($0) }
         }
-        if let live = thumbs.images[preset.id + "|live"] {
-            f.append(FilmFrameContent(id: preset.id + "|live", image: live, caption: "取景", deletable: nil))
+        .onChange(of: mood) { _, _ in if let first = shelf.first { focus(first) } }
+        .onChange(of: brand) { _, _ in if !shelf.contains(where: { $0.id == focusedID }), let first = shelf.first { focus(first) } }
+    }
+
+    // MARK: - 底部操作
+
+    private var actionBar: some View {
+        let p = focused
+        let using = model.currentPreset?.id == p.id
+        return GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
+                if model.currentPreset != nil {
+                    Button("不用滤镜") { model.clearReference() }
+                        .buttonStyle(.glass)
+                        .controlSize(.large)
+                }
+                Button {
+                    Task {
+                        await model.applyPreset(p)
+                        dismiss()
+                    }
+                } label: {
+                    Text(using ? "继续用这卷拍" : "用这卷拍")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(p.stock.color)
+                .controlSize(.large)
+            }
         }
-        if let ex = thumbs.images[preset.id + "|sample"] {
-            f.append(FilmFrameContent(id: preset.id + "|sample", image: ex, caption: "示例", deletable: nil))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 6)
+    }
+}
+
+// MARK: - 货架：片盒立在木隔板上，选中的那卷抬起来
+
+struct ShelfRow: View {
+    let items: [LookPreset]
+    let focusedID: String
+    let currentID: String?
+    let onSelect: (LookPreset) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView(.horizontal) {
+                HStack(alignment: .bottom, spacing: 18) {
+                    ForEach(items) { p in
+                        let on = p.id == focusedID
+                        Button { onSelect(p) } label: {
+                            VStack(spacing: 8) {
+                                CanisterArt(preset: p)
+                                    .frame(width: 62, height: 100)
+                                    .offset(y: on ? -10 : 0)
+                                    .shadow(color: p.stock.color.opacity(on ? 0.55 : 0), radius: 14, y: 6)
+                                HStack(spacing: 3) {
+                                    if currentID == p.id {
+                                        Circle().fill(Palette.fog).frame(width: 5, height: 5)
+                                    }
+                                    Text(p.labelTitle)
+                                        .font(.footnote.weight(on ? .semibold : .regular))
+                                        .foregroundStyle(on ? Palette.fog : Palette.mist)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .frame(width: 76)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: on)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(p.name)
+                        .accessibilityAddTraits(on ? .isSelected : [])
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 6)
+            }
+            .scrollIndicators(.hidden)
+            // 隔板
+            ZStack(alignment: .top) {
+                LinearGradient(colors: [Palette.shelfTop, Palette.shelf], startPoint: .top, endPoint: .bottom)
+                Rectangle().fill(Color.white.opacity(0.18)).frame(height: 1)
+            }
+            .frame(height: 12)
+            .shadow(color: .black.opacity(0.5), radius: 8, y: 6)
         }
-        return f
     }
 }
 
@@ -275,85 +326,87 @@ struct FrameViewerItem: Identifiable {
     let onDelete: (URL) -> Void
 }
 
-// MARK: - 拉出来的胶片
+// MARK: - 从片盒里拉出来的胶片（大样片，可左右滑）
 
-struct PulledFilm: View {
+struct FilmStrip: View {
     let stock: FilmStock
     let frames: [FilmFrameContent]
-    let onTap: (FrameViewerItem) -> Void
+    let progress: CGFloat
+    let onTap: (Int, [FilmFrameContent]) -> Void
 
     var body: some View {
         GeometryReader { g in
             let h = g.size.height
-            let frameH = h - 26
+            let frameH = h - 44
             let frameW = frameH * 1.5
-            ZStack(alignment: .leading) {
-                // 片基（右端渐隐，像还卷在外面）
-                Rectangle()
-                    .fill(Retro.filmBase)
-                    .overlay(alignment: .top) { perforations(width: g.size.width).padding(.top, 3) }
-                    .overlay(alignment: .bottom) { perforations(width: g.size.width).padding(.bottom, 3) }
+            ZStack(alignment: .topLeading) {
+                Rectangle().fill(Palette.filmBase)
+                VStack {
+                    perforations(width: g.size.width)
+                    Spacer()
+                    perforations(width: g.size.width)
+                }
+                .padding(.vertical, 6)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        Color.clear.frame(width: 6)
+                ScrollView(.horizontal) {
+                    HStack(spacing: 14) {
                         if frames.isEmpty {
-                            ForEach(0..<3, id: \.self) { _ in
-                                RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.06))
+                            ForEach(0..<2, id: \.self) { _ in
+                                Rectangle().fill(Color.white.opacity(0.05))
                                     .frame(width: frameW, height: frameH)
-                                    .overlay(ProgressView().controlSize(.small).tint(Retro.amber))
+                                    .overlay(ProgressView().tint(Palette.mist))
                             }
                         }
                         ForEach(Array(frames.enumerated()), id: \.element.id) { i, f in
-                            VStack(spacing: 1) {
-                                Image(uiImage: f.image).resizable().scaledToFill()
-                                    .frame(width: frameW, height: frameH)
-                                    .clipShape(RoundedRectangle(cornerRadius: 2))
-                                    .overlay(alignment: .bottomTrailing) {
-                                        Text(f.caption)
-                                            .font(.system(size: 7, weight: .semibold))
-                                            .padding(.horizontal, 3).padding(.vertical, 1)
-                                            .background(.black.opacity(0.45), in: Capsule())
-                                            .padding(3)
-                                    }
-                            }
-                            .overlay(alignment: .topLeading) {
-                                Text("\(i + 1)A ▸ \(stock.iso)")
-                                    .font(.system(size: 5.5, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(Retro.amber.opacity(0.9))
-                                    .offset(y: -9)
-                            }
-                            .onTapGesture {
-                                onTap(FrameViewerItem(frames: frames, start: i, title: stock.code, onDelete: { url in
-                                    PresetSampleStore.shared.remove(url)
-                                }))
-                            }
+                            Image(uiImage: f.image).resizable().scaledToFill()
+                                .frame(width: frameW, height: frameH)
+                                .clipped()
+                                .overlay(alignment: .bottomLeading) {
+                                    Text(f.caption)
+                                        .font(.caption2.weight(.medium))
+                                        .padding(.horizontal, 7).padding(.vertical, 3)
+                                        .glassEffect(.regular, in: Capsule())
+                                        .padding(8)
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture { onTap(i, frames) }
+                                .accessibilityAddTraits(.isButton)
                         }
-                        Color.clear.frame(width: 30)
                     }
+                    .padding(.leading, 56)
+                    .padding(.trailing, 40)
                     .frame(height: h)
                 }
-            }
-            .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.85),
-                                         .init(color: .black.opacity(0.0), location: 1)],
-                                 startPoint: .leading, endPoint: .trailing))
-            .overlay(alignment: .bottomLeading) {
-                Text(stock.code)
-                    .font(.system(size: 5.5, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Retro.amber.opacity(0.75))
-                    .padding(.leading, 18).offset(y: -1)
+                .scrollIndicators(.hidden)
+
+                // 片边印字（胶片本身的元素，跟着胶片走）
+                Text("\(stock.code)  \(stock.iso)")
+                    .font(.system(size: 8, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Palette.edgePrint)
+                    .padding(.leading, 64)
+                    .offset(y: h - 17)
                     .allowsHitTesting(false)
             }
+            .mask(
+                HStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 36)
+                }
+            )
+            // 拉出动画：从片盒口往右展开
+            .mask(alignment: .leading) {
+                Rectangle().frame(width: max(1, g.size.width * progress))
+            }
         }
-        .shadow(color: .black.opacity(0.4), radius: 5, y: 3)
+        .shadow(color: .black.opacity(0.45), radius: 10, y: 6)
     }
 
     private func perforations(width: CGFloat) -> some View {
-        HStack(spacing: 6) {
-            ForEach(0..<Int(width / 11) + 1, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(Color(red: 0.05, green: 0.04, blue: 0.04))
-                    .frame(width: 5, height: 6)
+        HStack(spacing: 7) {
+            ForEach(0..<Int(width / 13) + 1, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 1.2)
+                    .fill(Palette.hole)
+                    .frame(width: 6, height: 8)
             }
         }
         .frame(width: width, alignment: .leading)
@@ -442,17 +495,17 @@ struct CanisterArt: View {
                             .baselineOffset(w * 0.05)
                     }
                 }
-                .foregroundStyle(dark ? Retro.paper : Color(red: 0.12, green: 0.09, blue: 0.07))
+                .foregroundStyle(dark ? Palette.fog : Color(red: 0.12, green: 0.09, blue: 0.07))
                 .padding(.vertical, 2).padding(.horizontal, 4)
                 .frame(maxWidth: .infinity)
-                .background((dark ? Color.black : Retro.paper).opacity(0.62))
+                .background((dark ? Color.black : Palette.fog).opacity(0.62))
                 .padding(.bottom, h * 0.06)
             }
             .overlay(alignment: .top) {
-                Text("STYLECAM")
-                    .font(.system(size: w * 0.09, weight: .heavy, design: .monospaced))
+                Text("StyleCam")
+                    .font(.system(size: w * 0.1, weight: .heavy, design: .serif).italic())
                     .tracking(0.6)
-                    .foregroundStyle((dark ? Retro.paper : Color.black).opacity(0.55))
+                    .foregroundStyle((dark ? Palette.fog : Color.black).opacity(0.55))
                     .padding(.top, h * 0.05)
             }
         }
@@ -576,7 +629,7 @@ struct FrameViewer: View {
             }
             .tabViewStyle(.page)
             HStack {
-                Text(item.title).font(.system(.footnote, design: .monospaced)).foregroundStyle(Retro.amber)
+                Text(item.title).font(.system(.footnote, design: .serif)).foregroundStyle(Palette.fog)
                 Spacer()
                 if frames.indices.contains(index), let url = frames[index].deletable {
                     Button(role: .destructive) {
@@ -596,17 +649,23 @@ struct FrameViewer: View {
     }
 }
 
-// MARK: - 复古元素
+// MARK: - 色板与背景
 
-enum Retro {
-    static let amber = Color(red: 0.95, green: 0.62, blue: 0.24)
-    static let paper = Color(red: 0.96, green: 0.92, blue: 0.84)
-    static let dim = Color(red: 0.96, green: 0.92, blue: 0.84).opacity(0.55)
-    static let filmBase = Color(red: 0.13, green: 0.09, blue: 0.06)
+enum Palette {
+    static let graphite = Color(red: 0x22 / 255, green: 0x25 / 255, blue: 0x29 / 255)   // 底色
+    static let fog = Color(red: 0xEC / 255, green: 0xE9 / 255, blue: 0xE3 / 255)        // 主文字
+    static let mist = Color(red: 0xEC / 255, green: 0xE9 / 255, blue: 0xE3 / 255).opacity(0.62)
+    static let shelf = Color(red: 0x4A / 255, green: 0x3A / 255, blue: 0x2C / 255)      // 木隔板
+    static let shelfTop = Color(red: 0x6E / 255, green: 0x58 / 255, blue: 0x44 / 255)
+    static let filmBase = Color(red: 0x2B / 255, green: 0x1D / 255, blue: 0x14 / 255)   // 负片片基（偏橙棕）
+    static let hole = Color(red: 0x14 / 255, green: 0x10 / 255, blue: 0x0D / 255)
+    static let edgePrint = Color(red: 0xE8 / 255, green: 0x9A / 255, blue: 0x4C / 255)  // 片边印字
 }
 
-/// 暖色暗底 + 一层细颗粒（像放在暗房灯下）
-struct RetroBackground: View {
+/// 底色 + 当前胶卷的颜色从上方晕开 + 极淡的颗粒
+struct CabinetBackground: View {
+    let tint: Color
+
     private static let grain: UIImage = {
         let n = 96
         var px = [UInt8](repeating: 0, count: n * n * 4)
@@ -616,21 +675,21 @@ struct RetroBackground: View {
             let v = UInt8(truncatingIfNeeded: seed >> 24)
             px[i * 4] = v; px[i * 4 + 1] = v; px[i * 4 + 2] = v; px[i * 4 + 3] = 255
         }
-        let cs = CGColorSpaceCreateDeviceRGB()
-        let ctx = CGContext(data: &px, width: n, height: n, bitsPerComponent: 8, bytesPerRow: n * 4, space: cs,
-                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        let ctx = CGContext(data: &px, width: n, height: n, bitsPerComponent: 8, bytesPerRow: n * 4,
+                            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         return ctx?.makeImage().map { UIImage(cgImage: $0) } ?? UIImage()
     }()
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.16, green: 0.11, blue: 0.08), Color(red: 0.06, green: 0.05, blue: 0.05)],
-                           startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [Retro.amber.opacity(0.16), .clear], center: .topLeading, startRadius: 10, endRadius: 420)
+            Palette.graphite
+            RadialGradient(colors: [tint.opacity(0.42), tint.opacity(0.0)], center: UnitPoint(x: 0.3, y: 0.0),
+                           startRadius: 0, endRadius: 520)
             Image(uiImage: Self.grain).resizable(resizingMode: .tile)
-                .blendMode(.overlay).opacity(0.10)
+                .blendMode(.overlay).opacity(0.06)
         }
         .ignoresSafeArea()
+        .animation(.easeInOut(duration: 0.5), value: tint)
     }
 }
 
