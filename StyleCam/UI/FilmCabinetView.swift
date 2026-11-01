@@ -206,6 +206,7 @@ struct PresetCard: View {
                     Button(action: onUse) {
                         Label(selected ? "使用中" : "用这卷", systemImage: "camera.aperture")
                             .font(.caption.weight(.semibold))
+                            .lineLimit(1).fixedSize()
                     }
                     .buttonStyle(.glassProminent)
                     .tint(Retro.amber)
@@ -217,12 +218,14 @@ struct PresetCard: View {
                     } label: {
                         Label("网上样片", systemImage: "safari")
                             .font(.caption.weight(.semibold))
+                            .lineLimit(1).fixedSize()
                     }
                     .buttonStyle(.glass)
 
                     PhotosPicker(selection: $pick, maxSelectionCount: 6, matching: .images) {
                         Label("添加样片", systemImage: "plus.viewfinder")
                             .font(.caption.weight(.semibold))
+                            .lineLimit(1).fixedSize()
                     }
                     .buttonStyle(.glass)
                 }
@@ -423,23 +426,35 @@ struct CanisterArt: View {
     @ViewBuilder
     private func labelText(w: CGFloat, h: CGFloat) -> some View {
         if w > 30 {
+            // 小标签贴在下半部，让纹样露出来
             let dark = preset.mood == .mono || preset.mood == .cinematic
-            VStack(spacing: 1) {
-                Text("STYLECAM")
-                    .font(.system(size: w * 0.11, weight: .heavy, design: .monospaced))
-                    .tracking(0.5)
-                Text(preset.labelTitle)
-                    .font(.system(size: w * 0.17, weight: .black, design: .serif))
-                    .lineLimit(1).minimumScaleFactor(0.5)
-                Text("\(preset.stock.iso)")
-                    .font(.system(size: w * 0.22, weight: .black, design: .rounded))
-                Text("36 EXP")
-                    .font(.system(size: w * 0.09, weight: .bold, design: .monospaced))
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                VStack(spacing: 0) {
+                    Text(preset.labelTitle)
+                        .font(.system(size: w * 0.15, weight: .black, design: .serif))
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                    HStack(spacing: 2) {
+                        Text("\(preset.stock.iso)")
+                            .font(.system(size: w * 0.15, weight: .black, design: .rounded))
+                        Text("36")
+                            .font(.system(size: w * 0.08, weight: .bold, design: .monospaced))
+                            .baselineOffset(w * 0.05)
+                    }
+                }
+                .foregroundStyle(dark ? Retro.paper : Color(red: 0.12, green: 0.09, blue: 0.07))
+                .padding(.vertical, 2).padding(.horizontal, 4)
+                .frame(maxWidth: .infinity)
+                .background((dark ? Color.black : Retro.paper).opacity(0.62))
+                .padding(.bottom, h * 0.06)
             }
-            .foregroundStyle(dark ? Retro.paper : Color(red: 0.12, green: 0.09, blue: 0.07))
-            .padding(.vertical, 3).padding(.horizontal, 3)
-            .background((dark ? Color.black : Retro.paper).opacity(0.72), in: RoundedRectangle(cornerRadius: 2))
-            .padding(.horizontal, 4)
+            .overlay(alignment: .top) {
+                Text("STYLECAM")
+                    .font(.system(size: w * 0.09, weight: .heavy, design: .monospaced))
+                    .tracking(0.6)
+                    .foregroundStyle((dark ? Retro.paper : Color.black).opacity(0.55))
+                    .padding(.top, h * 0.05)
+            }
         }
     }
 }
