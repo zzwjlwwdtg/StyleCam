@@ -17,6 +17,24 @@ enum LUTBuilder {
         let n = dimension
         var cube = [Float](repeating: 0, count: n * n * n * 4)
 
+        var idx = 0
+        for bi in 0..<n {
+            for gi in 0..<n {
+                for ri in 0..<n {
+                    let o = mapColor(Double(ri) / Double(n - 1), Double(gi) / Double(n - 1), Double(bi) / Double(n - 1), p)
+                    cube[idx] = Float(o.0)
+                    cube[idx + 1] = Float(o.1)
+                    cube[idx + 2] = Float(o.2)
+                    cube[idx + 3] = 1
+                    idx += 4
+                }
+            }
+        }
+        return cube.withUnsafeBufferPointer { Data(buffer: $0) }
+    }
+
+    /// 单个 sRGB 颜色经过调色后的结果（LUT 的每个格点、胶卷柜片盒配色都用它）
+    static func mapColor(_ sr: Double, _ sg: Double, _ sb: Double, _ p: GradingParams) -> (Double, Double, Double) {
         let exposure = pow(2.0, p.exposureEV)
         let k = ColorMath.clamp(p.contrast, -1, 1) * 0.8          // S 曲线强度
         let lift = p.shadowLift * 0.18                             // 黑位提升量
@@ -24,61 +42,35 @@ enum LUTBuilder {
         let strength = ColorMath.clamp(p.strength, 0, 1)
         let twoPi = 2 * Double.pi
 
-        var idx = 0
-        for bi in 0..<n {
-            for gi in 0..<n {
-                for ri in 0..<n {
-                    let sr = Double(ri) / Double(n - 1)
-                    let sg = Double(gi) / Double(n - 1)
-                    let sb = Double(bi) / Double(n - 1)
+        let lab = ColorMath.linearRGBToLab(ColorMath.srgbToLinear(sr) * exposure,
+                                           ColorMath.srgbToLinear(sg) * exposure,
+                                           ColorMath.srgbToLinear(sb) * exposure)
+        // 影调匹配曲线（分位点对齐参考图 / 内置滤镜的影调），之后再叠加版本带来的对比/褪色
+        let matchedL = p.toneCurve.map { StyleMatcher.evalCurve($0, lab.L) } ?? lab.L
+        var t = ColorMath.clamp(matchedL / 100, 0, 1)
+        let tOrig = t
+        t = t - k * sin(twoPi * t) / twoPi
+        t = lift + t * (1 - lift - roll)
+        var L = t * 100
 
-                    let lr = ColorMath.srgbToLinear(sr) * exposure
-                    let lg = ColorMath.srgbToLinear(sg) * exposure
-                    let lb = ColorMath.srgbToLinear(sb) * exposure
-                    let lab = ColorMath.linearRGBToLab(lr, lg, lb)
-
-                    // 影调：S 曲线 + 黑白位
-                    // 影调匹配曲线（分位点对齐参考图），之后再叠加版本带来的对比/褪色
-                    let matchedL = p.toneCurve.map { StyleMatcher.evalCurve($0, lab.L) } ?? lab.L
-                    var t = ColorMath.clamp(matchedL / 100, 0, 1)
-                    let tOrig = t
-                    t = t - k * sin(twoPi * t) / twoPi
-                    t = lift + t * (1 - lift - roll)
-                    var L = t * 100
-
-                    // 色彩：饱和度 + 整体色偏 + 分离色调
-                    let ws = ColorMath.smoothstep(0.6, 0.0, tOrig)
-                    let wh = ColorMath.smoothstep(0.4, 1.0, tOrig)
-                    // 分区调色：植物 / 天空的色相与彩度向参考图同类颜色靠拢
-                    var (ra, rb) = regionPull(lab.a, lab.b, p)
-                    // 按色相分别调整（内置滤镜）
-                    if !p.hsl.isEmpty { (ra, rb, L) = hslAdjust(ra, rb, L, p.hsl) }
-                    var a = ra * p.saturation + p.castA + p.shadowTint.x * ws + p.highlightTint.x * wh
-                    var b = rb * p.saturation + p.castB + p.shadowTint.y * ws + p.highlightTint.y * wh
-                    if p.monochrome {
-                        // 黑白：去掉颜色，castA/castB 作为整体染色（如暖调黑白）
-                        a = p.castA; b = p.castB
-                    }
-
-                    let out = ColorMath.labToLinearRGB(L, a, b)
-                    var orr = ColorMath.clamp(ColorMath.linearToSRGB(out.r), 0, 1)
-                    var og = ColorMath.clamp(ColorMath.linearToSRGB(out.g), 0, 1)
-                    var ob = ColorMath.clamp(ColorMath.linearToSRGB(out.b), 0, 1)
-
-                    // 风格强度：与原图混合
-                    orr = sr + (orr - sr) * strength
-                    og = sg + (og - sg) * strength
-                    ob = sb + (ob - sb) * strength
-
-                    cube[idx] = Float(orr)
-                    cube[idx + 1] = Float(og)
-                    cube[idx + 2] = Float(ob)
-                    cube[idx + 3] = 1
-                    idx += 4
-                }
-            }
+        // 色彩：分区调色 → 按色相调整 → 饱和度 + 整体色偏 + 分离色调
+        let ws = ColorMath.smoothstep(0.6, 0.0, tOrig)
+        let wh = ColorMath.smoothstep(0.4, 1.0, tOrig)
+        var (ra, rb) = regionPull(lab.a, lab.b, p)
+        if !p.hsl.isEmpty { (ra, rb, L) = hslAdjust(ra, rb, L, p.hsl) }
+        var a = ra * p.saturation + p.castA + p.shadowTint.x * ws + p.highlightTint.x * wh
+        var b = rb * p.saturation + p.castB + p.shadowTint.y * ws + p.highlightTint.y * wh
+        if p.monochrome {
+            // 黑白：去掉颜色，castA/castB 作为整体染色（如暖调黑白）
+            a = p.castA; b = p.castB
         }
-        return cube.withUnsafeBufferPointer { Data(buffer: $0) }
+
+        let out = ColorMath.labToLinearRGB(L, a, b)
+        let orr = ColorMath.clamp(ColorMath.linearToSRGB(out.r), 0, 1)
+        let og = ColorMath.clamp(ColorMath.linearToSRGB(out.g), 0, 1)
+        let ob = ColorMath.clamp(ColorMath.linearToSRGB(out.b), 0, 1)
+        // 风格强度：与原图混合
+        return (sr + (orr - sr) * strength, sg + (og - sg) * strength, sb + (ob - sb) * strength)
     }
 
     // MARK: - 分区调色

@@ -36,10 +36,15 @@ jobs:
           xcrun simctl list devices available | grep -i iphone | tail -5
 
       - name: 运行渲染测试
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           set -o pipefail
           mkdir -p out
-          TEST_RUNNER_OUTPUT_DIR="$PWD/out" xcodebuild test \
+          ONLY=""
+          # 提交信息带 [ui-only] 时只跑界面截图，几分钟出结果
+          case "$COMMIT_MSG" in *"[ui-only]"*) ONLY="-only-testing:StyleCamTests/FilmCabinetSnapshotTests" ;; esac
+          TEST_RUNNER_OUTPUT_DIR="$PWD/out" xcodebuild test $ONLY \
             -project StyleCam.xcodeproj -scheme StyleCam \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log | grep -E "error:|Test Case|passed|failed|TEST " || true

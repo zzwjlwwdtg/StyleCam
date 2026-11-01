@@ -299,5 +299,28 @@ final class FilmCabinetSnapshotTests: XCTestCase {
             try img.jpegData(compressionQuality: 0.85)?.write(to: outDir.appendingPathComponent("\(name).jpg"))
             window.isHidden = true
         }
+        // 片盒一览（放大看纹样）
+        let gallery = ScrollView {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(120)), count: 3), spacing: 14) {
+                ForEach(LookPresets.all) { p in
+                    VStack(spacing: 4) {
+                        CanisterArt(preset: p).frame(width: 84, height: 136)
+                        Text(p.id).font(.system(size: 9, design: .monospaced)).foregroundStyle(.white)
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(RetroBackground())
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 402, height: 1500)
+        window.rootViewController = UIHostingController(rootView: gallery)
+        window.makeKeyAndVisible()
+        RunLoop.main.run(until: Date().addingTimeInterval(2))
+        let img = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        try img.jpegData(compressionQuality: 0.85)?.write(to: outDir.appendingPathComponent("canisters.jpg"))
+        window.isHidden = true
     }
 }

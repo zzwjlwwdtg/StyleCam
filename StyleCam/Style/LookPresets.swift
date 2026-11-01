@@ -350,3 +350,77 @@ extension LookPreset {
         }
     }
 }
+
+// MARK: - 片盒标签名（原创命名，不使用厂商包装）与网上样片链接
+
+extension LookPreset {
+    var labelTitle: String {
+        [
+            "canon-portrait": "奶油肌", "fuji-astia": "柔光", "fuji-reggie-portra": "暖人像", "fuji-reala-ace": "清透日常",
+            "fuji-classic-chrome": "纪实灰", "fuji-kodachrome64": "老杂志", "fuji-kodak-gold": "金色夏日",
+            "fuji-nostalgic-neg": "琥珀年代", "fuji-classic-neg": "街头负片", "canon-ccd": "千禧数码",
+            "fuji-pacific-blues": "海风蓝", "canon-neutral-cool": "高级灰", "fuji-velvia": "浓郁风光",
+            "canon-landscape": "山野", "canon-g7x": "元气", "fuji-eterna": "电影感", "fuji-bleach-bypass": "银留",
+            "fuji-cinestill": "霓虹夜", "fuji-acros": "细腻黑白", "fuji-trix": "街拍黑白", "canon-mono": "棕调黑白"
+        ][id] ?? name
+    }
+
+    /// 小红书上搜这个风格的关键词
+    private var searchKeyword: String {
+        [
+            "canon-portrait": "佳能 人像 直出", "fuji-astia": "富士 Astia 直出", "fuji-reggie-portra": "富士 Reggie's Portra 配方",
+            "fuji-reala-ace": "富士 Reala Ace 直出", "fuji-classic-chrome": "富士 Classic Chrome 直出",
+            "fuji-kodachrome64": "富士 Kodachrome 64 配方", "fuji-kodak-gold": "富士 Kodak Gold 200 配方",
+            "fuji-nostalgic-neg": "富士 Nostalgic Neg 直出", "fuji-classic-neg": "富士 Classic Neg 直出",
+            "canon-ccd": "佳能 IXUS CCD 直出", "fuji-pacific-blues": "富士 Pacific Blues 配方",
+            "canon-neutral-cool": "佳能 中性 冷调 直出", "fuji-velvia": "富士 Velvia 直出", "canon-landscape": "佳能 风景 照片风格",
+            "canon-g7x": "佳能 G7X 直出", "fuji-eterna": "富士 Eterna 直出", "fuji-bleach-bypass": "富士 Eterna Bleach Bypass",
+            "fuji-cinestill": "富士 CineStill 800T 配方", "fuji-acros": "富士 Acros 直出", "fuji-trix": "富士 Tri-X 400 配方",
+            "canon-mono": "佳能 单色 棕褐"
+        ][id] ?? name
+    }
+
+    /// 网上同款样片：原配方 / 介绍页（有的话）+ 小红书搜索
+    var sampleLinks: [SampleLink] {
+        var out: [SampleLink] = []
+        let pages: [String: String] = [
+            "fuji-reggie-portra": "https://fujixweekly.com/2022/06/11/fujifilm-x-trans-iv-film-simulation-recipe-reggies-portra/",
+            "fuji-kodachrome64": "https://fujixweekly.com/2019/08/02/my-fujifilm-x-t30-kodachrome-64-film-simulation-recipe/",
+            "fuji-kodak-gold": "https://fujixweekly.com/2023/10/24/kodak-gold-200-fujifilm-x-t5-x-trans-v-film-simulation-recipe/",
+            "fuji-pacific-blues": "https://fujixweekly.com/2022/08/04/fujifilm-x-e4-x-trans-iv-film-simulation-recipe-pacific-blues/",
+            "fuji-cinestill": "https://fujixweekly.com/2024/04/16/cinestill-800t-fujifilm-x-trans-v-film-simulation-recipe/",
+            "fuji-trix": "https://fujixweekly.com/2020/06/18/fujifilm-x100v-film-simulation-recipe-kodak-tri-x-400/",
+            "fuji-classic-chrome": "https://fujixweekly.com/2024/03/11/my-15-favorite-film-simulation-recipes-that-use-classic-chrome/",
+            "fuji-classic-neg": "https://fujixweekly.com/2024/03/20/my-15-favorite-film-simulation-recipes-that-use-classic-negative/",
+            "fuji-nostalgic-neg": "https://fujixweekly.com/2024/03/27/my-5-favorite-film-simulation-recipes-that-use-nostalgic-neg/",
+            "fuji-acros": "https://fujixweekly.com/2024/05/04/my-5-favorite-film-simulation-recipes-that-use-acros/",
+            "fuji-reala-ace": "https://fujixweekly.com/tag/reala-ace-recipe"
+        ]
+        if let s = pages[id], let u = URL(string: s) { out.append(SampleLink(title: "Fuji X Weekly 原配方样片", url: u)) }
+        var c = URLComponents(string: "https://www.xiaohongshu.com/search_result")!
+        c.queryItems = [URLQueryItem(name: "keyword", value: searchKeyword)]
+        if let u = c.url { out.append(SampleLink(title: "小红书搜「\(searchKeyword)」", url: u)) }
+        return out
+    }
+
+    /// 片盒配色：几种典型颜色经过这个滤镜后的样子（肤色、天空、植物、红、金、暗部、纸白）
+    var palette: [Color] {
+        let base: [(Double, Double, Double)] = [(0.87, 0.67, 0.55), (0.45, 0.65, 0.88), (0.35, 0.60, 0.30),
+                                                (0.80, 0.22, 0.20), (0.95, 0.80, 0.30), (0.18, 0.18, 0.20), (0.93, 0.91, 0.86)]
+        var g = grading
+        g.strength = 1
+        return base.map { c in
+            let o = LUTBuilder.mapColor(c.0, c.1, c.2, g)
+            return Color(red: o.0, green: o.1, blue: o.2)
+        }
+    }
+
+    /// 稳定的伪随机种子（按 id）
+    var seed: UInt64 { id.unicodeScalars.reduce(1469598103934665603) { ($0 ^ UInt64($1.value)) &* 1099511628211 } }
+}
+
+struct SampleLink: Identifiable {
+    let title: String
+    let url: URL
+    var id: String { url.absoluteString }
+}

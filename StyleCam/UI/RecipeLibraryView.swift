@@ -16,7 +16,7 @@ struct RecipeLibraryView: View {
                 Section {
                     Button { showCabinet = true } label: {
                         HStack(spacing: 12) {
-                            FilmCanister(stock: LookPresets.all[4].stock).frame(width: 26, height: 38)
+                            CanisterArt(preset: LookPresets.all[6]).frame(width: 28, height: 44)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("胶卷柜").font(.system(.headline, design: .serif))
                                 Text("\(LookPresets.all.count) 款富士 / 佳能同款滤镜，按情绪分组")

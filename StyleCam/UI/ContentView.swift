@@ -306,7 +306,7 @@ struct ContentView: View {
             Button { showCabinet = true } label: {
                 HStack(spacing: 6) {
                     if let p = model.currentPreset {
-                        FilmCanister(stock: p.stock).frame(width: 12, height: 17)
+                        CanisterArt(preset: p).frame(width: 12, height: 18)
                     } else {
                         Image(systemName: "film.stack")
                     }
