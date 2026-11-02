@@ -316,7 +316,7 @@ final class FilmCabinetSnapshotTests: XCTestCase {
         }
         .background(CabinetBackground(tint: .brown))
         let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 402, height: 1500)
+        window.frame = CGRect(x: 0, y: 0, width: 402, height: 2100)
         window.rootViewController = UIHostingController(rootView: gallery)
         window.makeKeyAndVisible()
         RunLoop.main.run(until: Date().addingTimeInterval(2))

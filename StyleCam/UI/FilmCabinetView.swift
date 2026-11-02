@@ -544,6 +544,27 @@ struct PackagingBlocks: View {
                 ctx.fill(Path(ellipseIn: CGRect(x: cx * w - r * w, y: cy * h - r * w, width: 2 * r * w, height: 2 * r * w)), with: .color(c))
             }
             ctx.fill(all, with: .color(preset.mood == .cinematic ? I : pk.paper))
+            switch preset.kind {
+            case .ccd:
+                // CCD：像素方格
+                let n = 6, cell = 1.0 / CGFloat(n)
+                for r in 0..<4 {
+                    for c in 0..<n where (r + c + v) % 2 == 0 || r == 3 {
+                        rect(CGFloat(c) * cell, 0.62 + CGFloat(r) * 0.095, cell, 0.095, r % 2 == 0 ? P : S)
+                    }
+                }
+                return
+            case .instant:
+                // 拍立得：一张相纸，下边留白更宽
+                rect(0, 0.58, 1, 0.42, S)
+                ctx.fill(Path(roundedRect: CGRect(x: w * 0.14, y: h * 0.6, width: w * 0.72, height: h * 0.37), cornerRadius: 1),
+                         with: .color(pk.paper))
+                rect(0.2, 0.63, 0.6, 0.22, P)
+                rect(0.2, 0.77, 0.6, 0.08, I.opacity(0.35))
+                return
+            case .film:
+                break
+            }
             switch (preset.mood, v % 6) {
             // 温柔：圆润、柔和
             case (.gentle, 0):

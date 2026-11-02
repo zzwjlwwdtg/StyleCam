@@ -27,6 +27,10 @@ enum PresetMood: String, CaseIterable, Identifiable {
 enum PresetBrand: String, CaseIterable, Identifiable {
     case fuji = "富士"
     case canon = "佳能"
+    case sony = "索尼"
+    case casio = "卡西欧"
+    case olympus = "奥林巴斯"
+    case polaroid = "宝丽来"
     var id: String { rawValue }
 }
 
@@ -247,6 +251,90 @@ enum LookPresets {
                        $0.castA = 1.5; $0.castB = 5
                        $0.toneCurve = toneCurve(highlights: -0.5, shadows: 0.5)
                    }),
+
+        // MARK: 千禧 CCD 卡片机
+        LookPreset(id: "sony-t90-ccd", name: "索尼 T90 CCD 同款", brand: .sony, mood: .nostalgic,
+                   note: "千禧卡片机直出：色调温柔复古、偏冷略泛白，像翻出来的旧数码照片",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 1.5, shadows: -0.5, mids: 1)
+                       $0.shadowLift = 0.05; $0.saturation = 0.92; $0.castA = -0.5; $0.castB = -2.5
+                       $0.highlightTint = SIMD2(-1, -2)
+                       $0.softGlow = 0.25; $0.sharpen = 0.25
+                       $0.grainTarget = 0.0045
+                   }),
+        LookPreset(id: "sony-w530-ccd", name: "索尼 W530 CCD 同款", brand: .sony, mood: .vivid,
+                   note: "颜色浓郁的 CCD：人像冷白皮、自带一点柔和磨皮感",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 1, shadows: 0.5, mids: 1)
+                       $0.saturation = 1.15; $0.castB = -1.5
+                       $0.hsl = [HSLBand(hue: 60, width: 30, dHue: -6, sat: 0.82, dL: 3.5), HSLBand(hue: 30, sat: 1.15)]
+                       $0.softGlow = 0.2; $0.blurSigmaView = 0.35
+                       $0.skinProtect = 0
+                       $0.grainTarget = 0.004
+                   }),
+        LookPreset(id: "fuji-z10-ccd", name: "富士 FinePix Z10 CCD 同款", brand: .fuji, mood: .gentle,
+                   note: "胶片感较强的 CCD：人像奶油肌，整体偏冷偏柔",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -0.5, shadows: -0.5, mids: 0.5)
+                       $0.shadowLift = 0.04; $0.saturation = 0.95; $0.castA = 0.5; $0.castB = -1.5
+                       $0.hsl = [HSLBand(hue: 60, width: 30, dHue: 3, sat: 0.9, dL: 2.5), HSLBand(hue: 135, width: 40, dHue: 10, sat: 0.85)]
+                       $0.softGlow = 0.2
+                       $0.skinProtect = 0
+                       $0.grainTarget = 0.0045
+                   }),
+        LookPreset(id: "casio-z800-ccd", name: "卡西欧 EX-Z800 CCD 同款", brand: .casio, mood: .cool,
+                   note: "复古冷白：干净的数码味，带一点轻颗粒",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 1.5, shadows: 0.5, mids: 0.5)
+                       $0.saturation = 0.9; $0.castA = -1; $0.castB = -3.5
+                       $0.highlightTint = SIMD2(-1, -2)
+                       $0.hsl = [HSLBand(hue: 60, width: 30, dHue: -4, sat: 0.85, dL: 3)]
+                       $0.sharpen = 0.3
+                       $0.grainTarget = 0.0052
+                   }),
+        LookPreset(id: "olympus-fe-ccd", name: "奥林巴斯 FE4000 CCD 同款", brand: .olympus, mood: .cool,
+                   note: "冷调氛围重：整体偏青蓝，清冷安静",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 0.5, shadows: 1)
+                       $0.saturation = 0.85; $0.castA = -2; $0.castB = -4.5
+                       $0.shadowTint = SIMD2(-2, -3)
+                       $0.hsl = [HSLBand(hue: 265, sat: 1.1), HSLBand(hue: 135, width: 40, dHue: 15, sat: 0.8)]
+                       $0.sharpen = 0.2
+                       $0.grainTarget = 0.0045
+                   }),
+
+        // MARK: 拍立得
+        LookPreset(id: "fuji-instax-mini", name: "富士 Instax Mini 拍立得同款", brand: .fuji, mood: .gentle,
+                   note: "拍立得相纸：明亮、颜色自然饱满，高光略过曝，暗部带一点青绿，画面偏柔",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: 2, shadows: 1, mids: 1.5)
+                       $0.shadowLift = 0.04; $0.highlightRolloff = 0.06
+                       $0.saturation = 1.05
+                       $0.shadowTint = SIMD2(-2, -1.5)
+                       $0.softGlow = 0.3; $0.blurSigmaView = 0.5; $0.vignette = 0.12
+                       $0.grainTarget = 0.004
+                   }),
+        LookPreset(id: "polaroid-600", name: "宝丽来 600 拍立得同款", brand: .polaroid, mood: .nostalgic,
+                   note: "经典宝丽来相纸：明显的品红粉调，偏柔偏旧，暗部发灰",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -1, shadows: -1)
+                       $0.shadowLift = 0.08; $0.highlightRolloff = 0.1
+                       $0.saturation = 0.85; $0.castA = 3.5; $0.castB = 0.5
+                       $0.shadowTint = SIMD2(3, -2); $0.highlightTint = SIMD2(1, 3)
+                       $0.softGlow = 0.3; $0.blurSigmaView = 0.65; $0.vignette = 0.12
+                       $0.grainTarget = 0.0045
+                   }),
+        LookPreset(id: "polaroid-itype", name: "宝丽来 i-Type 拍立得同款", brand: .polaroid, mood: .nostalgic,
+                   note: "偏暖、带一点橙和绿，颜色发闷的哑光相纸感，适合室内和傍晚",
+                   grading: make {
+                       $0.toneCurve = toneCurve(highlights: -1, shadows: -0.5)
+                       $0.shadowLift = 0.07; $0.highlightRolloff = 0.08
+                       $0.saturation = 0.82; $0.castA = 1; $0.castB = 5
+                       $0.shadowTint = SIMD2(-2, 2)
+                       $0.hsl = [HSLBand(hue: 135, width: 40, dHue: -10, sat: 0.9)]
+                       $0.softGlow = 0.25; $0.blurSigmaView = 0.55; $0.vignette = 0.1
+                       $0.grainTarget = 0.0045
+                   }),
     ]
 
     static func preset(id: String) -> LookPreset? { all.first { $0.id == id } }
@@ -303,6 +391,7 @@ enum LookPresets {
         if g.halation > 0 { row("halation", "高光光晕", Fmt.percent(g.halation), "模拟胶片高光周围的红色光晕") }
         if g.softGlow > 0 { row("glow", "柔光", Fmt.percent(g.softGlow), "高光微微发散") }
         if g.sharpen > 0 { row("sharpen", "锐化", Fmt.percent(g.sharpen), "轮廓更清晰") }
+        if g.blurSigmaView > 0 { row("soften", "柔化", String(format: "%.2f", g.blurSigmaView), "画面整体变柔，模拟相纸 / 小传感器的柔和感") }
         if g.vignette > 0 { row("vignette", "暗角", Fmt.percent(g.vignette), "四角压暗") }
         rows.append(ParameterChange(id: "preset-exposure", category: .hardware, name: "曝光 / 白平衡", before: "自动",
                                     after: "自动", reason: "内置滤镜不锁定硬件参数，只改调色；需要按某张照片调光圈快门时请用参考图", status: .info))
@@ -341,6 +430,14 @@ extension LookPreset {
         case "fuji-acros":         return FilmStock(code: "ACROS 100", iso: 100)
         case "fuji-trix":          return FilmStock(code: "TRI-X 400 RCP", iso: 400)
         case "canon-mono":         return FilmStock(code: "MONO SEPIA", iso: 100)
+        case "sony-t90-ccd":       return FilmStock(code: "T90 CCD", iso: 100)
+        case "sony-w530-ccd":      return FilmStock(code: "W530 CCD", iso: 100)
+        case "fuji-z10-ccd":       return FilmStock(code: "Z10 CCD", iso: 100)
+        case "casio-z800-ccd":     return FilmStock(code: "EX-Z800 CCD", iso: 100)
+        case "olympus-fe-ccd":     return FilmStock(code: "FE4000 CCD", iso: 100)
+        case "fuji-instax-mini":   return FilmStock(code: "INSTAX MINI", iso: 800)
+        case "polaroid-600":       return FilmStock(code: "600 INSTANT", iso: 640)
+        case "polaroid-itype":     return FilmStock(code: "I-TYPE INSTANT", iso: 640)
         default:                   return FilmStock(code: name, iso: 200)
         }
     }
@@ -356,7 +453,9 @@ extension LookPreset {
             "fuji-nostalgic-neg": "琥珀年代", "fuji-classic-neg": "街头负片", "canon-ccd": "千禧数码",
             "fuji-pacific-blues": "海风蓝", "canon-neutral-cool": "高级灰", "fuji-velvia": "浓郁风光",
             "canon-landscape": "山野", "canon-g7x": "元气", "fuji-eterna": "电影感", "fuji-bleach-bypass": "银留",
-            "fuji-cinestill": "霓虹夜", "fuji-acros": "细腻黑白", "fuji-trix": "街拍黑白", "canon-mono": "棕调黑白"
+            "fuji-cinestill": "霓虹夜", "fuji-acros": "细腻黑白", "fuji-trix": "街拍黑白", "canon-mono": "棕调黑白",
+            "sony-t90-ccd": "旧数码", "sony-w530-ccd": "冷白皮", "fuji-z10-ccd": "奶油 CCD", "casio-z800-ccd": "冷白复古",
+            "olympus-fe-ccd": "冷调", "fuji-instax-mini": "相纸", "polaroid-600": "粉调相纸", "polaroid-itype": "暖哑光"
         ][id] ?? name
     }
 
@@ -371,7 +470,10 @@ extension LookPreset {
             "canon-neutral-cool": "佳能 中性 冷调 直出", "fuji-velvia": "富士 Velvia 直出", "canon-landscape": "佳能 风景 照片风格",
             "canon-g7x": "佳能 G7X 直出", "fuji-eterna": "富士 Eterna 直出", "fuji-bleach-bypass": "富士 Eterna Bleach Bypass",
             "fuji-cinestill": "富士 CineStill 800T 配方", "fuji-acros": "富士 Acros 直出", "fuji-trix": "富士 Tri-X 400 配方",
-            "canon-mono": "佳能 单色 棕褐"
+            "canon-mono": "佳能 单色 棕褐",
+            "sony-t90-ccd": "索尼 T90 ccd 直出", "sony-w530-ccd": "索尼 W530 ccd 直出", "fuji-z10-ccd": "富士 Z10 ccd 直出",
+            "casio-z800-ccd": "卡西欧 Z800 ccd 直出", "olympus-fe-ccd": "奥林巴斯 FE4000 ccd 直出",
+            "fuji-instax-mini": "instax mini 拍立得 样片", "polaroid-600": "宝丽来 600 相纸 样片", "polaroid-itype": "宝丽来 i-Type 相纸 样片"
         ][id] ?? name
     }
 
@@ -471,4 +573,14 @@ extension LookPreset {
 extension LookPreset {
     /// 在同一情绪组里的序号（决定片盒色块用这一组的第几种版式）
     var moodIndex: Int { LookPresets.all.filter { $0.mood == mood }.firstIndex { $0.id == id } ?? 0 }
+}
+
+extension LookPreset {
+    enum Kind { case film, ccd, instant }
+    /// 片盒图案按种类加区分：CCD 用像素方格，拍立得用相纸图形
+    var kind: Kind {
+        if id.hasSuffix("-ccd") { return .ccd }
+        if id.contains("instax") || id.hasPrefix("polaroid") { return .instant }
+        return .film
+    }
 }
