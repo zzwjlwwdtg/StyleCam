@@ -43,6 +43,15 @@ final class AppModel: ObservableObject {
     static let lastPresetKey = "lastPresetID"
     @Published var batchProgress: String?
     @Published var effects = EffectToggles() { didSet { camera.setEffects(effects) } }
+    /// 优先苹果画质（暗光 / 大光比时用）：不锁曝光，只调色
+    @Published var preferAppleQuality = UserDefaults.standard.bool(forKey: "preferAppleQuality") {
+        didSet {
+            guard preferAppleQuality != oldValue else { return }
+            UserDefaults.standard.set(preferAppleQuality, forKey: "preferAppleQuality")
+            camera.setAppleQuality(preferAppleQuality)
+            Task { await reapplyHardware() }
+        }
+    }
     /// 按参考图画幅裁切（默认关闭）
     @Published var matchAspect = false {
         didSet {
@@ -62,6 +71,7 @@ final class AppModel: ObservableObject {
 
     init() {
         camera.setAutoMatch(true)
+        camera.setAppleQuality(preferAppleQuality)
         // 相机就绪后自动恢复上次的风格（保存一次，以后打开就是同一风格）
         readySub = camera.$isReady.filter { $0 }.first().sink { [weak self] _ in
             Task { @MainActor in await self?.restoreLast() }
@@ -175,6 +185,34 @@ final class AppModel: ObservableObject {
         }
         ParameterPlanner.merge(report: report, plan: newPlan, into: &changes)
         if matchAspect, let i = changes.firstIndex(where: { $0.id == "crop" }) { changes[i].status = .applied }
+        markAppleQuality()
+    }
+
+    /// 切换“优先苹果画质”后重新下发硬件参数
+    private func reapplyHardware() async {
+        if let profile {
+            isAnalyzing = true
+            defer { isAnalyzing = false }
+            await rebuildPlan(profile: profile, lens: camera.lens, lensReason: "保持当前镜头")
+        } else if let plan {
+            _ = await withCheckedContinuation { (cont: CheckedContinuation<ApplyReport, Never>) in
+                camera.apply(plan) { cont.resume(returning: $0) }
+            }
+        }
+    }
+
+    /// 参数面板：开启“优先苹果画质”时，被交还给苹果的几项标注出来
+    private func markAppleQuality() {
+        guard preferAppleQuality else { return }
+        let note = "已开启「优先苹果画质」：保持自动，交给苹果的多帧合成 / Smart HDR"
+        for id in ["aperture", "shutter", "iso", "tonemap", "quality"] {
+            for i in changes.indices where changes[i].id == id { changes[i].status = .adjusted(note) }
+        }
+        if !changes.contains(where: { $0.id == "applequality" }) {
+            changes.append(ParameterChange(id: "applequality", category: .hardware, name: "优先苹果画质",
+                                           before: "关", after: "开",
+                                           reason: "暗光 / 大光比时画质更好；光圈景深与锁定曝光不再按参考图设置，风格只靠调色", status: .applied))
+        }
     }
 
     private func isUnsupported(_ c: ParameterChange) -> Bool {
@@ -187,9 +225,7 @@ final class AppModel: ObservableObject {
     func applyStyle(to items: [PhotosPickerItem]) async {
         guard hasStyle, !items.isEmpty else { return }
         let renderer = camera.renderer
-        let base = renderer.snapshotState()
-        let refStats = profile?.refStats
-        let refTexture = profile?.refTexture
+        let grading = camera.gradingSnapshot()
         let v = variant, person = (profile?.faceCount ?? 1) > 0
         let summary = "StyleCam 后期套用 | \(currentPreset?.name ?? "参考图") | \(v.rawValue) | 强度 \(Fmt.percent(strength))"
         var ok = 0
@@ -198,8 +234,8 @@ final class AppModel: ObservableObject {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             let err: String? = await withCheckedContinuation { cont in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    PhotoProcessor.processExisting(data: data, renderer: renderer, base: base, ref: refStats, refTexture: refTexture,
-                                                   variant: v, preferPerson: person, summary: summary) { thumb, err in
+                    PhotoProcessor.processExisting(data: data, renderer: renderer, grading: grading,
+                                                   preferPerson: person, summary: summary) { thumb, err in
                         if let thumb { DispatchQueue.main.async { self.camera.lastPhoto = thumb } }
                         cont.resume(returning: err)
                     }

@@ -96,6 +96,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _rawTexture: TextureStats?
     private var textureBusy = false
     private var _grainTargetActive = false
+    private var _appleQuality = false
     private var lastTexture = Date.distantPast
     private let textureQueue = DispatchQueue(label: "stylecam.texture", qos: .utility)
     private lazy var textureContext = CIContext(options: [.cacheIntermediates: false])
@@ -304,7 +305,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         sessionQueue.async {
             self.plan = newPlan
             self.pushGrading()
-            self.locked { self._use48MP = newPlan.use48MP; self._planSummary = Self.summary(of: newPlan); self._grainTargetActive = newPlan.grading.grainTarget != nil }
+            let hw = self.effective(newPlan)
+            self.locked { self._use48MP = newPlan.use48MP; self._planSummary = Self.summary(of: hw); self._grainTargetActive = newPlan.grading.grainTarget != nil }
             guard let d = self.device else { DispatchQueue.main.async { completion(ApplyReport()) }; return }
 
             var report = ApplyReport()
@@ -322,7 +324,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 }
 
                 // 2) 光圈 / 快门 / ISO（含优先模式与降级）
-                report.exposureStatus = self.applyExposure(d, plan: newPlan)
+                report.exposureStatus = self.applyExposure(d, plan: hw)
 
                 // 3) 曝光补偿
                 let b = min(max(newPlan.bias, d.minExposureTargetBias), d.maxExposureTargetBias)
@@ -337,7 +339,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
                 // 5) 全局色调映射
                 if d.activeFormat.isGlobalToneMappingSupported {
-                    d.isGlobalToneMappingEnabled = newPlan.globalToneMapping
+                    d.isGlobalToneMappingEnabled = hw.globalToneMapping
                 }
                 d.unlockForConfiguration()
             } catch {
@@ -364,7 +366,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                     "signals": Fmt.signals(d.enabledExposureSignals),
                     "tonemap": d.isGlobalToneMappingEnabled ? "开" : "关",
                     "resolution": newPlan.use48MP ? "48MP" : "24MP",
-                    "quality": newPlan.hasManualExposure ? "速度优先" : "质量优先"
+                    "quality": hw.hasManualExposure ? "速度优先" : "质量优先"
                 ]
                 DispatchQueue.main.async { completion(report) }
             }
@@ -473,6 +475,27 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     func setAutoMatch(_ on: Bool) { locked { _autoMatch = on } }
+
+    /// 优先苹果画质：不锁光圈 / 快门 / ISO、不开全局色调映射，拍照保持“质量优先”，
+    /// 让苹果的多帧合成、Smart HDR、局部影调完整生效，StyleCam 只做调色
+    func setAppleQuality(_ on: Bool) { locked { _appleQuality = on } }
+
+    /// 实际下发到硬件的计划
+    func effective(_ p: CapturePlan) -> CapturePlan {
+        guard locked({ _appleQuality }) else { return p }
+        var q = p
+        q.aperture = nil; q.shutter = nil; q.iso = nil
+        q.globalToneMapping = false
+        return q
+    }
+
+    /// 拍照 / 套用相册用的调色快照（在拍照回调或主线程调用，不能在 sessionQueue 上调用）
+    func gradingSnapshot() -> GradingSnapshot {
+        let base = sessionQueue.sync { plan.grading }
+        let (ref, refTex, v, fx, crop) = locked { (_refStats, _refTexture, _variant, _effects, _matchAspect) }
+        return GradingSnapshot(base: base, ref: ref, refTexture: refTex, variant: v, effects: fx,
+                               matchAspect: crop, enabled: renderer.snapshotState().enabled)
+    }
     func setSaveOriginal(_ on: Bool) { locked { _saveOriginal = on } }
     func setUse48MP(_ on: Bool) { locked { _use48MP = on } }
 
@@ -514,7 +537,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
         controls.append(strength)
 
-        if caps.hasVariableAperture && sessionLens.hasVariableAperture && caps.apertureStops.count > 1 {
+        if caps.hasVariableAperture && sessionLens.hasVariableAperture && caps.apertureStops.count > 1 && !locked({ _appleQuality }) {
             let stops = caps.apertureStops
             let picker = AVCaptureIndexPicker("光圈", symbolName: "camera.aperture",
                                               localizedIndexTitles: stops.map { Fmt.ap($0) })
@@ -643,7 +666,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
             if let dims = self.chooseDimensions() { settings.maxPhotoDimensions = dims }
             // 苹果文档：自定义锁定的曝光值要在拍照中生效，必须用 .speed
-            settings.photoQualityPrioritization = self.plan.hasManualExposure ? .speed : .quality
+            settings.photoQualityPrioritization = self.effective(self.plan).hasManualExposure ? .speed : .quality
             self.photoOutput.capturePhoto(with: settings, delegate: self)
             DispatchQueue.main.async { self.captureFlash += 1 }
         }
@@ -948,9 +971,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         let (processed, rawData) = locked { (pendingProcessed.removeValue(forKey: id), pendingRaw.removeValue(forKey: id)) }
         guard let processed else { return }
         let (data, metadata) = processed
-        let state = renderer.snapshotState()
+        let grading = gradingSnapshot()
         let (summary, saveOriginal, preferPerson) = locked { (_planSummary, _saveOriginal, _preferPerson) }
-        let refTexture = locked { _refTexture }
         // 用成片 EXIF 的实际焦距校准等效光圈换算
         if let exif = metadata[kCGImagePropertyExifDictionary as String] as? [String: Any],
            let fl = (exif[kCGImagePropertyExifFocalLength as String] as? NSNumber)?.doubleValue {
@@ -958,9 +980,9 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
         DispatchQueue.main.async { self.isSaving = true }
         DispatchQueue.global(qos: .userInitiated).async {
-            PhotoProcessor.process(data: data, metadata: metadata, renderer: self.renderer, state: state,
+            PhotoProcessor.process(data: data, metadata: metadata, renderer: self.renderer, grading: grading,
                                    summary: summary, preferPerson: preferPerson,
-                                   saveOriginal: saveOriginal, rawData: rawData, refTexture: refTexture) { thumb, err in
+                                   saveOriginal: saveOriginal, rawData: rawData) { thumb, err in
                 DispatchQueue.main.async {
                     self.isSaving = false
                     if let thumb { self.lastPhoto = thumb }

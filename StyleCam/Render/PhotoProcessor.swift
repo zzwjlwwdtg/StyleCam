@@ -13,23 +13,18 @@ enum PhotoProcessor {
     static func process(data: Data,
                         metadata: [String: Any],
                         renderer: StyleRenderer,
-                        state: StyleRenderer.State,
+                        grading: GradingSnapshot,
                         summary: String,
                         preferPerson: Bool,
                         saveOriginal: Bool,
                         rawData: Data? = nil,
-                        refTexture: TextureStats? = nil,
                         completion: @escaping (UIImage?, String?) -> Void) {
         guard let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
             completion(nil, "照片解码失败"); return
         }
-        // 质感按这张照片本身重新算差值（成片的降噪/锐化与取景帧不同）
-        var state = state
-        if let refTexture, let tex = TextureEstimator.measure(ci, context: context) {
-            TextureEstimator.apply(to: &state.params, raw: tex, ref: refTexture)
-        } else if state.params.grainTarget != nil, let tex = TextureEstimator.measure(ci, context: context) {
-            TextureEstimator.applyGrainTarget(to: &state.params, raw: tex)
-        }
+        // 成片和取景预览走的是苹果不同的处理流程（拍照会多帧合成 / Smart HDR），
+        // 所以影调、色彩、质感都按这张成片本身重新算一遍差值，而不是沿用预览时的参数
+        let state = grading.state(for: ci, context: context)
         let out = renderer.apply(ci, state: state, masks: masks(for: ci, state: state, preferPerson: preferPerson))
         guard let p3 = CGColorSpace(name: CGColorSpace.displayP3),
               let cg = context.createCGImage(out, from: out.extent, format: .RGBA8, colorSpace: p3) else {
@@ -116,28 +111,49 @@ enum PhotoProcessor {
 
     // MARK: - 已有照片套用当前风格
 
-    /// 已有照片没有实时匹配，所以按这张照片本身的统计做一次风格匹配（与实时预览同一套 StyleMatcher）
-    static func adaptedState(_ base: StyleRenderer.State, for ci: CIImage, ref: SceneStats, variant: StyleVariant) -> StyleRenderer.State {
-        guard let raw = StyleMatcher.stats(of: ci, context: context, maxSide: 160) else { return base }
-        var p = base.params
-        p.exposureEV = 0
-        StyleMatcher.apply(to: &p, raw: raw, ref: ref, variant: variant, alpha: 1)
-        return StyleRenderer.State(params: p, lut: LUTBuilder.build(p),
-                                   skinLut: LUTBuilder.build(p, skinVersion: true), enabled: base.enabled)
-    }
-
-    /// 读取已有照片（保留原 EXIF）→ 自适应 → 套用 → 另存为新照片（原图不动）
-    static func processExisting(data: Data, renderer: StyleRenderer, base: StyleRenderer.State,
-                                ref: SceneStats?, refTexture: TextureStats?, variant: StyleVariant, preferPerson: Bool,
+    /// 读取已有照片（保留原 EXIF）→ 按这张照片重新匹配 → 套用 → 另存为新照片（原图不动）
+    static func processExisting(data: Data, renderer: StyleRenderer, grading: GradingSnapshot, preferPerson: Bool,
                                 summary: String, completion: @escaping (UIImage?, String?) -> Void) {
         guard let src = CGImageSourceCreateWithData(data as CFData, nil),
-              let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any],
-              let ci = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
+              let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any] else {
             completion(nil, "无法读取照片"); return
         }
-        // 内置滤镜没有参考图：参数固定，不做自适应（颗粒仍按这张照片的噪点反推）
-        let state = ref.map { adaptedState(base, for: ci, ref: $0, variant: variant) } ?? base
-        process(data: data, metadata: props, renderer: renderer, state: state, summary: summary,
-                preferPerson: preferPerson, saveOriginal: false, refTexture: refTexture, completion: completion)
+        var g = grading
+        g.resetExposure = true
+        process(data: data, metadata: props, renderer: renderer, grading: g, summary: summary,
+                preferPerson: preferPerson, saveOriginal: false, completion: completion)
+    }
+}
+
+/// 拍照 / 套用相册时的调色快照：计划里的参数 + 参考图统计 + 当前版本与效果开关。
+/// 对每张成片单独算：按这张图本身的统计对齐参考图（影调 / 彩度 / 色偏 / 分离色调），按它本身的噪点和锐度补差值，
+/// 最后再套版本（忠实 / 柔和 / 浓郁）和效果开关，和实时预览的顺序完全一致。
+struct GradingSnapshot {
+    var base: GradingParams
+    var ref: SceneStats?
+    var refTexture: TextureStats?
+    var variant: StyleVariant
+    var effects: EffectToggles
+    var matchAspect: Bool
+    var enabled: Bool
+    var resetExposure = false
+
+    func state(for ci: CIImage, context: CIContext) -> StyleRenderer.State {
+        var g = base
+        if resetExposure { g.exposureEV = 0 }
+        if let ref, let raw = StyleMatcher.stats(of: ci, context: context, maxSide: 160) {
+            StyleMatcher.apply(to: &g, raw: raw, ref: ref, variant: variant, alpha: 1)
+        }
+        if let tex = TextureEstimator.measure(ci, context: context) {
+            if let refTexture {
+                TextureEstimator.apply(to: &g, raw: tex, ref: refTexture)
+            } else {
+                TextureEstimator.applyGrainTarget(to: &g, raw: tex)
+            }
+        }
+        var o = effects.apply(variant.apply(g))
+        if !matchAspect { o.cropRatio = nil }
+        return StyleRenderer.State(params: o, lut: LUTBuilder.build(o),
+                                   skinLut: LUTBuilder.build(o, skinVersion: true), enabled: enabled)
     }
 }

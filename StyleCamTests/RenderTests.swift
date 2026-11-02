@@ -90,11 +90,12 @@ final class RenderTests: XCTestCase {
             }
 
             // 相册套用路径（按照片自适应）
+            // 相册套用 / 拍照成片路径：按这张图本身重新匹配影调色彩 + 质感，再套版本和效果开关
             let renderer = StyleRenderer()
-            var base = plan.grading
-            base.cropRatio = nil
-            renderer.update(base)
-            let adapted = PhotoProcessor.adaptedState(renderer.snapshotState(), for: ci, ref: profile.refStats, variant: .faithful)
+            let snap = GradingSnapshot(base: plan.grading, ref: profile.refStats, refTexture: profile.refTexture,
+                                       variant: .faithful, effects: EffectToggles(), matchAspect: false, enabled: true,
+                                       resetExposure: true)
+            let adapted = snap.state(for: ci, context: ctx)
             let out = renderer.apply(ci, state: adapted, masks: PhotoProcessor.masks(for: ci, state: adapted, preferPerson: true))
             report += "09_album_adapted: \(stats(out))  (EV \(String(format: "%.2f", adapted.params.exposureEV)), sat \(String(format: "%.2f", adapted.params.saturation)), cast \(String(format: "%.1f/%.1f", adapted.params.castA, adapted.params.castB)))\n\n"
             try save(out, outDir.appendingPathComponent("\(scene)_09_album_adapted.jpg"))

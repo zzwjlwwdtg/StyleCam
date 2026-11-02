@@ -61,6 +61,12 @@ struct ParameterPanel: View {
                     Text("画面不对劲时可以逐个关掉，找出是哪个效果的问题；关掉后预览、拍照、视频、套用相册都会同步。")
                 }
 
+                Section {
+                    Toggle("优先苹果画质", isOn: $model.preferAppleQuality)
+                } footer: {
+                    Text("适合暗光、逆光、大光比。开启后不锁光圈 / 快门 / ISO，拍照保持“质量优先”，苹果的多帧合成和 Smart HDR 完整生效，StyleCam 只做调色；代价是景深和锁定曝光不再按参考图设置。")
+                }
+
                 Section("拍摄选项") {
                     Toggle("白平衡偏移跟随场景", isOn: $model.wbFollow)
                     Toggle("按参考图实时匹配影调 / 色彩（建议开启）", isOn: $model.autoMatchExposure)
