@@ -73,6 +73,35 @@ enum LUTBuilder {
         return (sr + (orr - sr) * strength, sg + (og - sg) * strength, sb + (ob - sb) * strength)
     }
 
+    /// 肤色调整 LUT（只在皮肤蒙版里使用）：提亮中间调、按 a*/b* 偏移、调整饱和度；没有调整时返回 nil
+    static func buildSkinAdjust(_ p: GradingParams) -> Data? {
+        guard abs(p.skinBright) > 0.05 || p.skinTint != .zero || abs(p.skinSat - 1) > 0.01 else { return nil }
+        let n = dimension
+        var cube = [Float](repeating: 0, count: n * n * n * 4)
+        var idx = 0
+        for bi in 0..<n {
+            for gi in 0..<n {
+                for ri in 0..<n {
+                    let lab = ColorMath.linearRGBToLab(ColorMath.srgbToLinear(Double(ri) / Double(n - 1)),
+                                                       ColorMath.srgbToLinear(Double(gi) / Double(n - 1)),
+                                                       ColorMath.srgbToLinear(Double(bi) / Double(n - 1)))
+                    // 中间调提亮最多，接近黑 / 白时逐渐减弱，避免发灰或溢出
+                    let w = ColorMath.smoothstep(5, 30, lab.L) * ColorMath.smoothstep(100, 82, lab.L)
+                    let L = ColorMath.clamp(lab.L + p.skinBright * w, 0, 100)
+                    let a = lab.a * p.skinSat + p.skinTint.x * w
+                    let b = lab.b * p.skinSat + p.skinTint.y * w
+                    let o = ColorMath.labToLinearRGB(L, a, b)
+                    cube[idx] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.r), 0, 1))
+                    cube[idx + 1] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.g), 0, 1))
+                    cube[idx + 2] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.b), 0, 1))
+                    cube[idx + 3] = 1
+                    idx += 4
+                }
+            }
+        }
+        return cube.withUnsafeBufferPointer { Data(buffer: $0) }
+    }
+
     // MARK: - 分区调色
 
     private static func hueDeg(_ a: Double, _ b: Double) -> Double {

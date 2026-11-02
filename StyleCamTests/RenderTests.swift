@@ -2,6 +2,7 @@ import XCTest
 import CoreImage
 import UIKit
 import SwiftUI
+import Vision
 @testable import StyleCam
 
 /// 在 iPhone 模拟器里用 App 的同一套代码跑完整流程：
@@ -325,5 +326,51 @@ final class FilmCabinetSnapshotTests: XCTestCase {
         }
         try img.jpegData(compressionQuality: 0.85)?.write(to: outDir.appendingPathComponent("canisters.jpg"))
         window.isHidden = true
+    }
+}
+
+// MARK: - 美颜：关 / 自然 / 美颜 三档在人像上的效果（只应改变皮肤区域）
+final class BeautyTests: XCTestCase {
+    func testBeautyModes() throws {
+        let ctx = CIContext(options: [.cacheIntermediates: false])
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+        let bundle = Bundle(for: BeautyTests.self)
+        let outDir = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
+            .appendingPathComponent("render-out/beauty", isDirectory: true)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let url = try XCTUnwrap(bundle.url(forResource: "scene_forest", withExtension: "jpg"))
+        let ci = try XCTUnwrap(CIImage(contentsOf: url, options: [.applyOrientationProperty: true]))
+        var report = ""
+        var settings: [(String, BeautySettings)] = []
+        settings.append(("0_off", BeautySettings(mode: .off)))
+        settings.append(("1_natural", BeautySettings()))
+        settings.append(("2_natural_coolwhite", BeautySettings(mode: .natural, smooth: 0.6, bright: 0.5, tone: .coolWhite)))
+        settings.append(("3_beauty", BeautySettings(mode: .beauty, smooth: 0.5, bright: 0.4, tone: .cream, eye: 0.8, dull: 0.6)))
+        // 人脸位置（用来裁出脸部放大图）
+        let faceReq = VNDetectFaceRectanglesRequest()
+        try VNImageRequestHandler(ciImage: ci, options: [:]).perform([faceReq])
+        let face = faceReq.results?.first?.boundingBox
+        report += "人脸: \(face.map { "\($0)" } ?? "未检测到")\n"
+        for (name, b) in settings {
+            let snap = GradingSnapshot(base: GradingParams(), ref: nil, refTexture: nil, variant: .faithful,
+                                       effects: EffectToggles(), matchAspect: false, enabled: true, beauty: b)
+            var st = snap.state(for: ci, context: ctx)
+            st.params.grain = 0
+            let masks = PhotoProcessor.masks(for: ci, state: st, preferPerson: true)
+            let out = StyleRenderer().apply(ci, state: st, masks: masks)
+            report += "\(name): 人像蒙版 \(masks.person != nil) 眼下蒙版 \(masks.underEye != nil) 有皮肤处理 \(st.params.hasSkinWork)\n"
+            var crop = out
+            if let f = face {
+                let e = ci.extent
+                let r = CGRect(x: e.minX + f.minX * e.width, y: e.minY + f.minY * e.height, width: f.width * e.width, height: f.height * e.height)
+                    .insetBy(dx: -f.width * e.width * 0.6, dy: -f.height * e.height * 0.6)
+                crop = out.cropped(to: r)
+            }
+            let s = min(4, 700 / max(crop.extent.width, crop.extent.height))
+            let scaled = crop.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: s, kCIInputAspectRatioKey: 1])
+            try ctx.writeJPEGRepresentation(of: scaled, to: outDir.appendingPathComponent("face_\(name).jpg"), colorSpace: srgb,
+                                            options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
+        }
+        try report.write(to: outDir.appendingPathComponent("beauty.txt"), atomically: true, encoding: .utf8)
     }
 }

@@ -69,4 +69,42 @@ enum SubjectMasker {
         guard !m.isEmpty else { return 0 }
         return Double(m.filter { $0 }.count) / Double(m.count)
     }
+
+    /// 眼下区域蒙版（美颜档）：人脸关键点找到双眼，在眼睛正下方画柔和的椭圆
+    static func underEyeMask(_ handler: VNImageRequestHandler, extent: CGRect,
+                             request: VNDetectFaceLandmarksRequest = VNDetectFaceLandmarksRequest()) -> CIImage? {
+        guard (try? handler.perform([request])) != nil, let faces = request.results, !faces.isEmpty else { return nil }
+        let W = 360, H = max(1, Int((360 * extent.height / max(1, extent.width)).rounded()))
+        guard let ctx = CGContext(data: nil, width: W, height: H, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue),
+              let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceGray(),
+                                    colors: [CGColor(gray: 1, alpha: 0.9), CGColor(gray: 1, alpha: 0)] as CFArray,
+                                    locations: [0, 1]) else { return nil }
+        ctx.setFillColor(gray: 0, alpha: 1)
+        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+        let size = CGSize(width: W, height: H)
+        var drew = false
+        for face in faces {
+            guard let lm = face.landmarks else { continue }
+            for eye in [lm.leftEye, lm.rightEye].compactMap({ $0 }) {
+                let pts = eye.pointsInImage(imageSize: size)      // 左下角为原点，与 CGContext 一致
+                guard let minX = pts.map(\.x).min(), let maxX = pts.map(\.x).max(),
+                      let minY = pts.map(\.y).min() else { continue }
+                let w = maxX - minX
+                guard w > 2 else { continue }
+                let c = CGPoint(x: (minX + maxX) / 2, y: minY - w * 0.42)
+                ctx.saveGState()
+                ctx.translateBy(x: c.x, y: c.y)
+                ctx.scaleBy(x: 1, y: 0.42)
+                ctx.drawRadialGradient(grad, startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: w * 0.8, options: [])
+                ctx.restoreGState()
+                drew = true
+            }
+        }
+        guard drew, let cg = ctx.makeImage() else { return nil }
+        let m = CIImage(cgImage: cg)
+        return m.transformed(by: CGAffineTransform(scaleX: extent.width / CGFloat(W), y: extent.height / CGFloat(H))
+            .concatenating(CGAffineTransform(translationX: extent.minX, y: extent.minY)))
+            .clampedToExtent().applyingGaussianBlur(sigma: Double(extent.width) / 360).cropped(to: extent)
+    }
 }

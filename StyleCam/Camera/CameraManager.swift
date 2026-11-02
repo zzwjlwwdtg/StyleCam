@@ -97,6 +97,9 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var textureBusy = false
     private var _grainTargetActive = false
     private var _appleQuality = false
+    private var _beauty = BeautySettings()
+    private var liveEye: CIImage?
+    private let landmarks = VNDetectFaceLandmarksRequest()
     private var lastTexture = Date.distantPast
     private let textureQueue = DispatchQueue(label: "stylecam.texture", qos: .utility)
     private lazy var textureContext = CIContext(options: [.cacheIntermediates: false])
@@ -441,14 +444,19 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
     /// 把“计划里的调色参数 + 当前版本（忠实/柔和/浓郁）”交给渲染器（只在 sessionQueue 上调用）
     private func pushGrading() {
-        let (v, crop, fx) = locked { (_variant, _matchAspect, _effects) }
-        var g = fx.apply(v.apply(plan.grading))
+        let (v, crop, fx, beauty) = locked { (_variant, _matchAspect, _effects, _beauty) }
+        var g = beauty.apply(fx.apply(v.apply(plan.grading)))
         if !crop { g.cropRatio = nil }           // 画幅裁切默认关闭，需在参数面板勾选
         renderer.update(g)
     }
 
     func setEffects(_ e: EffectToggles) {
         locked { _effects = e }
+        sessionQueue.async { self.pushGrading() }
+    }
+
+    func setBeauty(_ b: BeautySettings) {
+        locked { _beauty = b }
         sessionQueue.async { self.pushGrading() }
     }
 
@@ -492,9 +500,9 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     /// 拍照 / 套用相册用的调色快照（在拍照回调或主线程调用，不能在 sessionQueue 上调用）
     func gradingSnapshot() -> GradingSnapshot {
         let base = sessionQueue.sync { plan.grading }
-        let (ref, refTex, v, fx, crop) = locked { (_refStats, _refTexture, _variant, _effects, _matchAspect) }
+        let (ref, refTex, v, fx, crop, beauty) = locked { (_refStats, _refTexture, _variant, _effects, _matchAspect, _beauty) }
         return GradingSnapshot(base: base, ref: ref, refTexture: refTex, variant: v, effects: fx,
-                               matchAspect: crop, enabled: renderer.snapshotState().enabled)
+                               matchAspect: crop, enabled: renderer.snapshotState().enabled, beauty: beauty)
     }
     func setSaveOriginal(_ on: Bool) { locked { _saveOriginal = on } }
     func setUse48MP(_ on: Bool) { locked { _use48MP = on } }
@@ -881,12 +889,19 @@ extension CameraManager {
     fileprivate func updateLiveMasks(_ pb: CVPixelBuffer, extent: CGRect, state st: StyleRenderer.State) -> RenderMasks {
         let needPerson = StyleRenderer.needsPersonMask(st)
         let needSubject = StyleRenderer.needsSubjectMask(st)
+        let needFace = StyleRenderer.needsFaceMask(st)
         let preferPerson = locked({ _preferPerson })
-        guard needPerson || needSubject else {
-            livePerson = nil; liveSubject = nil
+        guard needPerson || needSubject || needFace else {
+            livePerson = nil; liveSubject = nil; liveEye = nil
             return RenderMasks()
         }
         let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: .up, options: [:])
+        // 眼下区域：人脸关键点，每 4 帧更新
+        if needFace && frameCount % 4 == 0 {
+            liveEye = SubjectMasker.underEyeMask(handler, extent: extent, request: landmarks)
+        } else if !needFace {
+            liveEye = nil
+        }
         if (needPerson || preferPerson) && (livePerson == nil || frameCount % 3 == 0),
            (try? handler.perform([personSeg])) != nil, let out = personSeg.results?.first?.pixelBuffer {
             livePerson = SubjectMasker.ciMask(out, fitting: extent)
@@ -896,7 +911,8 @@ extension CameraManager {
             liveSubject = SubjectMasker.ciMask(out, fitting: extent)
         }
         return RenderMasks(subject: needSubject ? (preferPerson ? livePerson : (liveSubject ?? livePerson)) : nil,
-                           person: needPerson ? livePerson : nil)
+                           person: needPerson ? livePerson : nil,
+                           underEye: needFace ? liveEye : nil)
     }
 
     /// 构图提示：比较实时画面与参考图里人脸的位置和大小（都换算到“照片方向”的归一化坐标）

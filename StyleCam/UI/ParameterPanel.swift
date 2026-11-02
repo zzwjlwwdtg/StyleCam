@@ -62,6 +62,29 @@ struct ParameterPanel: View {
                 }
 
                 Section {
+                    Picker("美颜", selection: $model.beauty.mode) {
+                        ForEach(BeautyMode.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    if model.beauty.mode != .off {
+                        slider("磨皮", $model.beauty.smooth)
+                        slider("提亮", $model.beauty.bright)
+                        Picker("肤色", selection: $model.beauty.tone) {
+                            ForEach(SkinTone.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    if model.beauty.mode == .beauty {
+                        slider("眼下提亮", $model.beauty.eye)
+                        slider("去暗沉", $model.beauty.dull)
+                    }
+                } header: {
+                    Text("美颜（只作用于皮肤）")
+                } footer: {
+                    Text("自然：只在识别到的皮肤上磨皮、提亮、调肤色，五官、头发和背景不受影响。美颜：再加眼下提亮和去暗沉。不改变脸型。")
+                }
+
+                Section {
                     Toggle("优先苹果画质", isOn: $model.preferAppleQuality)
                 } footer: {
                     Text("适合暗光、逆光、大光比。开启后不锁光圈 / 快门 / ISO，拍照保持“质量优先”，苹果的多帧合成和 Smart HDR 完整生效，StyleCam 只做调色；代价是景深和锁定曝光不再按参考图设置。")
@@ -145,6 +168,14 @@ struct ParameterPanel: View {
         if p.faceCount > 0 { parts.append("\(p.faceCount) 张人脸") }
         if p.pointLightCount > 0 { parts.append("\(p.pointLightCount) 个点光源") }
         return parts.joined(separator: " · ")
+    }
+
+    private func slider(_ title: String, _ value: Binding<Double>) -> some View {
+        HStack {
+            Text(title).font(.caption).frame(width: 64, alignment: .leading)
+            Slider(value: value, in: 0...1)
+            Text(Fmt.percent(value.wrappedValue)).font(.caption.monospacedDigit()).frame(width: 40)
+        }
     }
 
     private func info(_ k: String, _ v: String) -> some View {

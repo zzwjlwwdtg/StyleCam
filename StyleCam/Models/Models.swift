@@ -142,6 +142,17 @@ struct GradingParams: Equatable {
     var hsl: [HSLBand] = []             // 按色相分别调整（内置滤镜用）
     var monochrome = false              // 黑白
     var grainTarget: Double?            // 内置滤镜：目标总颗粒 σ（观看尺度），按当前画面噪点反推要补多少
+    // 区域美颜：只作用于识别出的皮肤（人像分割 × 肤色可能性）
+    var skinSmooth: Double = 0          // 磨皮 0…1（保边平滑，五官 / 头发 / 背景不受影响）
+    var skinBright: Double = 0          // 肤色提亮（L* 增量）
+    var skinTint = SIMD2<Double>(0, 0)  // 肤色 a*/b* 偏移（冷白 / 奶油 / 粉嫩）
+    var skinSat: Double = 1             // 肤色饱和度倍率
+    var skinClarity: Double = 0         // 美颜档：去暗沉（皮肤阴影提亮）
+    var eyeBright: Double = 0           // 美颜档：眼下提亮（人脸关键点定位）
+
+    var hasSkinWork: Bool {
+        skinSmooth > 0.01 || abs(skinBright) > 0.05 || skinTint != .zero || abs(skinSat - 1) > 0.01 || skinClarity > 0.01
+    }
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
 }
 
@@ -353,6 +364,60 @@ struct EffectToggles: Equatable {
         if !toneColor {
             o.contrast = 0; o.shadowLift = 0; o.highlightRolloff = 0; o.saturation = 1; o.toneCurve = nil
             o.castA = 0; o.castB = 0; o.shadowTint = .zero; o.highlightTint = .zero; o.hsl = []; o.monochrome = false
+        }
+        return o
+    }
+}
+
+
+// MARK: - 美颜
+
+enum BeautyMode: String, CaseIterable, Identifiable, Codable {
+    case off = "关"
+    case natural = "自然"
+    case beauty = "美颜"
+    var id: String { rawValue }
+}
+
+enum SkinTone: String, CaseIterable, Identifiable, Codable {
+    case natural = "原生"
+    case coolWhite = "冷白"
+    case cream = "奶油"
+    case rosy = "粉嫩"
+    var id: String { rawValue }
+    var tint: SIMD2<Double> {
+        switch self {
+        case .natural: return .zero
+        case .coolWhite: return SIMD2(-0.5, -3)
+        case .cream: return SIMD2(1, 2.5)
+        case .rosy: return SIMD2(3, 0)
+        }
+    }
+    var sat: Double { self == .coolWhite ? 0.85 : (self == .cream ? 0.92 : 1) }
+    var extraBright: Double { self == .coolWhite ? 1.5 : 0 }
+}
+
+/// 用户的美颜设置：自然档 = 皮肤磨皮 + 肤色；美颜档 = 再加眼下提亮、去暗沉
+struct BeautySettings: Equatable, Codable {
+    var mode: BeautyMode = .natural
+    var smooth = 0.35
+    var bright = 0.3
+    var tone: SkinTone = .natural
+    var eye = 0.5
+    var dull = 0.4
+
+    /// 叠加到调色参数上（滤镜自带的肤色设定保留，用户设置在其上叠加）
+    func apply(_ g: GradingParams) -> GradingParams {
+        var o = g
+        o.eyeBright = 0; o.skinClarity = 0
+        guard mode != .off else { return o }
+        o.skinSmooth = max(o.skinSmooth, smooth)
+        o.skinBright += bright * 5 + tone.extraBright
+        o.skinTint += tone.tint
+        o.skinSat *= tone.sat
+        if mode == .beauty {
+            o.eyeBright = eye
+            o.skinClarity = dull
         }
         return o
     }

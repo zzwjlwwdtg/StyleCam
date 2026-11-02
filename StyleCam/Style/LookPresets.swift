@@ -76,8 +76,8 @@ enum LookPresets {
                    grading: make {
                        $0.toneCurve = toneCurve(highlights: -0.5, shadows: -0.5, mids: 0.5)
                        $0.saturation = 0.95; $0.castA = 1.2; $0.castB = 1.5
-                       $0.hsl = [HSLBand(hue: 55, width: 30, dHue: -5, sat: 0.92, dL: 2.5),
-                                 HSLBand(hue: 135, width: 40, sat: 0.85)]
+                       $0.hsl = [HSLBand(hue: 135, width: 40, sat: 0.85)]
+                       $0.skinBright = 2.5; $0.skinTint = SIMD2(1.5, 0); $0.skinSat = 0.92
                        $0.highlightRolloff = 0.08
                        $0.skinProtect = 0
                    }),
@@ -86,7 +86,8 @@ enum LookPresets {
                    grading: make {
                        $0.toneCurve = toneCurve(highlights: -1, shadows: -1)
                        $0.saturation = 1.05
-                       $0.hsl = [HSLBand(hue: 265, sat: 1.1), HSLBand(hue: 60, width: 30, sat: 0.95, dL: 1.5)]
+                       $0.hsl = [HSLBand(hue: 265, sat: 1.1)]
+                       $0.skinBright = 1.5; $0.skinSat = 0.95
                    }),
         LookPreset(id: "fuji-reggie-portra", name: "富士 Reggie's Portra 配方同款", brand: .fuji, mood: .gentle,
                    note: "Fuji X Weekly 热门配方（Classic Chrome 底）：Portra 胶片的暖调与柔和肤色，万能日常",
@@ -199,7 +200,8 @@ enum LookPresets {
                    grading: make {
                        $0.toneCurve = toneCurve(highlights: 0.5, shadows: -0.5, mids: 1.5)
                        $0.saturation = 1.15; $0.castA = 2; $0.castB = 1
-                       $0.hsl = [HSLBand(hue: 30, sat: 1.15), HSLBand(hue: 350, sat: 1.15), HSLBand(hue: 60, width: 30, dHue: -4, dL: 2)]
+                       $0.hsl = [HSLBand(hue: 30, sat: 1.15), HSLBand(hue: 350, sat: 1.15)]
+                       $0.skinBright = 2; $0.skinTint = SIMD2(1.5, 0)
                        $0.skinProtect = 0
                    }),
 
@@ -267,8 +269,9 @@ enum LookPresets {
                    grading: make {
                        $0.toneCurve = toneCurve(highlights: 1, shadows: 0.5, mids: 1)
                        $0.saturation = 1.15; $0.castB = -1.5
-                       $0.hsl = [HSLBand(hue: 60, width: 30, dHue: -6, sat: 0.82, dL: 3.5), HSLBand(hue: 30, sat: 1.15)]
-                       $0.softGlow = 0.2; $0.blurSigmaView = 0.35
+                       $0.hsl = [HSLBand(hue: 30, sat: 1.15)]
+                       $0.skinBright = 3.5; $0.skinTint = SIMD2(-0.5, -3); $0.skinSat = 0.82; $0.skinSmooth = 0.35
+                       $0.softGlow = 0.2
                        $0.skinProtect = 0
                        $0.grainTarget = 0.004
                    }),
@@ -277,7 +280,8 @@ enum LookPresets {
                    grading: make {
                        $0.toneCurve = toneCurve(highlights: -0.5, shadows: -0.5, mids: 0.5)
                        $0.shadowLift = 0.04; $0.saturation = 0.95; $0.castA = 0.5; $0.castB = -1.5
-                       $0.hsl = [HSLBand(hue: 60, width: 30, dHue: 3, sat: 0.9, dL: 2.5), HSLBand(hue: 135, width: 40, dHue: 10, sat: 0.85)]
+                       $0.hsl = [HSLBand(hue: 135, width: 40, dHue: 10, sat: 0.85)]
+                       $0.skinBright = 2.5; $0.skinTint = SIMD2(1, 2.5); $0.skinSat = 0.9
                        $0.softGlow = 0.2
                        $0.skinProtect = 0
                        $0.grainTarget = 0.0045
@@ -288,7 +292,7 @@ enum LookPresets {
                        $0.toneCurve = toneCurve(highlights: 1.5, shadows: 0.5, mids: 0.5)
                        $0.saturation = 0.9; $0.castA = -1; $0.castB = -3.5
                        $0.highlightTint = SIMD2(-1, -2)
-                       $0.hsl = [HSLBand(hue: 60, width: 30, dHue: -4, sat: 0.85, dL: 3)]
+                       $0.skinBright = 3; $0.skinTint = SIMD2(-0.5, -2.5); $0.skinSat = 0.85
                        $0.sharpen = 0.3
                        $0.grainTarget = 0.0052
                    }),
@@ -391,6 +395,14 @@ enum LookPresets {
         if g.halation > 0 { row("halation", "高光光晕", Fmt.percent(g.halation), "模拟胶片高光周围的红色光晕") }
         if g.softGlow > 0 { row("glow", "柔光", Fmt.percent(g.softGlow), "高光微微发散") }
         if g.sharpen > 0 { row("sharpen", "锐化", Fmt.percent(g.sharpen), "轮廓更清晰") }
+        if g.hasSkinWork {
+            var parts: [String] = []
+            if g.skinBright != 0 { parts.append("提亮 \(Fmt.signed(g.skinBright, 1))") }
+            if g.skinTint != .zero { parts.append(ColorMath.hueName(a: g.skinTint.x, b: g.skinTint.y)) }
+            if g.skinSat != 1 { parts.append("饱和 \(Fmt.percent(g.skinSat))") }
+            if g.skinSmooth > 0 { parts.append("磨皮 \(Fmt.percent(g.skinSmooth))") }
+            row("skin", "肤色（只作用于皮肤）", parts.joined(separator: " · "), "识别人像里的皮肤单独调整，背景和同色物体不受影响")
+        }
         if g.blurSigmaView > 0 { row("soften", "柔化", String(format: "%.2f", g.blurSigmaView), "画面整体变柔，模拟相纸 / 小传感器的柔和感") }
         if g.vignette > 0 { row("vignette", "暗角", Fmt.percent(g.vignette), "四角压暗") }
         rows.append(ParameterChange(id: "preset-exposure", category: .hardware, name: "曝光 / 白平衡", before: "自动",

@@ -43,12 +43,27 @@ final class AppModel: ObservableObject {
     static let lastPresetKey = "lastPresetID"
     @Published var batchProgress: String?
     @Published var effects = EffectToggles() { didSet { camera.setEffects(effects) } }
+    /// 美颜（只作用于皮肤）：默认自然档
+    @Published var beauty: BeautySettings = AppModel.loadBeauty() {
+        didSet {
+            camera.setBeauty(beauty)
+            if let d = try? JSONEncoder().encode(beauty) { UserDefaults.standard.set(d, forKey: "beauty") }
+        }
+    }
+
+    private static func loadBeauty() -> BeautySettings {
+        guard let d = UserDefaults.standard.data(forKey: "beauty"),
+              let b = try? JSONDecoder().decode(BeautySettings.self, from: d) else { return BeautySettings() }
+        return b
+    }
+
     /// 优先苹果画质（暗光 / 大光比时用）：不锁曝光，只调色
     @Published var preferAppleQuality = UserDefaults.standard.bool(forKey: "preferAppleQuality") {
         didSet {
             guard preferAppleQuality != oldValue else { return }
             UserDefaults.standard.set(preferAppleQuality, forKey: "preferAppleQuality")
             camera.setAppleQuality(preferAppleQuality)
+        camera.setBeauty(beauty)
             Task { await reapplyHardware() }
         }
     }
@@ -72,6 +87,7 @@ final class AppModel: ObservableObject {
     init() {
         camera.setAutoMatch(true)
         camera.setAppleQuality(preferAppleQuality)
+        camera.setBeauty(beauty)
         // 相机就绪后自动恢复上次的风格（保存一次，以后打开就是同一风格）
         readySub = camera.$isReady.filter { $0 }.first().sink { [weak self] _ in
             Task { @MainActor in await self?.restoreLast() }

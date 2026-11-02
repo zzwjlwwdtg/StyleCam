@@ -44,6 +44,7 @@ jobs:
           ONLY=""
           # 提交信息带 [ui-only] 时只跑界面截图，几分钟出结果
           case "$COMMIT_MSG" in *"[ui-only]"*) ONLY="-only-testing:StyleCamTests/FilmCabinetSnapshotTests" ;; esac
+          case "$COMMIT_MSG" in *"[beauty-only]"*) ONLY="-only-testing:StyleCamTests/BeautyTests" ;; esac
           TEST_RUNNER_OUTPUT_DIR="$PWD/out" xcodebuild test $ONLY \
             -project StyleCam.xcodeproj -scheme StyleCam \
             -destination "id=${{ steps.sim.outputs.udid }}" \

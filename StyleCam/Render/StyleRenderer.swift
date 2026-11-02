@@ -4,10 +4,11 @@ import CoreImage.CIFilterBuiltins
 /// 渲染时用到的蒙版（白 = 是）
 struct RenderMasks {
     var subject: CIImage?     // 主体：用于只虚化背景
-    var person: CIImage?      // 人像：用于肤色保护
+    var person: CIImage?      // 人像：用于肤色保护 / 区域美颜
+    var underEye: CIImage?    // 眼下区域（美颜档，人脸关键点定位）
 }
 
-/// 实时滤镜：背景虚化 → 3D LUT（含分区调色）→ 肤色保护 → 柔光 → 锐化 → 高光光晕 → 暗角 → 颗粒 → 画幅裁切。
+/// 实时滤镜：背景虚化 → 3D LUT（含分区调色）→ 肤色保护 → 区域美颜 → 柔光 → 锐化 → 高光光晕 → 暗角 → 颗粒 → 画幅裁切。
 /// 预览与成片共用同一条管线，保证所见即所得。
 final class StyleRenderer: @unchecked Sendable {
 
@@ -16,6 +17,13 @@ final class StyleRenderer: @unchecked Sendable {
         var lut: Data
         var skinLut: Data
         var enabled: Bool
+        var skinAdjustLut: Data? = nil
+    }
+
+    /// 由调色参数生成完整的渲染状态（所有 LUT）
+    static func makeState(_ p: GradingParams, enabled: Bool = true) -> State {
+        State(params: p, lut: LUTBuilder.build(p), skinLut: LUTBuilder.build(p, skinVersion: true),
+              enabled: enabled, skinAdjustLut: LUTBuilder.buildSkinAdjust(p))
     }
 
     private let lock = NSLock()
@@ -26,7 +34,8 @@ final class StyleRenderer: @unchecked Sendable {
     func update(_ p: GradingParams) {
         let lut = LUTBuilder.build(p)
         let skin = LUTBuilder.build(p, skinVersion: true)
-        lock.lock(); state.params = p; state.lut = lut; state.skinLut = skin; lock.unlock()
+        let adj = LUTBuilder.buildSkinAdjust(p)
+        lock.lock(); state.params = p; state.lut = lut; state.skinLut = skin; state.skinAdjustLut = adj; lock.unlock()
     }
 
     func setEnabled(_ on: Bool) {
@@ -39,7 +48,10 @@ final class StyleRenderer: @unchecked Sendable {
     }
 
     /// 是否需要人像蒙版 / 主体蒙版（调用方据此决定要不要跑分割）
-    static func needsPersonMask(_ st: State) -> Bool { st.enabled && st.params.skinProtect > 0.01 && st.params.strength > 0 }
+    static func needsPersonMask(_ st: State) -> Bool {
+        st.enabled && st.params.strength > 0 && (st.params.skinProtect > 0.01 || st.params.hasSkinWork)
+    }
+    static func needsFaceMask(_ st: State) -> Bool { st.enabled && st.params.strength > 0 && st.params.eyeBright > 0.01 }
     static func needsSubjectMask(_ st: State) -> Bool { st.enabled && st.params.backgroundBlur > 0.002 && st.params.strength > 0 }
 
     func apply(_ input: CIImage, state st: State, masks: RenderMasks = RenderMasks()) -> CIImage {
@@ -70,26 +82,46 @@ final class StyleRenderer: @unchecked Sendable {
         // 2. 调色 LUT
         img = cube(ungraded, st.lut)
 
-        // 3. 肤色保护：人像区域 × 肤色可能性 → 用“只调影调、不偏色”的版本
-        if p.skinProtect > 0.01 && s > 0, let person = masks.person {
-            let skinVersion = cube(ungraded, st.skinLut)
+        // 皮肤蒙版：人像区域 × 肤色可能性（肤色保护和区域美颜共用）
+        var skinMask: CIImage?
+        if (p.skinProtect > 0.01 || p.hasSkinWork) && s > 0, let person = masks.person {
             let likelihood = cube(ungraded, LUTBuilder.skinLikelihood)
             let personMask = person.clampedToExtent().applyingGaussianBlur(sigma: Double(2 * scale)).cropped(to: extent)
             let combined = CIFilter.multiplyCompositing()
             combined.inputImage = likelihood
             combined.backgroundImage = personMask
-            if var m = combined.outputImage?.cropped(to: extent) {
-                m = m.applyingFilter("CIColorMatrix", parameters: [
-                    "inputRVector": CIVector(x: p.skinProtect, y: 0, z: 0, w: 0),
-                    "inputGVector": CIVector(x: 0, y: p.skinProtect, z: 0, w: 0),
-                    "inputBVector": CIVector(x: 0, y: 0, z: p.skinProtect, w: 0)
-                ])
-                let blend = CIFilter.blendWithMask()
-                blend.inputImage = skinVersion
-                blend.backgroundImage = img
-                blend.maskImage = m
-                img = blend.outputImage?.cropped(to: extent) ?? img
+            skinMask = combined.outputImage?.cropped(to: extent)
+        }
+
+        // 3. 肤色保护：皮肤用“只调影调、不偏色”的版本
+        if p.skinProtect > 0.01, let m = skinMask {
+            img = blend(cube(ungraded, st.skinLut), over: img, mask: scaled(m, p.skinProtect), extent: extent)
+        }
+
+        // 3b. 区域美颜（只在皮肤上）
+        if p.hasSkinWork, let m = skinMask {
+            // 磨皮：保边平滑（以原图为引导的上采样），五官和头发的边缘不被抹掉
+            if p.skinSmooth > 0.01 {
+                img = blend(edgeSmooth(img), over: img, mask: scaled(m, min(1, p.skinSmooth * 0.85) * s), extent: extent)
             }
+            // 去暗沉（美颜档）：皮肤上的阴影提亮
+            if p.skinClarity > 0.01 {
+                let lifted = img.applyingFilter("CIHighlightShadowAdjust", parameters: [
+                    "inputShadowAmount": 0.7 * p.skinClarity, "inputHighlightAmount": 1.0, "inputRadius": 8 * scale
+                ]).cropped(to: extent)
+                img = blend(lifted, over: img, mask: scaled(m, s), extent: extent)
+            }
+            // 肤色：提亮 / 冷白 / 奶油 / 粉嫩
+            if let adj = st.skinAdjustLut {
+                img = blend(cube(img, adj), over: img, mask: scaled(m, s), extent: extent)
+            }
+        }
+
+        // 3c. 眼下提亮（美颜档）
+        if p.eyeBright > 0.01 && s > 0, let eye = masks.underEye {
+            let brighter = img.applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: 0.5 * p.eyeBright * s])
+            let soft = edgeSmooth(brighter)
+            img = blend(soft, over: img, mask: eye.cropped(to: extent), extent: extent)
         }
 
         // 4. 柔光
@@ -141,6 +173,39 @@ final class StyleRenderer: @unchecked Sendable {
         img = img.cropped(to: extent)
         if let r = p.cropRatio, r > 1 { img = Self.centerCrop(img, ratio: r) }
         return img
+    }
+
+    private func blend(_ top: CIImage, over bottom: CIImage, mask: CIImage, extent: CGRect) -> CIImage {
+        let f = CIFilter.blendWithMask()
+        f.inputImage = top
+        f.backgroundImage = bottom
+        f.maskImage = mask
+        return f.outputImage?.cropped(to: extent) ?? bottom
+    }
+
+    /// 蒙版整体乘一个系数
+    private func scaled(_ m: CIImage, _ k: Double) -> CIImage {
+        m.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: k, y: 0, z: 0, w: 0),
+            "inputGVector": CIVector(x: 0, y: k, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: k, w: 0)
+        ])
+    }
+
+    /// 保边平滑：缩小到约 360 长边并轻微模糊，再以原图为引导做保边上采样
+    /// （平滑掉毛孔、细纹和小瑕疵，保留五官、发丝等明暗边缘）
+    private func edgeSmooth(_ img: CIImage) -> CIImage {
+        let e = img.extent
+        let f = min(1, 360 / max(e.width, e.height))
+        let small = img.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: f, kCIInputAspectRatioKey: 1])
+            .clampedToExtent().applyingGaussianBlur(sigma: 0.8)
+        let smallCropped = small.cropped(to: CGRect(x: e.minX * f, y: e.minY * f, width: e.width * f, height: e.height * f))
+        let up = CIFilter.edgePreserveUpsample()
+        up.inputImage = img
+        up.smallImage = smallCropped
+        up.spatialSigma = 3
+        up.lumaSigma = 0.08
+        return up.outputImage?.cropped(to: e) ?? img
     }
 
     private func cube(_ img: CIImage, _ data: Data) -> CIImage {

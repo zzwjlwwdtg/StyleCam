@@ -318,6 +318,16 @@ struct ContentView: View {
             }
             .buttonStyle(.glass)
             .disabled(camera.isRecording)
+            Button {
+                let all = BeautyMode.allCases
+                model.beauty.mode = all[((all.firstIndex(of: model.beauty.mode) ?? 0) + 1) % all.count]
+            } label: {
+                Label(model.beauty.mode == .off ? "美颜关" : model.beauty.mode.rawValue,
+                      systemImage: model.beauty.mode == .off ? "face.dashed" : "face.smiling")
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1).fixedSize()
+            }
+            .buttonStyle(.glass)
             if camera.isRecording {
                 Text(String(format: "● %02d:%02d", camera.recordingSeconds / 60, camera.recordingSeconds % 60))
                     .font(.caption.monospacedDigit()).foregroundStyle(.red)

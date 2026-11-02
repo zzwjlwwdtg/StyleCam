@@ -75,8 +75,10 @@ enum PhotoProcessor {
         var m = RenderMasks()
         let needPerson = StyleRenderer.needsPersonMask(state)
         let needSubject = StyleRenderer.needsSubjectMask(state)
-        guard needPerson || needSubject else { return m }
+        let needFace = StyleRenderer.needsFaceMask(state)
+        guard needPerson || needSubject || needFace else { return m }
         let handler = VNImageRequestHandler(ciImage: ci, options: [:])
+        if needFace { m.underEye = SubjectMasker.underEyeMask(handler, extent: ci.extent) }
         if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {
             m.person = SubjectMasker.ciMask(pb, fitting: ci.extent)
         }
@@ -137,6 +139,7 @@ struct GradingSnapshot {
     var matchAspect: Bool
     var enabled: Bool
     var resetExposure = false
+    var beauty = BeautySettings()
 
     func state(for ci: CIImage, context: CIContext) -> StyleRenderer.State {
         var g = base
@@ -151,9 +154,8 @@ struct GradingSnapshot {
                 TextureEstimator.applyGrainTarget(to: &g, raw: tex)
             }
         }
-        var o = effects.apply(variant.apply(g))
+        var o = beauty.apply(effects.apply(variant.apply(g)))
         if !matchAspect { o.cropRatio = nil }
-        return StyleRenderer.State(params: o, lut: LUTBuilder.build(o),
-                                   skinLut: LUTBuilder.build(o, skinVersion: true), enabled: enabled)
+        return StyleRenderer.makeState(o, enabled: enabled)
     }
 }
