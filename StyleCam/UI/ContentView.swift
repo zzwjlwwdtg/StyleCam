@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var flash = false
     @State private var showLibrary = false
     @State private var showCabinet = false
+    @State private var showTether = false
     @State private var batchItems: [PhotosPickerItem] = []
 
     var body: some View {
@@ -54,6 +55,10 @@ struct ContentView: View {
             ParameterPanel()
                 .environmentObject(model)
                 .environmentObject(camera)
+        }
+        .fullScreenCover(isPresented: $showTether) {
+            TetherView(snapshot: model.camera.gradingSnapshot(), preferPerson: (model.profile?.faceCount ?? 1) > 0)
+                .environmentObject(model)
         }
         .sheet(isPresented: $showCabinet) {
             FilmCabinetView().environmentObject(model)
@@ -155,6 +160,14 @@ struct ContentView: View {
                     }
                 }
             }
+
+            Button { showTether = true } label: {
+                VStack(spacing: 1) {
+                    Image(systemName: "cable.connector").font(.title3)
+                    Text("外接相机").font(.system(size: 9))
+                }
+            }
+            .accessibilityLabel("连接外接相机")
 
             Button { showLibrary = true } label: {
                 VStack(spacing: 1) {

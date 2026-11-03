@@ -115,7 +115,7 @@ enum PhotoProcessor {
 
     /// 读取已有照片（保留原 EXIF）→ 按这张照片重新匹配 → 套用 → 另存为新照片（原图不动）
     static func processExisting(data: Data, renderer: StyleRenderer, grading: GradingSnapshot, preferPerson: Bool,
-                                summary: String, completion: @escaping (UIImage?, String?) -> Void) {
+                                summary: String, saveOriginal: Bool = false, completion: @escaping (UIImage?, String?) -> Void) {
         guard let src = CGImageSourceCreateWithData(data as CFData, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [String: Any] else {
             completion(nil, "无法读取照片"); return
@@ -123,7 +123,7 @@ enum PhotoProcessor {
         var g = grading
         g.resetExposure = true
         process(data: data, metadata: props, renderer: renderer, grading: g, summary: summary,
-                preferPerson: preferPerson, saveOriginal: false, completion: completion)
+                preferPerson: preferPerson, saveOriginal: saveOriginal, completion: completion)
     }
 }
 
@@ -140,6 +140,23 @@ struct GradingSnapshot {
     var enabled: Bool
     var resetExposure = false
     var beauty = BeautySettings()
+
+    /// 实时取景用的轻量版：只对齐影调色彩（不测质感，颗粒沿用计划里的值）。
+    /// 返回“匹配后、套版本前”的参数，下一次以它为起点做时间平滑
+    func liveMatch(for ci: CIImage, context: CIContext, previous: GradingParams?) -> GradingParams {
+        var g = previous ?? base
+        g.exposureEV = 0
+        if let ref, let raw = StyleMatcher.stats(of: ci, context: context, maxSide: 96) {
+            StyleMatcher.apply(to: &g, raw: raw, ref: ref, variant: variant, alpha: previous == nil ? 1 : 0.4)
+        }
+        return g
+    }
+
+    func renderState(from matched: GradingParams) -> StyleRenderer.State {
+        var o = beauty.apply(effects.apply(variant.apply(matched)))
+        o.cropRatio = nil
+        return StyleRenderer.makeState(o, enabled: enabled)
+    }
 
     func state(for ci: CIImage, context: CIContext) -> StyleRenderer.State {
         var g = base
