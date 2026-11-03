@@ -603,6 +603,13 @@ extension LookPreset {
         return .film
     }
 
+    /// 年代分组：1970 年代、2000 年代……（由年代标注推出）
+    var decade: String {
+        let digits = era.label.prefix(4)
+        guard digits.count == 4, let y = Int(digits) else { return "其他" }
+        return "\(y / 10 * 10) 年代"
+    }
+
     /// 这个风格诞生的年代：模仿胶片 / 相纸的，标胶片的年代；相机内的模拟或照片风格，标首次出现的年份；
     /// 网友配方，标胶片年代并注明配方年份。拿不准具体年份的只标年代。
     var era: (label: String, detail: String) {

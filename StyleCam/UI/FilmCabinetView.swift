@@ -11,9 +11,8 @@ struct FilmCabinetView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var thumbs = PresetThumbnails()
     @ObservedObject private var samples = PresetSampleStore.shared
-    @State private var mood: PresetMood = .gentle
-    @State private var brand: PresetBrand?
-    @State private var kind: LookPreset.Kind?
+    @State private var axis: ShelfAxis = .mood
+    @State private var groupID: String = PresetMood.gentle.rawValue
     @State private var focusedID: String = LookPresets.all[0].id
     @State private var pullOut: CGFloat = 1          // 胶片拉出的进度（换胶卷时从 0 动画到 1）
     @State private var viewer: FrameViewerItem?
@@ -22,8 +21,7 @@ struct FilmCabinetView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var focused: LookPreset { LookPresets.preset(id: focusedID) ?? LookPresets.all[0] }
-    private func matches(_ p: LookPreset) -> Bool { (brand == nil || p.brand == brand) && (kind == nil || p.kind == kind) }
-    private var shelf: [LookPreset] { LookPresets.all.filter { $0.mood == mood && matches($0) } }
+    private var shelf: [LookPreset] { LookPresets.all.filter { axis.key($0) == groupID } }
 
     var body: some View {
         NavigationStack {
@@ -62,7 +60,7 @@ struct FilmCabinetView: View {
         .onAppear {
             if let cur = model.currentPreset {
                 focusedID = cur.id
-                mood = cur.mood
+                groupID = axis.key(cur)
             }
             thumbs.render(live: model.camera.frameStore.latest(original: true))
         }
@@ -191,73 +189,64 @@ struct FilmCabinetView: View {
         .animation(.easeOut(duration: 0.2), value: focusedID)
     }
 
-    // MARK: - 胶卷货架
+    // MARK: - 胶卷货架：可以按心情 / 品牌 / 年代 / 类型分栏
 
     private var shelfSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("按心情挑一卷")
+            HStack(alignment: .firstTextBaseline) {
+                Text("挑一卷")
                     .font(.system(.title3, design: .serif))
                     .foregroundStyle(Palette.fog)
                 Spacer()
-                Menu {
-                    Picker("品牌", selection: $brand) {
-                        Text("全部品牌").tag(PresetBrand?.none)
-                        ForEach(PresetBrand.allCases) { Text($0.rawValue).tag(PresetBrand?.some($0)) }
-                    }
-                } label: {
-                    Label(brand?.rawValue ?? "全部品牌", systemImage: "line.3.horizontal.decrease")
-                        .font(.footnote.weight(.medium)).lineLimit(1).fixedSize()
-                }
-                .buttonStyle(.glass)
+                Text("\(LookPresets.all.count) 卷")
+                    .font(.footnote)
+                    .foregroundStyle(Palette.mist)
             }
             .padding(.horizontal, 20)
 
-            // 机型类别：单反微单 / CCD / 拍立得
-            Picker("类型", selection: $kind) {
-                Text("全部").tag(LookPreset.Kind?.none)
-                ForEach(LookPreset.Kind.allCases) { Text($0.short).tag(LookPreset.Kind?.some($0)) }
+            // 第一层：分栏方式
+            Picker("分栏", selection: $axis) {
+                ForEach(ShelfAxis.allCases) { Text("按" + $0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 20)
 
-            ScrollView(.horizontal) {
-                GlassEffectContainer(spacing: 6) {
-                    HStack(spacing: 6) {
-                        ForEach(PresetMood.allCases) { m in
-                            let n = LookPresets.all.filter { $0.mood == m && matches($0) }.count
-                            if m == mood {
-                                Button(m.rawValue) { mood = m }
-                                    .buttonStyle(.glassProminent)
-                                    .tint(focused.packaging.primary)
-                            } else {
-                                Button(m.rawValue) {
-                                    withAnimation(.snappy) { mood = m }
+            // 第二层：这一栏下的分组
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    GlassEffectContainer(spacing: 6) {
+                        HStack(spacing: 6) {
+                            ForEach(axis.groups) { g in
+                                let n = LookPresets.all.filter { axis.key($0) == g.id }.count
+                                if g.id == groupID {
+                                    Button("\(g.title) \(n)") { groupID = g.id }
+                                        .buttonStyle(.glassProminent)
+                                        .tint(focused.packaging.primary)
+                                        .id(g.id)
+                                } else {
+                                    Button("\(g.title) \(n)") {
+                                        withAnimation(.snappy) { groupID = g.id }
+                                    }
+                                    .buttonStyle(.glass)
+                                    .id(g.id)
                                 }
-                                .buttonStyle(.glass)
-                                .disabled(n == 0)
                             }
                         }
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 20)
                     }
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 20)
                 }
+                .scrollIndicators(.hidden)
+                .onChange(of: groupID) { _, id in withAnimation { proxy.scrollTo(id, anchor: .center) } }
             }
-            .scrollIndicators(.hidden)
 
             ShelfRow(items: shelf, focusedID: focusedID, currentID: model.currentPreset?.id) { focus($0) }
         }
-        .onChange(of: mood) { _, _ in if let first = shelf.first { focus(first) } }
-        .onChange(of: brand) { _, _ in refilter() }
-        .onChange(of: kind) { _, _ in refilter() }
-    }
-
-    /// 换了品牌 / 类型筛选：当前心情组没有结果就跳到第一个有结果的组
-    private func refilter() {
-        if shelf.isEmpty, let m = PresetMood.allCases.first(where: { m in LookPresets.all.contains { $0.mood == m && matches($0) } }) {
-            mood = m
+        // 换分栏方式时，停在当前这卷所在的分组
+        .onChange(of: axis) { _, a in groupID = a.key(focused) }
+        .onChange(of: groupID) { _, _ in
+            if !shelf.contains(where: { $0.id == focusedID }), let first = shelf.first { focus(first) }
         }
-        if !shelf.contains(where: { $0.id == focusedID }), let first = shelf.first { focus(first) }
     }
 
     // MARK: - 底部操作
@@ -888,6 +877,41 @@ final class PresetThumbnails: ObservableObject {
                 }
             }
             await MainActor.run { self.busy = false }
+        }
+    }
+}
+
+// MARK: - 货架分栏
+
+enum ShelfAxis: String, CaseIterable, Identifiable {
+    case mood = "心情"
+    case brand = "品牌"
+    case era = "年代"
+    case kind = "类型"
+    var id: String { rawValue }
+
+    struct Group: Identifiable { let id: String; let title: String }
+
+    /// 这卷在本栏下属于哪一组
+    func key(_ p: LookPreset) -> String {
+        switch self {
+        case .mood: return p.mood.rawValue
+        case .brand: return p.brand.rawValue
+        case .era: return p.decade
+        case .kind: return p.kind.rawValue
+        }
+    }
+
+    /// 本栏的分组（只列出有胶卷的组，按自然顺序）
+    var groups: [Group] {
+        switch self {
+        case .mood: return PresetMood.allCases.map { Group(id: $0.rawValue, title: $0.rawValue) }
+        case .brand:
+            return PresetBrand.allCases.filter { b in LookPresets.all.contains { $0.brand == b } }
+                .map { Group(id: $0.rawValue, title: $0.rawValue) }
+        case .era:
+            return Set(LookPresets.all.map(\.decade)).sorted().map { Group(id: $0, title: $0) }
+        case .kind: return LookPreset.Kind.allCases.map { Group(id: $0.rawValue, title: $0.short) }
         }
     }
 }
