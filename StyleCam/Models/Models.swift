@@ -422,3 +422,15 @@ struct BeautySettings: Equatable, Codable {
         return o
     }
 }
+
+
+// MARK: - 闪光灯
+
+enum FlashSetting: String, CaseIterable, Identifiable {
+    case off = "关"
+    case auto = "自动"
+    case on = "开"
+    var id: String { rawValue }
+    var avMode: AVCaptureDevice.FlashMode { self == .off ? .off : (self == .auto ? .auto : .on) }
+    var symbol: String { self == .off ? "bolt.slash.fill" : (self == .auto ? "bolt.badge.automatic.fill" : "bolt.fill") }
+}

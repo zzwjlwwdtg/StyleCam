@@ -98,6 +98,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _grainTargetActive = false
     private var _appleQuality = false
     private var _beauty = BeautySettings()
+    private var _flash: AVCaptureDevice.FlashMode = .off
     private var liveEye: CIImage?
     private let landmarks = VNDetectFaceLandmarksRequest()
     private var lastTexture = Date.distantPast
@@ -455,6 +456,10 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         sessionQueue.async { self.pushGrading() }
     }
 
+    /// 闪光灯（CCD / 拍立得的直闪感）
+    func setFlash(_ m: AVCaptureDevice.FlashMode) { locked { _flash = m } }
+    var flashAvailable: Bool { photoOutput.supportedFlashModes.contains(.on) }
+
     func setBeauty(_ b: BeautySettings) {
         locked { _beauty = b }
         sessionQueue.async { self.pushGrading() }
@@ -675,6 +680,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             if let dims = self.chooseDimensions() { settings.maxPhotoDimensions = dims }
             // 苹果文档：自定义锁定的曝光值要在拍照中生效，必须用 .speed
             settings.photoQualityPrioritization = self.effective(self.plan).hasManualExposure ? .speed : .quality
+            let flash = self.locked { self._flash }
+            if self.photoOutput.supportedFlashModes.contains(flash) { settings.flashMode = flash }
             self.photoOutput.capturePhoto(with: settings, delegate: self)
             DispatchQueue.main.async { self.captureFlash += 1 }
         }

@@ -13,6 +13,7 @@ struct FilmCabinetView: View {
     @ObservedObject private var samples = PresetSampleStore.shared
     @State private var mood: PresetMood = .gentle
     @State private var brand: PresetBrand?
+    @State private var kind: LookPreset.Kind?
     @State private var focusedID: String = LookPresets.all[0].id
     @State private var pullOut: CGFloat = 1          // 胶片拉出的进度（换胶卷时从 0 动画到 1）
     @State private var viewer: FrameViewerItem?
@@ -21,7 +22,8 @@ struct FilmCabinetView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var focused: LookPreset { LookPresets.preset(id: focusedID) ?? LookPresets.all[0] }
-    private var shelf: [LookPreset] { LookPresets.all.filter { $0.mood == mood && (brand == nil || $0.brand == brand) } }
+    private func matches(_ p: LookPreset) -> Bool { (brand == nil || p.brand == brand) && (kind == nil || p.kind == kind) }
+    private var shelf: [LookPreset] { LookPresets.all.filter { $0.mood == mood && matches($0) } }
 
     var body: some View {
         NavigationStack {
@@ -131,6 +133,16 @@ struct FilmCabinetView: View {
                     .foregroundStyle(p.packaging.paper)
                     .padding(.horizontal, 9).padding(.vertical, 3)
                     .background(p.packaging.primary.opacity(0.55), in: Capsule())
+                Text(p.kind.short)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Palette.fog)
+                    .padding(.horizontal, 9).padding(.vertical, 3)
+                    .overlay(Capsule().stroke(Palette.mist, lineWidth: 1))
+                if !p.era.label.isEmpty {
+                    Text(p.era.label)
+                        .font(.system(.subheadline, design: .serif).weight(.semibold))
+                        .foregroundStyle(Palette.fog)
+                }
                 Text("ISO \(p.stock.iso)")
                     .font(.system(.subheadline, design: .serif))
                     .foregroundStyle(Palette.mist)
@@ -146,6 +158,12 @@ struct FilmCabinetView: View {
                 .foregroundStyle(Palette.fog)
                 .fixedSize(horizontal: false, vertical: true)
                 .contentTransition(.opacity)
+            if !p.era.detail.isEmpty {
+                Text(p.era.detail)
+                    .font(.footnote)
+                    .foregroundStyle(Palette.mist)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text(p.note)
                 .font(.callout)
                 .lineSpacing(3)
@@ -195,11 +213,19 @@ struct FilmCabinetView: View {
             }
             .padding(.horizontal, 20)
 
+            // 机型类别：单反微单 / CCD / 拍立得
+            Picker("类型", selection: $kind) {
+                Text("全部").tag(LookPreset.Kind?.none)
+                ForEach(LookPreset.Kind.allCases) { Text($0.short).tag(LookPreset.Kind?.some($0)) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+
             ScrollView(.horizontal) {
                 GlassEffectContainer(spacing: 6) {
                     HStack(spacing: 6) {
                         ForEach(PresetMood.allCases) { m in
-                            let n = LookPresets.all.filter { $0.mood == m && (brand == nil || $0.brand == brand) }.count
+                            let n = LookPresets.all.filter { $0.mood == m && matches($0) }.count
                             if m == mood {
                                 Button(m.rawValue) { mood = m }
                                     .buttonStyle(.glassProminent)
@@ -222,7 +248,16 @@ struct FilmCabinetView: View {
             ShelfRow(items: shelf, focusedID: focusedID, currentID: model.currentPreset?.id) { focus($0) }
         }
         .onChange(of: mood) { _, _ in if let first = shelf.first { focus(first) } }
-        .onChange(of: brand) { _, _ in if !shelf.contains(where: { $0.id == focusedID }), let first = shelf.first { focus(first) } }
+        .onChange(of: brand) { _, _ in refilter() }
+        .onChange(of: kind) { _, _ in refilter() }
+    }
+
+    /// 换了品牌 / 类型筛选：当前心情组没有结果就跳到第一个有结果的组
+    private func refilter() {
+        if shelf.isEmpty, let m = PresetMood.allCases.first(where: { m in LookPresets.all.contains { $0.mood == m && matches($0) } }) {
+            mood = m
+        }
+        if !shelf.contains(where: { $0.id == focusedID }), let first = shelf.first { focus(first) }
     }
 
     // MARK: - 底部操作

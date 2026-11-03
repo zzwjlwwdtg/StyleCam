@@ -588,11 +588,53 @@ extension LookPreset {
 }
 
 extension LookPreset {
-    enum Kind { case film, ccd, instant }
-    /// 片盒图案按种类加区分：CCD 用像素方格，拍立得用相纸图形
+    /// 机型类别：单反 / 微单（胶片模拟、照片风格、配方）、CCD 卡片机、拍立得
+    enum Kind: String, CaseIterable, Identifiable {
+        case film = "单反 / 微单"
+        case ccd = "CCD 卡片机"
+        case instant = "拍立得"
+        var id: String { rawValue }
+        var short: String { self == .film ? "单反微单" : (self == .ccd ? "CCD" : "拍立得") }
+    }
+    /// 片盒图案也按类别区分：CCD 用像素方格，拍立得用相纸图形
     var kind: Kind {
-        if id.hasSuffix("-ccd") { return .ccd }
+        if id.hasSuffix("-ccd") || id == "canon-g7x" { return .ccd }
         if id.contains("instax") || id.hasPrefix("polaroid") { return .instant }
         return .film
+    }
+
+    /// 这个风格诞生的年代：模仿胶片 / 相纸的，标胶片的年代；相机内的模拟或照片风格，标首次出现的年份；
+    /// 网友配方，标胶片年代并注明配方年份。拿不准具体年份的只标年代。
+    var era: (label: String, detail: String) {
+        switch id {
+        case "canon-portrait", "canon-landscape", "canon-neutral-cool", "canon-mono":
+            return ("2005", "佳能照片风格，2005 年随 EOS 5D 推出")
+        case "fuji-astia":          return ("1990s", "Astia 反转片诞生于 1990 年代，后来成为富士相机内的胶片模拟")
+        case "fuji-velvia":         return ("1990", "Velvia 反转片 1990 年推出，后来成为富士相机内的胶片模拟")
+        case "fuji-reala-ace":      return ("2023", "富士相机内胶片模拟，2023 年推出")
+        case "fuji-classic-chrome": return ("2014", "富士相机内胶片模拟，2014 年推出")
+        case "fuji-classic-neg":    return ("2019", "富士相机内胶片模拟，2019 年随 X-Pro3 推出")
+        case "fuji-nostalgic-neg":  return ("2021", "富士相机内胶片模拟，2021 年随 GFX100S 推出")
+        case "fuji-eterna":         return ("2018", "富士相机内胶片模拟（源自 Eterna 电影胶片），2018 年推出")
+        case "fuji-bleach-bypass":  return ("2020", "富士相机内胶片模拟，2020 年随 X-T4 推出")
+        case "fuji-acros":          return ("2016", "富士相机内胶片模拟（源自 Acros 黑白胶片），2016 年推出")
+        case "fuji-kodachrome64":   return ("1974", "Kodachrome 64 胶片 1974 年推出；富士配方由 Fuji X Weekly 发布")
+        case "fuji-kodak-gold":     return ("1980s", "Kodak Gold 胶片诞生于 1980 年代；富士配方由 Fuji X Weekly 发布")
+        case "fuji-reggie-portra":  return ("1990s", "Portra 胶片诞生于 1990 年代；这个富士配方 2022 年发布")
+        case "fuji-pacific-blues":  return ("2022", "Fuji X Weekly 配方，2022 年发布")
+        case "fuji-cinestill":      return ("2010s", "CineStill 800T 胶片诞生于 2010 年代；富士配方由 Fuji X Weekly 发布")
+        case "fuji-trix":           return ("1950s", "Tri-X 黑白胶片诞生于 1950 年代；富士配方由 Fuji X Weekly 发布")
+        case "canon-ccd":           return ("2000s", "千禧年代的 IXUS CCD 卡片机")
+        case "canon-g7x":           return ("2010s", "2010 年代的 vlog 卡片机（1 英寸 CMOS，不是 CCD）")
+        case "sony-t90-ccd":        return ("2009", "索尼 Cyber-shot DSC-T90，2009 年发布")
+        case "sony-w530-ccd":       return ("2010s", "2010 年代初的索尼 W 系列 CCD 卡片机")
+        case "fuji-z10-ccd":        return ("2000s", "2000 年代后期的富士 FinePix Z 系列 CCD 卡片机")
+        case "casio-z800-ccd":      return ("2010s", "2010 年前后的卡西欧 EXILIM Z 系列 CCD 卡片机")
+        case "olympus-fe-ccd":      return ("2000s", "2000 年代后期的奥林巴斯 FE 系列 CCD 卡片机")
+        case "fuji-instax-mini":    return ("1990s", "Instax 拍立得诞生于 1990 年代末")
+        case "polaroid-600":        return ("1981", "宝丽来 600 相纸 1981 年推出")
+        case "polaroid-itype":      return ("2010s", "i-Type 相纸诞生于 2010 年代")
+        default:                    return ("", "")
+        }
     }
 }

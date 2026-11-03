@@ -293,7 +293,7 @@ struct ContentView: View {
     // MARK: - 照片 / 视频
 
     private var modeBar: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 12) {
             ForEach([false, true], id: \.self) { video in
                 Button {
                     if !camera.isRecording { camera.setVideoMode(video) }
@@ -318,6 +318,19 @@ struct ContentView: View {
             }
             .buttonStyle(.glass)
             .disabled(camera.isRecording)
+            if model.showsFlash && !camera.videoMode && camera.flashAvailable {
+                Button {
+                    let all = FlashSetting.allCases
+                    model.flash = all[((all.firstIndex(of: model.flash) ?? 0) + 1) % all.count]
+                } label: {
+                    Label(model.flash.rawValue, systemImage: model.flash.symbol)
+                        .font(.system(size: 12, weight: .semibold))
+                        .lineLimit(1).fixedSize()
+                        .foregroundStyle(model.flash == .off ? Color.white : Color.yellow)
+                }
+                .buttonStyle(.glass)
+                .accessibilityLabel("闪光灯 \(model.flash.rawValue)")
+            }
             Button {
                 let all = BeautyMode.allCases
                 model.beauty.mode = all[((all.firstIndex(of: model.beauty.mode) ?? 0) + 1) % all.count]

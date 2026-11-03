@@ -43,6 +43,10 @@ final class AppModel: ObservableObject {
     static let lastPresetKey = "lastPresetID"
     @Published var batchProgress: String?
     @Published var effects = EffectToggles() { didSet { camera.setEffects(effects) } }
+    /// 闪光灯：CCD / 拍立得滤镜在主界面显示，选中时默认打开（直闪是这类相机的标志性观感）
+    @Published var flash: FlashSetting = .off { didSet { camera.setFlash(flash.avMode) } }
+    var showsFlash: Bool { currentPreset.map { $0.kind != .film } ?? false }
+
     /// 美颜（只作用于皮肤）：默认自然档
     @Published var beauty: BeautySettings = AppModel.loadBeauty() {
         didSet {
@@ -124,6 +128,7 @@ final class AppModel: ObservableObject {
             referenceImage = thumb
             referenceData = data
             currentPreset = nil
+            flash = .off
             UserDefaults.standard.removeObject(forKey: Self.lastPresetKey)
             self.profile = profile
             if let recipe {
@@ -161,6 +166,7 @@ final class AppModel: ObservableObject {
     func clearReference() {
         recipes.clearLast()
         currentPreset = nil
+        flash = .off
         UserDefaults.standard.removeObject(forKey: Self.lastPresetKey)
         currentRecipeID = nil
         referenceData = nil
@@ -291,8 +297,10 @@ final class AppModel: ObservableObject {
         overlayMode = .off
         profile = nil
         matchAspect = false
+        let wasFlashStyle = showsFlash
         currentPreset = p
         UserDefaults.standard.set(p.id, forKey: Self.lastPresetKey)
+        if p.kind != .film { if !wasFlashStyle { flash = .on } } else { flash = .off }
         camera.setReference(nil)
         _ = await withCheckedContinuation { (cont: CheckedContinuation<DeviceSnapshot?, Never>) in
             camera.resetAndSnapshot { cont.resume(returning: $0) }
