@@ -73,13 +73,10 @@ struct SemanticStats: Equatable {
         return wh * wc * wl
     }
 
-    /// 人像蒙版（拍照 / 套用相册时用）
+    /// 人像蒙版（拍照 / 套用相册 / 精修时用，高质量）
     static func personMask(for image: CIImage) -> CIImage? {
-        let req = VNGeneratePersonSegmentationRequest()
-        req.qualityLevel = .balanced
-        req.outputPixelFormat = kCVPixelFormatType_OneComponent8
         let h = VNImageRequestHandler(ciImage: image, options: [:])
-        guard (try? h.perform([req])) != nil, let pb = req.results?.first?.pixelBuffer else { return nil }
+        guard let pb = SubjectMasker.personMask(h, quality: .accurate) else { return nil }
         return SubjectMasker.ciMask(pb, fitting: image.extent)
     }
 
