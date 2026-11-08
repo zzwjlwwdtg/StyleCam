@@ -412,7 +412,7 @@ final class RetouchTests: XCTestCase {
         for p in pts {
             let g = CIFilter.radialGradient()
             g.center = p; g.radius0 = Float(radius * 0.4); g.radius1 = Float(radius)
-            g.color0 = CIColor(red: 0.62, green: 0.5, blue: 0.48); g.color1 = CIColor.white
+            g.color0 = CIColor(red: 0.8, green: 0.64, blue: 0.62); g.color1 = CIColor.white
             let spot = g.outputImage!.cropped(to: img.extent)
             out = Retoucher.multiply(out, spot)
         }
@@ -468,6 +468,12 @@ final class RetouchTests: XCTestCase {
             report += String(format: "斑点 %d：原图 %.0f · 加斑 %.0f · 祛痘后 %.0f（旁边 %.0f）\n", i,
                              lum(portrait, at: p, r: r * 0.4), lum(spotted, at: p, r: r * 0.4), lum(fixed, at: p, r: r * 0.4), lum(portrait, at: ring, r: r * 0.4))
         }
+        let evenOnly = Retoucher.blend(Retoucher.evenSkin(portrait, skin: skin, even: 0.8, blemish: 0), over: portrait, mask: skin)
+        let diff = CIFilter.differenceBlendMode()
+        diff.inputImage = evenOnly; diff.backgroundImage = portrait
+        report += String(format: "中性灰改变量（脸部平均）%.1f / 255\n", lum(diff.outputImage!, at: CGPoint(x: pf.midX, y: pf.midY), r: pf.width * 0.4))
+        for (i, p) in pts.enumerated() { report += String(format: "斑点 %d 处皮肤蒙版 %.0f / 255\n", i, lum(skin, at: p, r: 1)) }
+        try save(portrait, "0_portrait.jpg", crop: crop)
         try save(spotted, "1_spotted.jpg", crop: crop)
         try save(fixed, "2_auto_fixed.jpg", crop: crop)
         try save(Retoucher.blend(Retoucher.evenSkin(portrait, skin: skin, even: 0.8, blemish: 0), over: portrait, mask: skin), "3_even_only.jpg", crop: crop)
