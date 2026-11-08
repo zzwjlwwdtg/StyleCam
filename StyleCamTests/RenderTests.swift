@@ -447,6 +447,23 @@ final class RetouchTests: XCTestCase {
                    CGPoint(x: pf.midX + pf.width * 0.15, y: pf.midY - pf.height * 0.2),
                    CGPoint(x: pf.midX, y: pf.midY + pf.height * 0.05)]
         let spotted = addSpots(portrait, pts, radius: r)
+        // 诊断：各种分割在这两张图上的覆盖率
+        for (nm, img) in [("全图", ci), ("特写", portrait), ("特写(CGImage)", CIImage(cgImage: ctx.createCGImage(portrait, from: portrait.extent)!))] {
+            let h = VNImageRequestHandler(ciImage: img, options: [:])
+            for q in [VNGeneratePersonSegmentationRequest.QualityLevel.accurate, .balanced, .fast] {
+                let req = VNGeneratePersonSegmentationRequest()
+                req.qualityLevel = q
+                req.outputPixelFormat = kCVPixelFormatType_OneComponent8
+                let ok = (try? h.perform([req])) != nil
+                var cov = -1.0
+                if let pb = req.results?.first?.pixelBuffer {
+                    let m = SubjectMasker.boolMask(pb, width: 64, height: 64)
+                    cov = Double(m.filter { $0 }.count) / Double(max(1, m.count))
+                }
+                report += "\(nm) \(img.extent.size) 人像分割 q\(q.rawValue) perform=\(ok) 覆盖 \(String(format: "%.3f", cov))\n"
+            }
+        }
+        try report.write(to: try outDir().appendingPathComponent("retouch.txt"), atomically: true, encoding: .utf8)
         let skin = try XCTUnwrap(Retoucher.skinMask(for: spotted), "未识别到人像")
         let fixed = Retoucher.blend(Retoucher.evenSkin(spotted, skin: skin, even: 0.6, blemish: 0.8), over: spotted, mask: skin)
         for (i, p) in pts.enumerated() {
