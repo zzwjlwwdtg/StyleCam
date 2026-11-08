@@ -26,12 +26,17 @@ enum PhotoProcessor {
         // 所以影调、色彩、质感都按这张成片本身重新算一遍差值，而不是沿用预览时的参数
         let state = grading.state(for: ci, context: context)
         let out = renderer.apply(ci, state: state, masks: masks(for: ci, state: state, preferPerson: preferPerson))
+        saveRendered(out, metadata: metadata, summary: summary, rawData: rawData,
+                     original: saveOriginal ? data : nil, completion: completion)
+    }
+
+    /// 渲染结果编码为 HEIC（保留原 EXIF、方向改为 1、参数写进 UserComment）并另存到相册
+    static func saveRendered(_ out: CIImage, metadata: [String: Any], summary: String, rawData: Data? = nil,
+                             original: Data? = nil, completion: @escaping (UIImage?, String?) -> Void) {
         guard let p3 = CGColorSpace(name: CGColorSpace.displayP3),
               let cg = context.createCGImage(out, from: out.extent, format: .RGBA8, colorSpace: p3) else {
             completion(nil, "渲染失败"); return
         }
-
-        // 方向已经烘焙进像素，元数据里改为 1；参数写入 UserComment，日后可在 EXIF 里查到
         var meta = metadata
         meta[kCGImagePropertyOrientation as String] = 1
         if var tiff = meta[kCGImagePropertyTIFFDictionary as String] as? [String: Any] {
@@ -61,8 +66,8 @@ enum PhotoProcessor {
                 req.addResource(with: .photo, data: outData as Data, options: nil)
                 // ProRAW：DNG 作为同一张照片的“RAW 底片”一起保存（相册里显示 RAW 标记，可切换）
                 if let rawData { req.addResource(with: .alternatePhoto, data: rawData, options: nil) }
-                if saveOriginal {
-                    PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: nil)
+                if let original {
+                    PHAssetCreationRequest.forAsset().addResource(with: .photo, data: original, options: nil)
                 }
             }) { ok, err in
                 completion(thumb, ok ? nil : "保存失败：\(err?.localizedDescription ?? "未知错误")")
@@ -70,7 +75,6 @@ enum PhotoProcessor {
         }
     }
 
-    /// 成片用高质量分割
     static func masks(for ci: CIImage, state: StyleRenderer.State, preferPerson: Bool) -> RenderMasks {
         var m = RenderMasks()
         let needPerson = StyleRenderer.needsPersonMask(state)
@@ -140,6 +144,7 @@ struct GradingSnapshot {
     var enabled: Bool
     var resetExposure = false
     var beauty = BeautySettings()
+    var refSemantic: SemanticStats? = nil
 
     /// 实时取景用的轻量版：只对齐影调色彩（不测质感，颗粒沿用计划里的值）。
     /// 返回“匹配后、套版本前”的参数，下一次以它为起点做时间平滑
@@ -163,6 +168,11 @@ struct GradingSnapshot {
         if resetExposure { g.exposureEV = 0 }
         if let ref, let raw = StyleMatcher.stats(of: ci, context: context, maxSide: 160) {
             StyleMatcher.apply(to: &g, raw: raw, ref: ref, variant: variant, alpha: 1)
+        }
+        // 语义追色：按这张照片里的 皮肤 / 人物 / 背景 分别对齐
+        if let refSemantic, let pm = SemanticStats.personMask(for: ci),
+           let rawSem = SemanticStats.measure(ci, person: pm, context: context) {
+            SemanticStats.apply(to: &g, raw: rawSem, ref: refSemantic, variant: variant, alpha: 1)
         }
         if let tex = TextureEstimator.measure(ci, context: context) {
             if let refTexture {

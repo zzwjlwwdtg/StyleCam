@@ -73,9 +73,18 @@ enum LUTBuilder {
         return (sr + (orr - sr) * strength, sg + (og - sg) * strength, sb + (ob - sb) * strength)
     }
 
-    /// 肤色调整 LUT（只在皮肤蒙版里使用）：提亮中间调、按 a*/b* 偏移、调整饱和度；没有调整时返回 nil
+    /// 肤色调整 LUT（只在皮肤蒙版里使用）：滤镜 / 美颜的肤色设定 + 语义追色的皮肤差值；没有调整时返回 nil
     static func buildSkinAdjust(_ p: GradingParams) -> Data? {
-        guard abs(p.skinBright) > 0.05 || p.skinTint != .zero || abs(p.skinSat - 1) > 0.01 else { return nil }
+        var adj = RegionAdjust(dL: p.skinBright, tint: p.skinTint, sat: p.skinSat)
+        if let r = p.regionSkin {
+            adj.dL += r.dL; adj.tint += r.tint; adj.sat *= r.sat
+        }
+        return buildRegionAdjust(adj)
+    }
+
+    /// 区域调整 LUT：中间调提亮 / 压暗、按 a*/b* 偏移、调整饱和度
+    static func buildRegionAdjust(_ r: RegionAdjust?) -> Data? {
+        guard let r, !r.isNeutral else { return nil }
         let n = dimension
         var cube = [Float](repeating: 0, count: n * n * n * 4)
         var idx = 0
@@ -85,11 +94,11 @@ enum LUTBuilder {
                     let lab = ColorMath.linearRGBToLab(ColorMath.srgbToLinear(Double(ri) / Double(n - 1)),
                                                        ColorMath.srgbToLinear(Double(gi) / Double(n - 1)),
                                                        ColorMath.srgbToLinear(Double(bi) / Double(n - 1)))
-                    // 中间调提亮最多，接近黑 / 白时逐渐减弱，避免发灰或溢出
+                    // 中间调变化最多，接近黑 / 白时逐渐减弱，避免发灰或溢出
                     let w = ColorMath.smoothstep(5, 30, lab.L) * ColorMath.smoothstep(100, 82, lab.L)
-                    let L = ColorMath.clamp(lab.L + p.skinBright * w, 0, 100)
-                    let a = lab.a * p.skinSat + p.skinTint.x * w
-                    let b = lab.b * p.skinSat + p.skinTint.y * w
+                    let L = ColorMath.clamp(lab.L + r.dL * w, 0, 100)
+                    let a = lab.a * r.sat + r.tint.x * w
+                    let b = lab.b * r.sat + r.tint.y * w
                     let o = ColorMath.labToLinearRGB(L, a, b)
                     cube[idx] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.r), 0, 1))
                     cube[idx + 1] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.g), 0, 1))

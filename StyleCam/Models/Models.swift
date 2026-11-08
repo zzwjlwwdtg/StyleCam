@@ -108,6 +108,7 @@ struct StyleProfile: Equatable {
     var subjectRect: CGRect?       // 主体外接框，归一化、左上角原点
     var greenAB: SIMD2<Double>?    // 植物颜色（Lab a*/b* 中位数）
     var skyAB: SIMD2<Double>?      // 天空颜色
+    var refSemantic: SemanticStats? = nil   // 分区统计（皮肤 / 人物其余部分 / 背景），用于语义追色
 
     /// 实时闭环用：参考图平均彩度
     var meanChroma: Double { saturation * 17 }
@@ -143,7 +144,12 @@ struct GradingParams: Equatable {
     var monochrome = false              // 黑白
     var grainTarget: Double?            // 内置滤镜：目标总颗粒 σ（观看尺度），按当前画面噪点反推要补多少
     // 区域美颜：只作用于识别出的皮肤（人像分割 × 肤色可能性）
-    var skinSmooth: Double = 0          // 磨皮 0…1（保边平滑，五官 / 头发 / 背景不受影响）
+    var skinSmooth: Double = 0          // 柔肤 0…1（保边平滑，五官 / 头发 / 背景不受影响）
+    var skinEven: Double = 0            // 中性灰匀肤 0…1：拉平皮肤上的明暗起伏，保留毛孔纹理
+    var blemish: Double = 0             // 自动祛痘 0…1：皮肤上比周围暗的小斑点补平
+    var regionSkin: RegionAdjust?       // 语义追色：皮肤相对整体的差值
+    var regionPerson: RegionAdjust?     // 语义追色：人物（衣服 / 头发）相对整体的差值
+    var regionBG: RegionAdjust?         // 语义追色：背景相对整体的差值
     var skinBright: Double = 0          // 肤色提亮（L* 增量）
     var skinTint = SIMD2<Double>(0, 0)  // 肤色 a*/b* 偏移（冷白 / 奶油 / 粉嫩）
     var skinSat: Double = 1             // 肤色饱和度倍率
@@ -151,7 +157,8 @@ struct GradingParams: Equatable {
     var eyeBright: Double = 0           // 美颜档：眼下提亮（人脸关键点定位）
 
     var hasSkinWork: Bool {
-        skinSmooth > 0.01 || abs(skinBright) > 0.05 || skinTint != .zero || abs(skinSat - 1) > 0.01 || skinClarity > 0.01
+        skinSmooth > 0.01 || skinEven > 0.01 || blemish > 0.01 || regionSkin != nil
+            || abs(skinBright) > 0.05 || skinTint != .zero || abs(skinSat - 1) > 0.01 || skinClarity > 0.01
     }
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
 }
@@ -357,7 +364,7 @@ struct EffectToggles: Equatable {
         var o = g
         if !bokeh { o.backgroundBlur = 0 }
         if !skin { o.skinProtect = 0 }
-        if !region { o.greenTarget = nil; o.skyTarget = nil }
+        if !region { o.greenTarget = nil; o.skyTarget = nil; o.regionSkin = nil; o.regionPerson = nil; o.regionBG = nil }
         if !halation { o.halation = 0 }
         if !grain { o.grain = 0 } else { o.grain = o.grain * grainAmount }
         if !vignette { o.vignette = 0 }
@@ -400,7 +407,9 @@ enum SkinTone: String, CaseIterable, Identifiable, Codable {
 /// 用户的美颜设置：自然档 = 皮肤磨皮 + 肤色；美颜档 = 再加眼下提亮、去暗沉
 struct BeautySettings: Equatable, Codable {
     var mode: BeautyMode = .natural
-    var smooth = 0.35
+    var even = 0.5          // 中性灰匀肤
+    var blemish = 0.6       // 自动祛痘
+    var smooth = 0.15       // 柔肤（保边平滑）
     var bright = 0.3
     var tone: SkinTone = .natural
     var eye = 0.5
@@ -412,6 +421,8 @@ struct BeautySettings: Equatable, Codable {
         o.eyeBright = 0; o.skinClarity = 0
         guard mode != .off else { return o }
         o.skinSmooth = max(o.skinSmooth, smooth)
+        o.skinEven = max(o.skinEven, even)
+        o.blemish = max(o.blemish, blemish)
         o.skinBright += bright * 5 + tone.extraBright
         o.skinTint += tone.tint
         o.skinSat *= tone.sat
@@ -433,4 +444,13 @@ enum FlashSetting: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var avMode: AVCaptureDevice.FlashMode { self == .off ? .off : (self == .auto ? .auto : .on) }
     var symbol: String { self == .off ? "bolt.slash.fill" : (self == .auto ? "bolt.badge.automatic.fill" : "bolt.fill") }
+}
+
+
+/// 某个区域相对整体的调整量（语义追色）
+struct RegionAdjust: Equatable {
+    var dL: Double = 0
+    var tint = SIMD2<Double>(0, 0)
+    var sat: Double = 1
+    var isNeutral: Bool { abs(dL) < 0.3 && abs(tint.x) < 0.3 && abs(tint.y) < 0.3 && abs(sat - 1) < 0.02 }
 }

@@ -44,7 +44,7 @@ struct ParameterPanel: View {
                     Toggle("影调与色彩（曲线/饱和度/色偏）", isOn: $model.effects.toneColor)
                     Toggle("背景虚化补足", isOn: $model.effects.bokeh)
                     Toggle("肤色保护", isOn: $model.effects.skin)
-                    Toggle("分区调色（植物/天空）", isOn: $model.effects.region)
+                    Toggle("分区追色（人物 / 衣服 / 背景 / 植物 / 天空）", isOn: $model.effects.region)
                     Toggle("高光光晕", isOn: $model.effects.halation)
                     Toggle("颗粒", isOn: $model.effects.grain)
                     if model.effects.grain {
@@ -67,7 +67,9 @@ struct ParameterPanel: View {
                     }
                     .pickerStyle(.segmented)
                     if model.beauty.mode != .off {
-                        slider("磨皮", $model.beauty.smooth)
+                        slider("中性灰", $model.beauty.even)
+                        slider("祛痘", $model.beauty.blemish)
+                        slider("柔肤", $model.beauty.smooth)
                         slider("提亮", $model.beauty.bright)
                         Picker("肤色", selection: $model.beauty.tone) {
                             ForEach(SkinTone.allCases) { Text($0.rawValue).tag($0) }
@@ -81,7 +83,7 @@ struct ParameterPanel: View {
                 } header: {
                     Text("美颜（只作用于皮肤）")
                 } footer: {
-                    Text("自然：只在识别到的皮肤上磨皮、提亮、调肤色，五官、头发和背景不受影响。美颜：再加眼下提亮和去暗沉。不改变脸型。")
+                    Text("中性灰：像影楼加深减淡那样拉平皮肤上的明暗起伏（痘印、暗沉），毛孔纹理保留。祛痘：自动补平比周围暗的小斑点。柔肤：整体轻微平滑。只作用于识别到的皮肤，五官、头发和背景不受影响。美颜档再加眼下提亮和去暗沉；不改变脸型。")
                 }
 
                 Section {

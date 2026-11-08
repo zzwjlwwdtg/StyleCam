@@ -18,12 +18,15 @@ final class StyleRenderer: @unchecked Sendable {
         var skinLut: Data
         var enabled: Bool
         var skinAdjustLut: Data? = nil
+        var personLut: Data? = nil       // 语义追色：人物（衣服 / 头发）
+        var backgroundLut: Data? = nil   // 语义追色：背景
     }
 
     /// 由调色参数生成完整的渲染状态（所有 LUT）
     static func makeState(_ p: GradingParams, enabled: Bool = true) -> State {
         State(params: p, lut: LUTBuilder.build(p), skinLut: LUTBuilder.build(p, skinVersion: true),
-              enabled: enabled, skinAdjustLut: LUTBuilder.buildSkinAdjust(p))
+              enabled: enabled, skinAdjustLut: LUTBuilder.buildSkinAdjust(p),
+              personLut: LUTBuilder.buildRegionAdjust(p.regionPerson), backgroundLut: LUTBuilder.buildRegionAdjust(p.regionBG))
     }
 
     private let lock = NSLock()
@@ -35,7 +38,11 @@ final class StyleRenderer: @unchecked Sendable {
         let lut = LUTBuilder.build(p)
         let skin = LUTBuilder.build(p, skinVersion: true)
         let adj = LUTBuilder.buildSkinAdjust(p)
-        lock.lock(); state.params = p; state.lut = lut; state.skinLut = skin; state.skinAdjustLut = adj; lock.unlock()
+        let pl = LUTBuilder.buildRegionAdjust(p.regionPerson), bl = LUTBuilder.buildRegionAdjust(p.regionBG)
+        lock.lock()
+        state.params = p; state.lut = lut; state.skinLut = skin; state.skinAdjustLut = adj
+        state.personLut = pl; state.backgroundLut = bl
+        lock.unlock()
     }
 
     func setEnabled(_ on: Bool) {
@@ -49,7 +56,8 @@ final class StyleRenderer: @unchecked Sendable {
 
     /// 是否需要人像蒙版 / 主体蒙版（调用方据此决定要不要跑分割）
     static func needsPersonMask(_ st: State) -> Bool {
-        st.enabled && st.params.strength > 0 && (st.params.skinProtect > 0.01 || st.params.hasSkinWork)
+        st.enabled && st.params.strength > 0
+            && (st.params.skinProtect > 0.01 || st.params.hasSkinWork || st.params.regionPerson != nil || st.params.regionBG != nil)
     }
     static func needsFaceMask(_ st: State) -> Bool { st.enabled && st.params.strength > 0 && st.params.eyeBright > 0.01 }
     static func needsSubjectMask(_ st: State) -> Bool { st.enabled && st.params.backgroundBlur > 0.002 && st.params.strength > 0 }
@@ -84,7 +92,7 @@ final class StyleRenderer: @unchecked Sendable {
 
         // 皮肤蒙版：人像区域 × 肤色可能性（肤色保护和区域美颜共用）
         var skinMask: CIImage?
-        if (p.skinProtect > 0.01 || p.hasSkinWork) && s > 0, let person = masks.person {
+        if (p.skinProtect > 0.01 || p.hasSkinWork || p.regionPerson != nil) && s > 0, let person = masks.person {
             let likelihood = cube(ungraded, LUTBuilder.skinLikelihood)
             let personMask = person.clampedToExtent().applyingGaussianBlur(sigma: Double(2 * scale)).cropped(to: extent)
             let combined = CIFilter.multiplyCompositing()
@@ -98,9 +106,32 @@ final class StyleRenderer: @unchecked Sendable {
             img = blend(cube(ungraded, st.skinLut), over: img, mask: scaled(m, p.skinProtect), extent: extent)
         }
 
+        // 3a. 语义追色：人物（衣服 / 头发）和背景各自向参考图靠拢
+        if s > 0, let person = masks.person, st.personLut != nil || st.backgroundLut != nil {
+            let pm = person.clampedToExtent().applyingGaussianBlur(sigma: Double(3 * scale)).cropped(to: extent)
+            if let bl = st.backgroundLut {
+                img = blend(cube(img, bl), over: img, mask: scaled(pm.applyingFilter("CIColorInvert"), s), extent: extent)
+            }
+            if let pl = st.personLut {
+                var m = pm
+                if let sm = skinMask {
+                    let f = CIFilter.multiplyCompositing()
+                    f.inputImage = pm
+                    f.backgroundImage = sm.applyingFilter("CIColorInvert")
+                    m = f.outputImage?.cropped(to: extent) ?? pm
+                }
+                img = blend(cube(img, pl), over: img, mask: scaled(m, s), extent: extent)
+            }
+        }
+
         // 3b. 区域美颜（只在皮肤上）
         if p.hasSkinWork, let m = skinMask {
-            // 磨皮：保边平滑（以原图为引导的上采样），五官和头发的边缘不被抹掉
+            // 中性灰匀肤 + 自动祛痘：拉平中尺度明暗起伏，保留毛孔纹理
+            if p.skinEven > 0.01 || p.blemish > 0.01 {
+                let evened = Retoucher.evenSkin(img, skin: m, even: p.skinEven * s, blemish: p.blemish * s)
+                img = blend(evened, over: img, mask: m, extent: extent)
+            }
+            // 柔肤：保边平滑（以原图为引导的上采样），五官和头发的边缘不被抹掉
             if p.skinSmooth > 0.01 {
                 img = blend(edgeSmooth(img), over: img, mask: scaled(m, min(1, p.skinSmooth * 0.85) * s), extent: extent)
             }

@@ -123,7 +123,7 @@ enum StyleAnalyzer {
         // 24mm f/8 风景 ≈ 0%，35mm f/2.8 环境人像 ≈ 0.2%，85mm f/1.8 半身 ≈ 3%
         let dof: DepthOfField = optics.blurFraction < 0.001 ? .deep : (optics.blurFraction < 0.008 ? .medium : .shallow)
 
-        let profile = StyleProfile(
+        var profile = StyleProfile(
             meanLuminance: sumY / Double(n),
             medianL: medianL,
             blackPoint: p1,
@@ -154,6 +154,14 @@ enum StyleAnalyzer {
             subjectRect: subjectBox,
             greenAB: regionAB(greenA, greenB),
             skyAB: regionAB(skyA, skyB))
+        // 语义追色：参考图里 皮肤 / 人物其余部分 / 背景 各自的亮度和颜色
+        if !faceRects.isEmpty {
+            let ci = CIImage(cgImage: medium)
+            let ctx = CIContext(options: [.cacheIntermediates: false])
+            if let pm = SemanticStats.personMask(for: ci) {
+                profile.refSemantic = SemanticStats.measure(ci, person: pm, context: ctx)
+            }
+        }
 
         return (profile, UIImage(cgImage: medium))
     }

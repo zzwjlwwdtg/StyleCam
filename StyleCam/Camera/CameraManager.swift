@@ -98,6 +98,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     private var _grainTargetActive = false
     private var _appleQuality = false
     private var _beauty = BeautySettings()
+    private var _refSemantic: SemanticStats?
     private var _flash: AVCaptureDevice.FlashMode = .off
     private var liveEye: CIImage?
     private let landmarks = VNDetectFaceLandmarksRequest()
@@ -505,9 +506,9 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     /// 拍照 / 套用相册用的调色快照（在拍照回调或主线程调用，不能在 sessionQueue 上调用）
     func gradingSnapshot() -> GradingSnapshot {
         let base = sessionQueue.sync { plan.grading }
-        let (ref, refTex, v, fx, crop, beauty) = locked { (_refStats, _refTexture, _variant, _effects, _matchAspect, _beauty) }
+        let (ref, refTex, v, fx, crop, beauty, sem) = locked { (_refStats, _refTexture, _variant, _effects, _matchAspect, _beauty, _refSemantic) }
         return GradingSnapshot(base: base, ref: ref, refTexture: refTex, variant: v, effects: fx,
-                               matchAspect: crop, enabled: renderer.snapshotState().enabled, beauty: beauty)
+                               matchAspect: crop, enabled: renderer.snapshotState().enabled, beauty: beauty, refSemantic: sem)
     }
     func setSaveOriginal(_ on: Bool) { locked { _saveOriginal = on } }
     func setUse48MP(_ on: Bool) { locked { _use48MP = on } }
@@ -520,6 +521,7 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             _refCast = profile.map { SIMD2($0.castA, $0.castB) }
             _refStats = profile?.refStats
             _refTexture = profile?.refTexture
+            _refSemantic = profile?.refSemantic
             _rawTexture = nil
             _refFace = profile?.faceRect
             _refMagnification = profile?.optics.magnification
@@ -778,10 +780,13 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             return
         }
         measureTextureIfDue(raw)
-        let (refTexture, rawTexture) = locked { (_refTexture, _rawTexture) }
+        let (refTexture, rawTexture, refSem) = locked { (_refTexture, _rawTexture, _refSemantic) }
+        // 语义追色：取景帧里 皮肤 / 人物 / 背景 分别统计（需要人像蒙版）
+        let rawSem: SemanticStats? = refSem != nil ? livePerson.flatMap { SemanticStats.measure(raw, person: $0, context: histContext) } : nil
         sessionQueue.async {
             var g = self.plan.grading
             StyleMatcher.apply(to: &g, raw: rawStats, ref: refStats, variant: variant, alpha: 0.35)
+            if let refSem, let rawSem { SemanticStats.apply(to: &g, raw: rawSem, ref: refSem, variant: variant, alpha: 0.35) }
             if let refTexture, let rawTexture { TextureEstimator.apply(to: &g, raw: rawTexture, ref: refTexture) }
             self.plan.grading = g
             self.pushGrading()

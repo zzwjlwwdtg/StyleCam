@@ -1,6 +1,7 @@
 import XCTest
 import CoreImage
 import UIKit
+import CoreImage.CIFilterBuiltins
 import SwiftUI
 import Vision
 @testable import StyleCam
@@ -372,5 +373,124 @@ final class BeautyTests: XCTestCase {
                                             options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
         }
         try report.write(to: outDir.appendingPathComponent("beauty.txt"), atomically: true, encoding: .utf8)
+    }
+}
+
+// MARK: - 精修（中性灰 / 祛痘 / 点修）与语义追色
+final class RetouchTests: XCTestCase {
+    let ctx = CIContext(options: [.cacheIntermediates: false])
+    let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+
+    private func outDir() throws -> URL {
+        let d = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
+            .appendingPathComponent("render-out/retouch", isDirectory: true)
+        try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        return d
+    }
+
+    private func save(_ img: CIImage, _ name: String, crop: CGRect? = nil) throws {
+        var c = img
+        if let crop { c = img.cropped(to: crop) }
+        let s = min(4, 700 / max(c.extent.width, c.extent.height))
+        let scaled = c.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: s, kCIInputAspectRatioKey: 1])
+        try ctx.writeJPEGRepresentation(of: scaled, to: try outDir().appendingPathComponent(name), colorSpace: srgb,
+                                        options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
+    }
+
+    /// 某个点周围的平均亮度（sRGB 0…255）
+    private func lum(_ img: CIImage, at p: CGPoint, r: CGFloat) -> Double {
+        let rect = CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)
+        let avg = img.cropped(to: rect).applyingFilter("CIAreaAverage", parameters: [kCIInputExtentKey: CIVector(cgRect: rect)])
+        var px = [UInt8](repeating: 0, count: 4)
+        ctx.render(avg, toBitmap: &px, rowBytes: 4, bounds: CGRect(x: 0, y: 0, width: 1, height: 1), format: .RGBA8, colorSpace: srgb)
+        return 0.3 * Double(px[0]) + 0.59 * Double(px[1]) + 0.11 * Double(px[2])
+    }
+
+    /// 在图上加几个暗斑（模拟痘痘）
+    private func addSpots(_ img: CIImage, _ pts: [CGPoint], radius: CGFloat) -> CIImage {
+        var out = img
+        for p in pts {
+            let g = CIFilter.radialGradient()
+            g.center = p; g.radius0 = Float(radius * 0.4); g.radius1 = Float(radius)
+            g.color0 = CIColor(red: 0.62, green: 0.5, blue: 0.48); g.color1 = CIColor.white
+            let spot = g.outputImage!.cropped(to: img.extent)
+            out = Retoucher.multiply(out, spot)
+        }
+        return out
+    }
+
+    func testRetouchAndSemantic() throws {
+        let bundle = Bundle(for: RetouchTests.self)
+        let url = try XCTUnwrap(bundle.url(forResource: "scene_forest", withExtension: "jpg"))
+        let ci = try XCTUnwrap(CIImage(contentsOf: url, options: [.applyOrientationProperty: true]))
+        let e = ci.extent
+        var report = ""
+
+        // 人脸区域
+        let faceReq = VNDetectFaceRectanglesRequest()
+        try VNImageRequestHandler(ciImage: ci, options: [:]).perform([faceReq])
+        let fb = try XCTUnwrap(faceReq.results?.first?.boundingBox)
+        let face = CGRect(x: e.minX + fb.minX * e.width, y: e.minY + fb.minY * e.height, width: fb.width * e.width, height: fb.height * e.height)
+        let crop = face.insetBy(dx: -face.width * 0.6, dy: -face.height * 0.6)
+        report += "人脸 \(face)\n"
+
+        // 1) 自动祛痘 + 中性灰：在脸上加 3 个暗斑，看补平程度
+        let r = max(2, face.width * 0.05)
+        let pts = [CGPoint(x: face.midX - face.width * 0.18, y: face.midY - face.height * 0.1),
+                   CGPoint(x: face.midX + face.width * 0.15, y: face.midY - face.height * 0.2),
+                   CGPoint(x: face.midX, y: face.midY + face.height * 0.05)]
+        let spotted = addSpots(ci, pts, radius: r)
+        let skin = try XCTUnwrap(Retoucher.skinMask(for: spotted), "未识别到人像")
+        let fixed = Retoucher.blend(Retoucher.evenSkin(spotted, skin: skin, even: 0.6, blemish: 0.8), over: spotted, mask: skin)
+        for (i, p) in pts.enumerated() {
+            let ring = CGPoint(x: p.x + r * 2.2, y: p.y)
+            report += String(format: "斑点 %d：原图 %.0f · 加斑 %.0f · 祛痘后 %.0f（旁边 %.0f）\n", i,
+                             lum(ci, at: p, r: r * 0.4), lum(spotted, at: p, r: r * 0.4), lum(fixed, at: p, r: r * 0.4), lum(ci, at: ring, r: r * 0.4))
+        }
+        try save(spotted, "1_spotted.jpg", crop: crop)
+        try save(fixed, "2_auto_fixed.jpg", crop: crop)
+        try save(Retoucher.blend(Retoucher.evenSkin(ci, skin: skin, even: 0.8, blemish: 0), over: ci, mask: skin), "3_even_only.jpg", crop: crop)
+        try save(skin, "0_skin_mask.jpg", crop: crop)
+
+        // 2) 点修：在背景上加一个大暗斑，再点修掉
+        let bgPoint = CGPoint(x: e.minX + e.width * 0.2, y: e.minY + e.height * 0.7)
+        let bigR = e.width * 0.03
+        let blot = addSpots(ci, [bgPoint], radius: bigR)
+        let healed = Retoucher.heal(blot, spots: [(center: bgPoint, radius: bigR * 1.1)])
+        report += String(format: "点修：原图 %.0f · 加斑 %.0f · 点修后 %.0f\n",
+                         lum(ci, at: bgPoint, r: bigR * 0.4), lum(blot, at: bgPoint, r: bigR * 0.4), lum(healed, at: bgPoint, r: bigR * 0.4))
+        let bgCrop = CGRect(x: bgPoint.x - bigR * 4, y: bgPoint.y - bigR * 4, width: bigR * 8, height: bigR * 8)
+        try save(blot, "4_blot.jpg", crop: bgCrop)
+        try save(healed, "5_healed.jpg", crop: bgCrop)
+
+        // 3) 语义追色：把人物（非皮肤）调蓝，再以原图为参考追色，看人物区域能否追回来
+        let pm = try XCTUnwrap(SemanticStats.personMask(for: ci))
+        let refSem = try XCTUnwrap(SemanticStats.measure(ci, person: pm, context: ctx))
+        let refStats = try XCTUnwrap(StyleMatcher.stats(of: ci, context: ctx))
+        let blueish = ci.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: 0.85, y: 0, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: 1.25, w: 0)
+        ])
+        let shifted = Retoucher.blend(blueish, over: ci, mask: pm)
+        func personAB(_ img: CIImage) -> String {
+            guard let s = SemanticStats.measure(img, person: pm, context: ctx) else { return "?" }
+            let p = s.person, k = s.skin, b = s.background
+            return String(format: "人物 a%.1f b%.1f | 皮肤 a%.1f b%.1f | 背景 a%.1f b%.1f",
+                          p?.a ?? .nan, p?.b ?? .nan, k?.a ?? .nan, k?.b ?? .nan, b?.a ?? .nan, b?.b ?? .nan)
+        }
+        report += "参考（原图）：\(personAB(ci))\n人物调蓝后：\(personAB(shifted))\n"
+        for (name, sem) in [("整体追色", nil), ("语义追色", refSem)] as [(String, SemanticStats?)] {
+            var fx = EffectToggles(); fx.grain = false
+            let snap = GradingSnapshot(base: GradingParams(), ref: refStats, refTexture: nil, variant: .faithful, effects: fx,
+                                       matchAspect: false, enabled: true, beauty: BeautySettings(mode: .off), refSemantic: sem)
+            var st = snap.state(for: shifted, context: ctx)
+            st.params.grain = 0
+            let masks = PhotoProcessor.masks(for: shifted, state: st, preferPerson: true)
+            let out = StyleRenderer().apply(shifted, state: st, masks: masks)
+            report += "\(name)：\(personAB(out))  · 人物调整 \(st.params.regionPerson.map { String(format: "a%+.1f b%+.1f ×%.2f", $0.tint.x, $0.tint.y, $0.sat) } ?? "无")\n"
+            try save(out, "6_\(name).jpg")
+        }
+        try save(shifted, "6_调蓝输入.jpg")
+        try report.write(to: try outDir().appendingPathComponent("retouch.txt"), atomically: true, encoding: .utf8)
     }
 }

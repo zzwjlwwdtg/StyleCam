@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var showLibrary = false
     @State private var showCabinet = false
     @State private var showTether = false
+    @State private var showRetouch = false
     @State private var batchItems: [PhotosPickerItem] = []
 
     var body: some View {
@@ -56,6 +57,7 @@ struct ContentView: View {
                 .environmentObject(model)
                 .environmentObject(camera)
         }
+        .fullScreenCover(isPresented: $showRetouch) { RetouchView() }
         .fullScreenCover(isPresented: $showTether) {
             TetherView(snapshot: model.camera.gradingSnapshot(), preferPerson: (model.profile?.faceCount ?? 1) > 0)
                 .environmentObject(model)
@@ -152,12 +154,19 @@ struct ContentView: View {
                 }
             }
 
-            if model.hasStyle {
-                PhotosPicker(selection: $batchItems, maxSelectionCount: 30, matching: .images) {
-                    VStack(spacing: 1) {
-                        Image(systemName: "wand.and.stars").font(.title3)
-                        Text("套用相册").font(.system(size: 9))
+            Menu {
+                if model.hasStyle {
+                    PhotosPicker(selection: $batchItems, maxSelectionCount: 30, matching: .images) {
+                        Label("给照片套用当前风格", systemImage: "wand.and.stars")
                     }
+                }
+                Button { showRetouch = true } label: {
+                    Label("精修：中性灰 / 祛痘 / 点修", systemImage: "bandage")
+                }
+            } label: {
+                VStack(spacing: 1) {
+                    Image(systemName: "photo.stack").font(.title3)
+                    Text("相册").font(.system(size: 9))
                 }
             }
 
