@@ -37,10 +37,7 @@ enum Retoucher {
         let fine = maskedBlur(img, mask: skin, sigma: max(1, L * 0.0013))   // 去掉毛孔级纹理
         let broad = maskedBlur(img, mask: skin, sigma: max(4, L * 0.009))   // 只剩大尺度肤色
         // ratio = broad / fine：起伏处偏离 1（暗斑 > 1，亮斑 < 1）
-        let ratio = divide(broad, by: fine).applyingFilter("CIColorClamp", parameters: [
-            "inputMinComponents": CIVector(x: 0.6, y: 0.6, z: 0.6, w: 1),
-            "inputMaxComponents": CIVector(x: 1.6, y: 1.6, z: 1.6, w: 1)
-        ])
+        let ratio = clamp(divide(broad, by: fine), 0.6, 1.6)
         var out = img
         if even > 0.01 {
             // img × ratio^k：k=1 完全拉平中尺度起伏，纹理（img / fine）保留
@@ -96,11 +93,8 @@ enum Retoucher {
             let dx: CGFloat = (s.center.x + r * 3 < e.maxX) ? r * 2.2 : -r * 2.2
             let donor = out.transformed(by: CGAffineTransform(translationX: -dx, y: 0)).cropped(to: e)
             // 只借细纹理：比值限制在 ±20%，不把旁边的树枝、边缘等结构搬过来
-            let donorTexture = divide(donor, by: donor.clampedToExtent().applyingGaussianBlur(sigma: Double(r) * 0.25).cropped(to: e))
-                .applyingFilter("CIColorClamp", parameters: [
-                    "inputMinComponents": CIVector(x: 0.82, y: 0.82, z: 0.82, w: 1),
-                    "inputMaxComponents": CIVector(x: 1.2, y: 1.2, z: 1.2, w: 1)
-                ])
+            let donorTexture = clamp(divide(donor, by: donor.clampedToExtent().applyingGaussianBlur(sigma: Double(r) * 0.25).cropped(to: e)), 0.82, 1.2)
+
             let healed = multiply(fill, donorTexture)
             out = blend(healed, over: out, mask: spotMask)
         }
@@ -141,6 +135,18 @@ enum Retoucher {
         f.inputImage = eps(b)
         f.backgroundImage = eps(a)
         return (f.outputImage ?? a).cropped(to: a.extent)
+    }
+
+    /// 逐通道限制在 [lo, hi]（CIColorClamp 会把上限截到 1，比值图不能用它）
+    static func clamp(_ img: CIImage, _ lo: CGFloat, _ hi: CGFloat) -> CIImage {
+        let e = img.extent
+        let hiImg = CIImage(color: CIColor(red: hi, green: hi, blue: hi, alpha: 1)).cropped(to: e)
+        let loImg = CIImage(color: CIColor(red: lo, green: lo, blue: lo, alpha: 1)).cropped(to: e)
+        let mn = CIFilter.minimumCompositing()
+        mn.inputImage = img; mn.backgroundImage = hiImg
+        let mx = CIFilter.maximumCompositing()
+        mx.inputImage = mn.outputImage ?? img; mx.backgroundImage = loImg
+        return (mx.outputImage ?? img).cropped(to: e)
     }
 
     static func multiply(_ a: CIImage, _ b: CIImage) -> CIImage {
