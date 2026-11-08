@@ -95,7 +95,12 @@ enum Retoucher {
             // 纹理：从旁边（右侧 2.2r，靠近边界就换左侧）借一块的“细节 / 平均”
             let dx: CGFloat = (s.center.x + r * 3 < e.maxX) ? r * 2.2 : -r * 2.2
             let donor = out.transformed(by: CGAffineTransform(translationX: -dx, y: 0)).cropped(to: e)
-            let donorTexture = divide(donor, by: donor.clampedToExtent().applyingGaussianBlur(sigma: Double(r) * 0.5).cropped(to: e))
+            // 只借细纹理：比值限制在 ±20%，不把旁边的树枝、边缘等结构搬过来
+            let donorTexture = divide(donor, by: donor.clampedToExtent().applyingGaussianBlur(sigma: Double(r) * 0.25).cropped(to: e))
+                .applyingFilter("CIColorClamp", parameters: [
+                    "inputMinComponents": CIVector(x: 0.82, y: 0.82, z: 0.82, w: 1),
+                    "inputMaxComponents": CIVector(x: 1.2, y: 1.2, z: 1.2, w: 1)
+                ])
             let healed = multiply(fill, donorTexture)
             out = blend(healed, over: out, mask: spotMask)
         }

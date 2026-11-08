@@ -402,7 +402,7 @@ final class RetouchTests: XCTestCase {
         let rect = CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)
         let avg = img.cropped(to: rect).applyingFilter("CIAreaAverage", parameters: [kCIInputExtentKey: CIVector(cgRect: rect)])
         var px = [UInt8](repeating: 0, count: 4)
-        ctx.render(avg, toBitmap: &px, rowBytes: 4, bounds: CGRect(x: 0, y: 0, width: 1, height: 1), format: .RGBA8, colorSpace: srgb)
+        ctx.render(avg, toBitmap: &px, rowBytes: 4, bounds: avg.extent, format: .RGBA8, colorSpace: srgb)
         return 0.3 * Double(px[0]) + 0.59 * Double(px[1]) + 0.11 * Double(px[2])
     }
 
@@ -431,25 +431,32 @@ final class RetouchTests: XCTestCase {
         try VNImageRequestHandler(ciImage: ci, options: [:]).perform([faceReq])
         let fb = try XCTUnwrap(faceReq.results?.first?.boundingBox)
         let face = CGRect(x: e.minX + fb.minX * e.width, y: e.minY + fb.minY * e.height, width: fb.width * e.width, height: fb.height * e.height)
-        let crop = face.insetBy(dx: -face.width * 0.6, dy: -face.height * 0.6)
         report += "人脸 \(face)\n"
+        // 测试图里人脸很小：把脸部附近裁出来放大到约 1200 像素，模拟近距离人像
+        let around = face.insetBy(dx: -face.width * 2.5, dy: -face.height * 2.5).intersection(e)
+        let up = 1200 / max(around.width, around.height)
+        let portrait = ci.cropped(to: around)
+            .transformed(by: CGAffineTransform(translationX: -around.minX, y: -around.minY))
+            .applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: up, kCIInputAspectRatioKey: 1])
+        let pf = CGRect(x: (face.minX - around.minX) * up, y: (face.minY - around.minY) * up, width: face.width * up, height: face.height * up)
+        let crop = pf.insetBy(dx: -pf.width * 0.6, dy: -pf.height * 0.6)
 
         // 1) 自动祛痘 + 中性灰：在脸上加 3 个暗斑，看补平程度
-        let r = max(2, face.width * 0.05)
-        let pts = [CGPoint(x: face.midX - face.width * 0.18, y: face.midY - face.height * 0.1),
-                   CGPoint(x: face.midX + face.width * 0.15, y: face.midY - face.height * 0.2),
-                   CGPoint(x: face.midX, y: face.midY + face.height * 0.05)]
-        let spotted = addSpots(ci, pts, radius: r)
+        let r = max(2, pf.width * 0.05)
+        let pts = [CGPoint(x: pf.midX - pf.width * 0.18, y: pf.midY - pf.height * 0.1),
+                   CGPoint(x: pf.midX + pf.width * 0.15, y: pf.midY - pf.height * 0.2),
+                   CGPoint(x: pf.midX, y: pf.midY + pf.height * 0.05)]
+        let spotted = addSpots(portrait, pts, radius: r)
         let skin = try XCTUnwrap(Retoucher.skinMask(for: spotted), "未识别到人像")
         let fixed = Retoucher.blend(Retoucher.evenSkin(spotted, skin: skin, even: 0.6, blemish: 0.8), over: spotted, mask: skin)
         for (i, p) in pts.enumerated() {
             let ring = CGPoint(x: p.x + r * 2.2, y: p.y)
             report += String(format: "斑点 %d：原图 %.0f · 加斑 %.0f · 祛痘后 %.0f（旁边 %.0f）\n", i,
-                             lum(ci, at: p, r: r * 0.4), lum(spotted, at: p, r: r * 0.4), lum(fixed, at: p, r: r * 0.4), lum(ci, at: ring, r: r * 0.4))
+                             lum(portrait, at: p, r: r * 0.4), lum(spotted, at: p, r: r * 0.4), lum(fixed, at: p, r: r * 0.4), lum(portrait, at: ring, r: r * 0.4))
         }
         try save(spotted, "1_spotted.jpg", crop: crop)
         try save(fixed, "2_auto_fixed.jpg", crop: crop)
-        try save(Retoucher.blend(Retoucher.evenSkin(ci, skin: skin, even: 0.8, blemish: 0), over: ci, mask: skin), "3_even_only.jpg", crop: crop)
+        try save(Retoucher.blend(Retoucher.evenSkin(portrait, skin: skin, even: 0.8, blemish: 0), over: portrait, mask: skin), "3_even_only.jpg", crop: crop)
         try save(skin, "0_skin_mask.jpg", crop: crop)
 
         // 2) 点修：在背景上加一个大暗斑，再点修掉
