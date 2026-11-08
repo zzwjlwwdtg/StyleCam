@@ -464,7 +464,9 @@ final class RetouchTests: XCTestCase {
         try save(healed, "5_healed.jpg", crop: bgCrop)
 
         // 3) 语义追色：把人物（非皮肤）调蓝，再以原图为参考追色，看人物区域能否追回来
+        try report.write(to: try outDir().appendingPathComponent("retouch.txt"), atomically: true, encoding: .utf8)
         let pm = try XCTUnwrap(SemanticStats.personMask(for: ci))
+        try save(pm, "7_person_mask.jpg")
         let refSem = try XCTUnwrap(SemanticStats.measure(ci, person: pm, context: ctx))
         let refStats = try XCTUnwrap(StyleMatcher.stats(of: ci, context: ctx))
         let blueish = ci.applyingFilter("CIColorMatrix", parameters: [

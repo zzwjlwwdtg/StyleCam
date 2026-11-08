@@ -18,11 +18,11 @@ struct SemanticStats: Equatable {
     var person: Region?
     var background: Region?
 
-    /// 用图像和人像蒙版统计（都缩到约 128 像素长边，在 CPU 上算）
+    /// 用图像和人像蒙版统计（都缩到约 192 像素长边，在 CPU 上算）
     static func measure(_ image: CIImage, person: CIImage, context: CIContext) -> SemanticStats? {
         let e = image.extent
         guard e.width > 8, e.height > 8, let srgb = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
-        let s = 128 / max(e.width, e.height)
+        let s = 192 / max(e.width, e.height)
         let w = max(8, Int(e.width * s)), h = max(8, Int(e.height * s))
         func render(_ img: CIImage) -> [UInt8] {
             let small = img.transformed(by: CGAffineTransform(translationX: -e.minX, y: -e.minY))
@@ -53,7 +53,7 @@ struct SemanticStats: Equatable {
         }
         let n = Double(w * h)
         func region(_ v: [(Double, Double, Double, Double)]) -> Region? {
-            guard Double(v.count) > n * 0.02 else { return nil }
+            guard v.count >= 40, Double(v.count) > n * 0.006 else { return nil }
             return Region(L: ColorMath.median(v.map(\.0)), a: ColorMath.median(v.map(\.1)), b: ColorMath.median(v.map(\.2)),
                           chroma: v.map(\.3).reduce(0, +) / Double(v.count), share: Double(v.count) / n)
         }
