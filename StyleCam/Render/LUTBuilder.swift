@@ -97,8 +97,10 @@ enum LUTBuilder {
                     // 中间调变化最多，接近黑 / 白时逐渐减弱，避免发灰或溢出
                     let w = ColorMath.smoothstep(5, 30, lab.L) * ColorMath.smoothstep(100, 82, lab.L)
                     let L = ColorMath.clamp(lab.L + r.dL * w, 0, 100)
-                    let a = lab.a * r.sat + r.tint.x * w
-                    let b = lab.b * r.sat + r.tint.y * w
+                    // 色偏覆盖更宽的亮度范围（深色衣服也要能追色），只在接近纯黑 / 纯白处减弱
+                    let wc = ColorMath.smoothstep(2, 14, lab.L) * ColorMath.smoothstep(100, 92, lab.L)
+                    let a = lab.a * r.sat + r.tint.x * wc
+                    let b = lab.b * r.sat + r.tint.y * wc
                     let o = ColorMath.labToLinearRGB(L, a, b)
                     cube[idx] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.r), 0, 1))
                     cube[idx + 1] = Float(ColorMath.clamp(ColorMath.linearToSRGB(o.g), 0, 1))

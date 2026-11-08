@@ -93,7 +93,7 @@ final class StyleRenderer: @unchecked Sendable {
         // 皮肤蒙版：人像区域 × 肤色可能性（肤色保护和区域美颜共用）
         var skinMask: CIImage?
         if (p.skinProtect > 0.01 || p.hasSkinWork || p.regionPerson != nil) && s > 0, let person = masks.person {
-            let likelihood = cube(ungraded, LUTBuilder.skinLikelihood)
+            let likelihood = Retoucher.closeHoles(cube(ungraded, LUTBuilder.skinLikelihood), longEdge: max(extent.width, extent.height))
             let personMask = person.clampedToExtent().applyingGaussianBlur(sigma: Double(2 * scale)).cropped(to: extent)
             let combined = CIFilter.multiplyCompositing()
             combined.inputImage = likelihood

@@ -117,7 +117,17 @@ enum Retoucher {
             "inputColorSpace": CGColorSpace(name: CGColorSpace.sRGB) as Any
         ]).cropped(to: e)
         let soft = person.clampedToExtent().applyingGaussianBlur(sigma: Double(max(e.width, e.height)) / 600).cropped(to: e)
-        return multiply(likely, soft)
+        return multiply(closeHoles(likely, longEdge: max(e.width, e.height)), soft)
+    }
+
+    /// 填掉肤色蒙版里的小洞（痘痘、斑点本身颜色可能不像皮肤），眼睛、眉毛、嘴这类大块不受影响
+    static func closeHoles(_ m: CIImage, longEdge: CGFloat) -> CIImage {
+        let r = max(1, Double(longEdge) * 0.004)
+        let e = m.extent
+        return m.clampedToExtent()
+            .applyingFilter("CIMorphologyMaximum", parameters: [kCIInputRadiusKey: r])
+            .applyingFilter("CIMorphologyMinimum", parameters: [kCIInputRadiusKey: r])
+            .cropped(to: e)
     }
 
     // MARK: - 小工具
