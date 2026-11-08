@@ -83,7 +83,9 @@ enum PhotoProcessor {
         guard needPerson || needSubject || needFace else { return m }
         let handler = VNImageRequestHandler(ciImage: ci, options: [:])
         if needFace { m.underEye = SubjectMasker.underEyeMask(handler, extent: ci.extent) }
-        if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {
+        if let o = SemanticStats.overridePersonMask {
+            m.person = o(ci)
+        } else if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {
             m.person = SubjectMasker.ciMask(pb, fitting: ci.extent)
         }
         if needSubject {

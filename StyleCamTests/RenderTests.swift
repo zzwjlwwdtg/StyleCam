@@ -447,23 +447,20 @@ final class RetouchTests: XCTestCase {
                    CGPoint(x: pf.midX + pf.width * 0.15, y: pf.midY - pf.height * 0.2),
                    CGPoint(x: pf.midX, y: pf.midY + pf.height * 0.05)]
         let spotted = addSpots(portrait, pts, radius: r)
-        // 诊断：各种分割在这两张图上的覆盖率
-        for (nm, img) in [("全图", ci), ("特写", portrait), ("特写(CGImage)", CIImage(cgImage: ctx.createCGImage(portrait, from: portrait.extent)!))] {
-            let h = VNImageRequestHandler(ciImage: img, options: [:])
-            for q in [VNGeneratePersonSegmentationRequest.QualityLevel.accurate, .balanced, .fast] {
-                let req = VNGeneratePersonSegmentationRequest()
-                req.qualityLevel = q
-                req.outputPixelFormat = kCVPixelFormatType_OneComponent8
-                let ok = (try? h.perform([req])) != nil
-                var cov = -1.0
-                if let pb = req.results?.first?.pixelBuffer {
-                    let m = SubjectMasker.boolMask(pb, width: 64, height: 64)
-                    cov = Double(m.filter { $0 }.count) / Double(max(1, m.count))
-                }
-                report += "\(nm) \(img.extent.size) 人像分割 q\(q.rawValue) perform=\(ok) 覆盖 \(String(format: "%.3f", cov))\n"
-            }
+        // 模拟器里人像分割模型几乎不出结果：用围住人物的椭圆当人像蒙版（真机上用 Vision）
+        func ellipse(_ c: CGPoint, _ rx: CGFloat, _ ry: CGFloat, _ ext: CGRect) -> CIImage {
+            let g = CIFilter.radialGradient()
+            g.center = .zero; g.radius0 = 0.85; g.radius1 = 1
+            g.color0 = CIColor.white; g.color1 = CIColor.black
+            return g.outputImage!.transformed(by: CGAffineTransform(scaleX: rx, y: ry).concatenating(CGAffineTransform(translationX: c.x, y: c.y)))
+                .cropped(to: ext)
         }
-        try report.write(to: try outDir().appendingPathComponent("retouch.txt"), atomically: true, encoding: .utf8)
+        SemanticStats.overridePersonMask = { img in
+            img.extent.width == portrait.extent.width
+                ? ellipse(CGPoint(x: pf.midX, y: pf.midY - pf.height * 0.6), pf.width * 1.9, pf.height * 2.2, img.extent)
+                : ellipse(CGPoint(x: face.midX, y: face.midY - face.height * 1.6), face.width * 2.3, face.height * 3.2, img.extent)
+        }
+        defer { SemanticStats.overridePersonMask = nil }
         let skin = try XCTUnwrap(Retoucher.skinMask(for: spotted), "未识别到人像")
         let fixed = Retoucher.blend(Retoucher.evenSkin(spotted, skin: skin, even: 0.6, blemish: 0.8), over: spotted, mask: skin)
         for (i, p) in pts.enumerated() {
@@ -481,8 +478,12 @@ final class RetouchTests: XCTestCase {
         let bigR = e.width * 0.03
         let blot = addSpots(ci, [bgPoint], radius: bigR)
         let healed = Retoucher.heal(blot, spots: [(center: bgPoint, radius: bigR * 1.1)])
-        report += String(format: "点修：原图 %.0f · 加斑 %.0f · 点修后 %.0f\n",
-                         lum(ci, at: bgPoint, r: bigR * 0.4), lum(blot, at: bgPoint, r: bigR * 0.4), lum(healed, at: bgPoint, r: bigR * 0.4))
+        let ringAvg = [0.0, 90, 180, 270].map { d -> Double in
+            let rad = d * .pi / 180
+            return lum(ci, at: CGPoint(x: bgPoint.x + cos(rad) * bigR * 1.6, y: bgPoint.y + sin(rad) * bigR * 1.6), r: bigR * 0.3)
+        }.reduce(0, +) / 4
+        report += String(format: "点修：原图 %.0f · 加斑 %.0f · 点修后 %.0f（周围平均 %.0f）\n",
+                         lum(ci, at: bgPoint, r: bigR * 0.4), lum(blot, at: bgPoint, r: bigR * 0.4), lum(healed, at: bgPoint, r: bigR * 0.4), ringAvg)
         let bgCrop = CGRect(x: bgPoint.x - bigR * 4, y: bgPoint.y - bigR * 4, width: bigR * 8, height: bigR * 8)
         try save(blot, "4_blot.jpg", crop: bgCrop)
         try save(healed, "5_healed.jpg", crop: bgCrop)

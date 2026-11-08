@@ -73,8 +73,12 @@ struct SemanticStats: Equatable {
         return wh * wc * wl
     }
 
+    /// 测试用：模拟器里的人像分割模型几乎不出结果，测试时用手工蒙版代替
+    nonisolated(unsafe) static var overridePersonMask: ((CIImage) -> CIImage?)?
+
     /// 人像蒙版（拍照 / 套用相册 / 精修时用，高质量）
     static func personMask(for image: CIImage) -> CIImage? {
+        if let o = overridePersonMask { return o(image) }
         let h = VNImageRequestHandler(ciImage: image, options: [:])
         guard let pb = SubjectMasker.personMask(h, quality: .accurate) else { return nil }
         return SubjectMasker.ciMask(pb, fitting: image.extent)
