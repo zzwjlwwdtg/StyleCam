@@ -474,6 +474,23 @@ final class RetouchTests: XCTestCase {
         report += String(format: "中性灰改变量（脸部平均）%.1f / 255\n", lum(diff.outputImage!, at: CGPoint(x: pf.midX, y: pf.midY), r: pf.width * 0.4))
         for (i, p) in pts.enumerated() { report += String(format: "斑点 %d 处皮肤蒙版 %.0f / 255\n", i, lum(skin, at: p, r: 1)) }
         try save(portrait, "0_portrait.jpg", crop: crop)
+        do {   // 中间结果
+            let L = Double(max(spotted.extent.width, spotted.extent.height))
+            let fine = Retoucher.maskedBlur(spotted, mask: skin, sigma: L * 0.0013)
+            let broad = Retoucher.maskedBlur(spotted, mask: skin, sigma: L * 0.009)
+            let ratio = Retoucher.divide(broad, by: fine)
+            try save(fine, "d_fine.jpg", crop: crop)
+            try save(broad, "d_broad.jpg", crop: crop)
+            try save(ratio.applyingFilter("CIColorMatrix", parameters: [
+                "inputRVector": CIVector(x: 3, y: 0, z: 0, w: 0), "inputGVector": CIVector(x: 0, y: 3, z: 0, w: 0),
+                "inputBVector": CIVector(x: 0, y: 0, z: 3, w: 0), "inputBiasVector": CIVector(x: -2.5, y: -2.5, z: -2.5, w: 0)]), "d_ratio.jpg", crop: crop)
+            for (i, p) in pts.enumerated() {
+                report += String(format: "斑点 %d：fine %.0f broad %.0f ratio×100 %.0f\n", i, lum(fine, at: p, r: 1), lum(broad, at: p, r: 1),
+                                 lum(ratio.applyingFilter("CIColorMatrix", parameters: [
+                                    "inputRVector": CIVector(x: 0.5, y: 0, z: 0, w: 0), "inputGVector": CIVector(x: 0, y: 0.5, z: 0, w: 0),
+                                    "inputBVector": CIVector(x: 0, y: 0, z: 0.5, w: 0)]), at: p, r: 1) * 2 / 255 * 100)
+            }
+        }
         try save(spotted, "1_spotted.jpg", crop: crop)
         try save(fixed, "2_auto_fixed.jpg", crop: crop)
         try save(Retoucher.blend(Retoucher.evenSkin(portrait, skin: skin, even: 0.8, blemish: 0), over: portrait, mask: skin), "3_even_only.jpg", crop: crop)
