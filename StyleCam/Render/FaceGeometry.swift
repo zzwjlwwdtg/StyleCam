@@ -1,5 +1,6 @@
 import CoreImage
 import Vision
+import CoreML
 
 /// 人脸几何（Vision 关键点，图像坐标、左下角原点）：用于年轻化的提拉、法令纹 / 泪沟定位。
 struct FaceGeometry {
@@ -12,7 +13,7 @@ struct FaceGeometry {
     /// 模拟器里 GPU / 神经网络引擎上的关键点结果会错位，改走 CPU（真机不受影响）
     static func configure(_ req: VNRequest) {
         #if targetEnvironment(simulator)
-        if let devs = try? req.supportedComputeStageDevices() {
+        if let devs = try? req.supportedComputeStageDevices {
             for (stage, list) in devs {
                 if let cpu = list.first(where: { if case .cpu = $0 { return true } else { return false } }) {
                     req.setComputeDevice(cpu, for: stage)
