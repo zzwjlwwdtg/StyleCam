@@ -22,6 +22,7 @@ enum FaceParser {
         let skin: CIImage      // 脸部范围内的皮肤概率（全图坐标）
         let protect: CIImage   // 五官 / 头发
         let region: CIImage    // 模型覆盖到的范围（边缘柔和）
+        var geometry: [FaceGeometry] = []   // 从分区标签里找到的眼、鼻翼、嘴角、下颌线
     }
 
     /// faces：人脸框（图像坐标）
@@ -30,6 +31,7 @@ enum FaceParser {
         let e = img.extent
         let black = CIImage(color: .black).cropped(to: e)
         var skin = black, protect = black, region = black
+        var geometry: [FaceGeometry] = []
         for f in faces {
             // 和训练数据（CelebA 对齐人脸）接近：脸约占方块的一半，略向上留出额头和头发
             let side = max(f.width, f.height) * 2.0
@@ -47,13 +49,17 @@ enum FaceParser {
                     .concatenating(CGAffineTransform(translationX: sq.minX, y: sq.minY))).cropped(to: e)
             }
             guard let s = place("skin"), let p = place("protect") else { continue }
+            if let pb = obs.first(where: { $0.featureName == "label" })?.pixelBuffer,
+               let g = FaceGeometry.fromLabels(pb, square: sq, face: f) {
+                geometry.append(g)
+            }
             skin = maxOf(s, skin, e)
             protect = maxOf(p, protect, e)
             let r = CIImage(color: .white).cropped(to: sq.insetBy(dx: side * 0.08, dy: side * 0.08))
                 .clampedToExtent().applyingGaussianBlur(sigma: Double(side) * 0.04).cropped(to: e)
             region = maxOf(r.composited(over: black), region, e)
         }
-        return Result(skin: skin, protect: protect, region: region)
+        return Result(skin: skin, protect: protect, region: region, geometry: geometry)
     }
 
     /// 用人脸解析修正皮肤蒙版：脸部范围内 = max(模型皮肤, 颜色判断的皮肤 × (1 − 五官))，范围外保持原样

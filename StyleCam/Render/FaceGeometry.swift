@@ -45,6 +45,123 @@ struct FaceGeometry {
         }
     }
 
+    // MARK: - 从人脸分区标签求几何（不依赖 Vision 关键点）
+
+    /// 标签图：BiSeNet 每个像素的类别 × 13（0 背景、1 皮肤、4/5 眼、10 鼻、11 口、12/13 唇、14 脖子）。
+    /// square：送进模型的方块在原图里的位置；标签图第 0 行是方块的最上面
+    static func fromLabels(_ pb: CVPixelBuffer, square sq: CGRect, face: CGRect) -> FaceGeometry? {
+        CVPixelBufferLockBaseAddress(pb, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(pb, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(pb) else { return nil }
+        let w = CVPixelBufferGetWidth(pb), h = CVPixelBufferGetHeight(pb), rb = CVPixelBufferGetBytesPerRow(pb)
+        let fmt = CVPixelBufferGetPixelFormatType(pb)
+        var cls = [UInt8](repeating: 0, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                let v: Double
+                switch fmt {
+                case kCVPixelFormatType_OneComponent8: v = Double(base.load(fromByteOffset: y * rb + x, as: UInt8.self))
+                case kCVPixelFormatType_OneComponent16Half: v = Double(Float(base.load(fromByteOffset: y * rb + x * 2, as: Float16.self)))
+                case kCVPixelFormatType_OneComponent32Float: v = Double(base.load(fromByteOffset: y * rb + x * 4, as: Float.self))
+                default: return nil
+                }
+                cls[y * w + x] = UInt8(max(0, min(18, (v / 13).rounded())))
+            }
+        }
+        return fromClasses(cls, width: w, height: h, square: sq, face: face)
+    }
+
+    /// 同上，标签已经是类别号（测试也直接用）
+    static func fromClasses(_ cls: [UInt8], width w: Int, height h: Int, square sq: CGRect, face: CGRect) -> FaceGeometry? {
+        func img(_ x: Int, _ y: Int) -> CGPoint {
+            CGPoint(x: sq.minX + (CGFloat(x) + 0.5) / CGFloat(w) * sq.width,
+                    y: sq.maxY - (CGFloat(y) + 0.5) / CGFloat(h) * sq.height)
+        }
+        // 各类的像素
+        var byClass = [[(Int, Int)]](repeating: [], count: 19)
+        for y in 0..<h { for x in 0..<w { byClass[Int(cls[y * w + x])].append((x, y)) } }
+        let minPx = max(6, w * h / 40000)
+        func extremes(_ px: [(Int, Int)]) -> [CGPoint] {
+            guard px.count >= minPx,
+                  let l = px.min(by: { $0.0 < $1.0 }), let r = px.max(by: { $0.0 < $1.0 }),
+                  let t = px.min(by: { $0.1 < $1.1 }), let b = px.max(by: { $0.1 < $1.1 }) else { return [] }
+            return [img(l.0, l.1), img(t.0, t.1), img(r.0, r.1), img(b.0, b.1)]
+        }
+        let eyes = [extremes(byClass[4]), extremes(byClass[5])].filter { !$0.isEmpty }
+
+        // 嘴角：口 + 上下唇的最左、最右
+        let mouth = byClass[11] + byClass[12] + byClass[13]
+        var corners: [CGPoint] = []
+        if mouth.count >= minPx, let l = mouth.min(by: { $0.0 < $1.0 }), let r = mouth.max(by: { $0.0 < $1.0 }) {
+            corners = [img(l.0, l.1), img(r.0, r.1)]
+        }
+        // 鼻翼：鼻子下面 30% 行里的最左、最右
+        let nose = byClass[10]
+        var wings: [CGPoint] = []
+        if nose.count >= minPx, let top = nose.map(\.1).min(), let bot = nose.map(\.1).max() {
+            let cut = bot - Int(Double(bot - top) * 0.3)
+            let low = nose.filter { $0.1 >= cut }
+            if let l = low.min(by: { $0.0 < $1.0 }), let r = low.max(by: { $0.0 < $1.0 }) { wings = [img(l.0, l.1), img(r.0, r.1)] }
+        }
+        // 下颌线：脸部皮肤（类别 1）的下边缘 + 鼻翼以下两侧的外边缘
+        let skin = byClass[1]
+        var contour: [CGPoint] = []
+        if skin.count >= minPx * 10 {
+            var lowest = [Int: Int](), left = [Int: Int](), right = [Int: Int]()
+            for (x, y) in skin {
+                lowest[x] = max(lowest[x] ?? y, y)
+                left[y] = min(left[y] ?? x, x); right[y] = max(right[y] ?? x, x)
+            }
+            let xs = lowest.keys.sorted()
+            if let x0 = xs.first, let x1 = xs.last, x1 > x0 {
+                let n = 16
+                for i in 0...n {
+                    let x = x0 + (x1 - x0) * i / n
+                    if let k = xs.min(by: { abs($0 - x) < abs($1 - x) }), let y = lowest[k] { contour.append(img(k, y)) }
+                }
+            }
+            let startRow = nose.map(\.1).max() ?? (skin.map(\.1).min()! + skin.map(\.1).max()!) / 2
+            let ys = left.keys.filter { $0 >= startRow }.sorted()
+            for (i, y) in ys.enumerated() where i % max(1, ys.count / 8) == 0 {
+                if let l = left[y] { contour.append(img(l, y)) }
+                if let r = right[y] { contour.append(img(r, y)) }
+            }
+        }
+        guard !contour.isEmpty || !eyes.isEmpty else { return nil }
+        return FaceGeometry(box: face, contour: contour, noseWings: wings, mouthCorners: corners, eyes: eyes)
+    }
+
+    /// 眼下蒙版：每只眼睛正下方一个柔和的扁椭圆（和 SubjectMasker.underEyeMask 相同的形状）
+    static func underEyeMask(_ faces: [FaceGeometry], extent e: CGRect) -> CIImage? {
+        let eyes = faces.flatMap(\.eyes)
+        guard !eyes.isEmpty else { return nil }
+        let W = 360, H = max(1, Int((360 * e.height / max(1, e.width)).rounded()))
+        guard let ctx = CGContext(data: nil, width: W, height: H, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue),
+              let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceGray(),
+                                    colors: [CGColor(gray: 1, alpha: 0.9), CGColor(gray: 1, alpha: 0)] as CFArray,
+                                    locations: [0, 1]) else { return nil }
+        ctx.setFillColor(gray: 0, alpha: 1)
+        ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+        let sx = CGFloat(W) / e.width, sy = CGFloat(H) / e.height
+        for eye in eyes {
+            let pts = eye.map { CGPoint(x: ($0.x - e.minX) * sx, y: ($0.y - e.minY) * sy) }
+            guard let minX = pts.map(\.x).min(), let maxX = pts.map(\.x).max(), let minY = pts.map(\.y).min() else { continue }
+            let w = maxX - minX
+            guard w > 1 else { continue }
+            ctx.saveGState()
+            ctx.translateBy(x: (minX + maxX) / 2, y: minY - w * 0.42)
+            ctx.scaleBy(x: 1, y: 0.42)
+            ctx.drawRadialGradient(grad, startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: w * 0.8, options: [])
+            ctx.restoreGState()
+        }
+        guard let cg = ctx.makeImage() else { return nil }
+        return CIImage(cgImage: cg)
+            .transformed(by: CGAffineTransform(scaleX: e.width / CGFloat(W), y: e.height / CGFloat(H))
+                .concatenating(CGAffineTransform(translationX: e.minX, y: e.minY)))
+            .clampedToExtent().applyingGaussianBlur(sigma: Double(e.width) / 360).cropped(to: e)
+    }
+
     // MARK: - 纹路蒙版（法令纹、泪沟）
 
     /// 法令纹：鼻翼外侧 → 嘴角外下方；泪沟：内眼角下方 → 斜向脸颊。画成粗线后模糊成柔和的带状蒙版
@@ -116,8 +233,8 @@ struct FaceGeometry {
                 let toCenter: CGFloat = c.x < f.box.midX ? 1 : -1
                 // 越靠下（下颌、腮部）推得越多
                 let depth = min(1, max(0, (level - c.y) / (fh * 0.5)))
-                let v = CGVector(dx: toCenter * fw * 0.006 * CGFloat(amount) * depth,
-                                 dy: fh * 0.022 * CGFloat(amount) * (0.4 + 0.6 * depth))
+                let v = CGVector(dx: toCenter * fw * 0.008 * CGFloat(amount) * depth,
+                                 dy: fh * 0.035 * CGFloat(amount) * (0.4 + 0.6 * depth))
                 ctrl.append((c, v, fw * 0.17))
             }
         }

@@ -82,12 +82,17 @@ enum PhotoProcessor {
         let needFace = StyleRenderer.needsFaceMask(state)
         let needGeometry = StyleRenderer.needsGeometry(state)
         guard needPerson || needSubject || needFace || needGeometry else { return m }
-        if needGeometry { m.geometry = FaceGeometry.detect(in: ci) }
         let handler = VNImageRequestHandler(ciImage: ci, options: [:])
-        if needFace { m.underEye = SubjectMasker.underEyeMask(handler, extent: ci.extent) }
         // 精修按脸的大小定尺度；人像分割失败时用人脸椭圆兜底
-        if state.params.hasSkinWork || needFace { m.faces = Retoucher.faces(in: ci) }
-        if state.params.hasSkinWork { m.faceParse = FaceParser.parse(ci, faces: m.faces) }
+        if state.params.hasSkinWork || needFace || needGeometry { m.faces = Retoucher.faces(in: ci) }
+        if state.params.hasSkinWork || needFace || needGeometry { m.faceParse = FaceParser.parse(ci, faces: m.faces) }
+        // 五官位置：优先用人脸分区模型的结果（眼、鼻翼、嘴角、下颌线），没有时退回 Vision 关键点
+        let parsedGeometry = m.faceParse?.geometry ?? []
+        if needGeometry { m.geometry = parsedGeometry.isEmpty ? FaceGeometry.detect(in: ci) : parsedGeometry }
+        if needFace {
+            m.underEye = FaceGeometry.underEyeMask(parsedGeometry, extent: ci.extent)
+                ?? SubjectMasker.underEyeMask(handler, extent: ci.extent)
+        }
         if let o = SemanticStats.overridePersonMask {
             m.person = o(ci)
         } else if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {

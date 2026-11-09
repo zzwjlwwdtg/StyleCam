@@ -659,34 +659,6 @@ final class FaceSampleTests: XCTestCase {
                                      maxShift, ym.geometry.first?.box.height ?? 0)
                     try ctx.writeJPEGRepresentation(of: sideBySide(out, yout, crop: crop), to: outDir.appendingPathComponent("\(tag)_youth.jpg"),
                                                     colorSpace: srgb, options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
-                    // 关键点实验：默认 / CPU / 旧版本模型，看哪种在模拟器里对得上
-                    for variant in ["default", "cpu", "rev2"] {
-                        let req = VNDetectFaceLandmarksRequest()
-                        if variant == "cpu" { FaceGeometry.configure(req) }
-                        if variant == "rev2" { req.revision = VNDetectFaceLandmarksRequestRevision2 }
-                        guard (try? VNImageRequestHandler(ciImage: img, options: [:]).perform([req])) != nil,
-                              let f = req.results?.first, let all = f.landmarks?.allPoints else {
-                            report += "  └ 关键点 \(variant)：失败\n"; continue
-                        }
-                        let e = img.extent
-                        let pts = all.pointsInImage(imageSize: e.size)
-                        let cs = CGColorSpace(name: CGColorSpace.sRGB)!
-                        guard let c = CGContext(data: nil, width: Int(e.width), height: Int(e.height), bitsPerComponent: 8, bytesPerRow: 0,
-                                                space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { continue }
-                        let r = max(2, e.width / 300)
-                        c.setFillColor(CGColor(red: 0, green: 1, blue: 0.3, alpha: 1))
-                        for p in pts { c.fillEllipse(in: CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)) }
-                        let bb = f.boundingBox
-                        c.setStrokeColor(CGColor(red: 1, green: 1, blue: 0, alpha: 1)); c.setLineWidth(r / 2)
-                        c.stroke(CGRect(x: bb.minX * e.width, y: bb.minY * e.height, width: bb.width * e.width, height: bb.height * e.height))
-                        report += String(format: "  └ 关键点 %@：%d 点 · roll %.2f yaw %.2f\n", variant, pts.count,
-                                         f.roll?.doubleValue ?? .nan, f.yaw?.doubleValue ?? .nan)
-                        if let cg = c.makeImage() {
-                            try ctx.writeJPEGRepresentation(of: CIImage(cgImage: cg).composited(over: img).cropped(to: crop),
-                                                            to: outDir.appendingPathComponent("\(tag)_lm_\(variant).jpg"), colorSpace: srgb,
-                                                            options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.8])
-                        }
-                    }
                     // 关键点可视化：下颌线（绿）、鼻翼 / 嘴角（红）、眼睛（蓝）
                     if !ym.geometry.isEmpty {
                         let e = img.extent
