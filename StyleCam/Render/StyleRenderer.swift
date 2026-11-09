@@ -7,6 +7,7 @@ struct RenderMasks {
     var person: CIImage?      // 人像：用于肤色保护 / 区域美颜
     var underEye: CIImage?    // 眼下区域（美颜档，人脸关键点定位）
     var faces: [CGRect] = []  // 人脸框（图像坐标）：精修强度和尺度按脸的大小来定
+    var faceParse: FaceParser.Result?   // 人脸分区（皮肤 / 五官），成片精修时才有
 }
 
 /// 实时滤镜：背景虚化 → 3D LUT（含分区调色）→ 肤色保护 → 区域美颜 → 柔光 → 锐化 → 高光光晕 → 暗角 → 颗粒 → 画幅裁切。
@@ -100,6 +101,10 @@ final class StyleRenderer: @unchecked Sendable {
             combined.inputImage = likelihood
             combined.backgroundImage = personMask
             skinMask = combined.outputImage?.cropped(to: extent)
+            // 脸部范围内用人脸分区模型的结果：眉、眼、唇、发丝不算皮肤
+            if let fp = masks.faceParse, let sm = skinMask {
+                skinMask = FaceParser.refine(sm, likelihood: likelihood, parsed: fp)
+            }
         }
 
         // 3. 肤色保护：皮肤用“只调影调、不偏色”的版本

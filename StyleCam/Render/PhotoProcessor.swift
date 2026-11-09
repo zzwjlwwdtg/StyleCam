@@ -85,6 +85,7 @@ enum PhotoProcessor {
         if needFace { m.underEye = SubjectMasker.underEyeMask(handler, extent: ci.extent) }
         // 精修按脸的大小定尺度；人像分割失败时用人脸椭圆兜底
         if state.params.hasSkinWork || needFace { m.faces = Retoucher.faces(in: ci) }
+        if state.params.hasSkinWork { m.faceParse = FaceParser.parse(ci, faces: m.faces) }
         if let o = SemanticStats.overridePersonMask {
             m.person = o(ci)
         } else if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {

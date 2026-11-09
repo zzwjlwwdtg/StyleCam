@@ -1,0 +1,6 @@
+FaceParsing.mlpackage
+由 yakhyo/face-parsing（BiSeNet，ResNet18 主干）的公开权重转换为 Core ML（半精度），输出：
+  skin    = 脸部皮肤 + 鼻子 + 脖子 的概率 ×255
+  protect = 眉、眼、眼镜、嘴、嘴唇、头发 的概率 ×255
+代码许可：MIT（https://github.com/yakhyo/face-parsing）
+训练数据：CelebAMask-HQ —— 仅限非商业研究用途。本模型仅用于个人测试版，正式上架前需换用可商用的模型。

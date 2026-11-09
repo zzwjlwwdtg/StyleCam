@@ -593,7 +593,7 @@ final class FaceSampleTests: XCTestCase {
         }
         if let u = Bundle(for: FaceSampleTests.self).url(forResource: "scene_forest", withExtension: "jpg"),
            let ci = CIImage(contentsOf: u, options: [.applyOrientationProperty: true]) { sources.append(("scene_forest.jpg", ci)) }
-        var report = "样图 \(sources.count) 张\n"
+        var report = "样图 \(sources.count) 张 · 人脸分区模型已加载：\(FaceParser.available)\n"
 
         for (name, raw) in sources {
             // 统一到原点；同一张图再缩成 40% 和 15%，模拟同样的皮肤问题在中 / 小比例下的样子
@@ -620,9 +620,14 @@ final class FaceSampleTests: XCTestCase {
                 let d0 = detail(img, in: inner), d1 = detail(out, in: inner)
                 _ = ctx.createCGImage(out, from: crop)   // 计时用：确保真正渲染了
                 let ms = Date().timeIntervalSince(t0) * 1000
-                report += String(format: "%@：脸宽 %.0f px（占画面宽 %.0f%%）· 尺度系数 %.2f · 细节保留 %.0f%% · 人像蒙版 %@ · %.0f ms\n",
+                report += String(format: "%@：脸宽 %.0f px（占画面宽 %.0f%%）· 尺度系数 %.2f · 细节保留 %.0f%% · 人像蒙版 %@ · 人脸分区 %@ · %.0f ms\n",
                                  tag, fw, share * 100, Retoucher.sizeFactor(fw), d0 > 0 ? d1 / d0 * 100 : 0,
-                                 masks.person != nil ? "有" : "无", ms)
+                                 masks.person != nil ? "有" : "无", masks.faceParse != nil ? "有" : "无", ms)
+                if let fp = masks.faceParse {
+                    let mpair = sideBySide(fp.skin, fp.protect, crop: crop)
+                    try ctx.writeJPEGRepresentation(of: mpair, to: outDir.appendingPathComponent("\(tag)_parse.jpg"), colorSpace: srgb,
+                                                    options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.85])
+                }
                 let pair = sideBySide(img, out, crop: crop)
                 try ctx.writeJPEGRepresentation(of: pair, to: outDir.appendingPathComponent("\(tag)_face.jpg"), colorSpace: srgb,
                                                 options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])

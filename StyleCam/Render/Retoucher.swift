@@ -129,7 +129,11 @@ enum Retoucher {
             "inputColorSpace": CGColorSpace(name: CGColorSpace.sRGB) as Any
         ]).cropped(to: e)
         let soft = person.clampedToExtent().applyingGaussianBlur(sigma: Double(max(e.width, e.height)) / 600).cropped(to: e)
-        return multiply(closeHoles(likely, longEdge: max(e.width, e.height)), soft)
+        let closed = closeHoles(likely, longEdge: max(e.width, e.height))
+        let base = multiply(closed, soft)
+        // 脸部范围内用人脸分区模型修正（五官、发丝不算皮肤）
+        if let fp = FaceParser.parse(img, faces: fs) { return FaceParser.refine(base, likelihood: closed, parsed: fp) }
+        return base
     }
 
     /// 填掉肤色蒙版里的小洞（痘痘、斑点本身颜色可能不像皮肤），眼睛、眉毛、嘴这类大块不受影响
