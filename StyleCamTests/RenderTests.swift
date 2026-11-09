@@ -432,6 +432,7 @@ final class RetouchTests: XCTestCase {
         let fb = try XCTUnwrap(faceReq.results?.first?.boundingBox)
         let face = CGRect(x: e.minX + fb.minX * e.width, y: e.minY + fb.minY * e.height, width: fb.width * e.width, height: fb.height * e.height)
         report += "人脸 \(face)\n"
+        report += "自定义滤镜已加载：\(Retoucher.kernelsLoaded)\n"
         // 测试图里人脸很小：把脸部附近裁出来放大到约 1200 像素，模拟近距离人像
         let around = face.insetBy(dx: -face.width * 2.5, dy: -face.height * 2.5).intersection(e)
         let up = 1200 / max(around.width, around.height)

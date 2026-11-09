@@ -30,46 +30,24 @@ enum Retoucher {
         ])
     }
 
+    /// 自定义 Core Image 滤镜（RetouchKernels.ci.metal）
+    private static let kernels: (dodge: CIColorKernel?, heal: CIColorKernel?) = {
+        guard let url = Bundle(for: KernelBundle.self).url(forResource: "default", withExtension: "metallib"),
+              let data = try? Data(contentsOf: url) else { return (nil, nil) }
+        return (try? CIColorKernel(functionName: "scDodgeBurn", fromMetalLibraryData: data),
+                try? CIColorKernel(functionName: "scHealTexture", fromMetalLibraryData: data))
+    }()
+    private final class KernelBundle {}
+    static var kernelsLoaded: Bool { kernels.dodge != nil && kernels.heal != nil }
+
     /// 中性灰匀肤 + 自动祛痘。even：拉平程度 0…1；blemish：祛痘强度 0…1
     static func evenSkin(_ img: CIImage, skin: CIImage, even: Double, blemish: Double) -> CIImage {
         let e = img.extent
+        guard let k = kernels.dodge, even > 0.01 || blemish > 0.01 else { return img }
         let L = Double(max(e.width, e.height))
         let fine = maskedBlur(img, mask: skin, sigma: max(1, L * 0.0013))   // 去掉毛孔级纹理
         let broad = maskedBlur(img, mask: skin, sigma: max(4, L * 0.009))   // 只剩大尺度肤色
-        // ratio = broad / fine：起伏处偏离 1（暗斑 > 1，亮斑 < 1）
-        let ratio = clamp(divide(broad, by: fine), 0.6, 1.6)
-        var out = img
-        if even > 0.01 {
-            // img × ratio^k：k=1 完全拉平中尺度起伏，纹理（img / fine）保留
-            let k = min(1, even) * 0.85
-            out = multiply(img, power(ratio, k))
-        }
-        if blemish > 0.01 {
-            // 痘痘 / 斑点：比周围明显暗的小区域 → ratio 的亮度明显大于 1
-            let spot = ratio
-                .applyingFilter("CIColorMatrix", parameters: [
-                    "inputRVector": CIVector(x: 0.3, y: 0.59, z: 0.11, w: 0),
-                    "inputGVector": CIVector(x: 0.3, y: 0.59, z: 0.11, w: 0),
-                    "inputBVector": CIVector(x: 0.3, y: 0.59, z: 0.11, w: 0),
-                    "inputBiasVector": CIVector(x: -1.04, y: -1.04, z: -1.04, w: 0)
-                ])
-                .applyingFilter("CIColorMatrix", parameters: [      // (ratio - 1.04) × 9 → 约 4%…15% 的暗斑渐入
-                    "inputRVector": CIVector(x: 9, y: 0, z: 0, w: 0),
-                    "inputGVector": CIVector(x: 0, y: 9, z: 0, w: 0),
-                    "inputBVector": CIVector(x: 0, y: 0, z: 9, w: 0)
-                ])
-                .applyingFilter("CIColorClamp")
-                .clampedToExtent().applyingGaussianBlur(sigma: max(1, L * 0.0012)).cropped(to: e)
-            let spotMask = multiply(spot, skin).applyingFilter("CIColorMatrix", parameters: [
-                "inputRVector": CIVector(x: min(1, blemish) * 1.6, y: 0, z: 0, w: 0),
-                "inputGVector": CIVector(x: 0, y: min(1, blemish) * 1.6, z: 0, w: 0),
-                "inputBVector": CIVector(x: 0, y: 0, z: min(1, blemish) * 1.6, w: 0)
-            ]).applyingFilter("CIColorClamp")
-            // 斑点处：完全拉平并轻微柔化
-            let healed = multiply(img, ratio)
-            out = blend(healed, over: out, mask: spotMask)
-        }
-        return out.cropped(to: e)
+        return k.apply(extent: e, arguments: [img, fine, broad, Float(even), Float(blemish)])?.cropped(to: e) ?? img
     }
 
     /// 点修：每个点用周围皮肤补平（大尺度颜色取圆环内的平均，纹理借用旁边一块）
@@ -89,13 +67,11 @@ enum Retoucher {
             let inverse = spotMask.applyingFilter("CIColorInvert")
             // 大尺度颜色：只用圆外的像素求平均，填进圆里
             let fill = normalizedBlur(out, mask: inverse, sigma: Double(r) * 0.9)
-            // 纹理：从旁边（右侧 2.2r，靠近边界就换左侧）借一块的“细节 / 平均”
+            // 纹理：从旁边（右侧 2.2r，靠近边界就换左侧）借一块的细纹理，比值限制在 ±20%
             let dx: CGFloat = (s.center.x + r * 3 < e.maxX) ? r * 2.2 : -r * 2.2
             let donor = out.transformed(by: CGAffineTransform(translationX: -dx, y: 0)).cropped(to: e)
-            // 只借细纹理：比值限制在 ±20%，不把旁边的树枝、边缘等结构搬过来
-            let donorTexture = clamp(divide(donor, by: donor.clampedToExtent().applyingGaussianBlur(sigma: Double(r) * 0.25).cropped(to: e)), 0.82, 1.2)
-
-            let healed = multiply(fill, donorTexture)
+            let donorBlur = donor.clampedToExtent().applyingGaussianBlur(sigma: Double(r) * 0.25).cropped(to: e)
+            let healed = kernels.heal?.apply(extent: e, arguments: [fill, donor, donorBlur]) ?? fill
             out = blend(healed, over: out, mask: spotMask)
         }
         return out.cropped(to: e)
