@@ -32,12 +32,24 @@ enum Retoucher {
     }
 
     /// 自定义 Core Image 滤镜（RetouchKernels.ci.metal）
-    private static let kernels: (dodge: CIColorKernel?, heal: CIColorKernel?) = {
+    private static let kernels: (dodge: CIColorKernel?, heal: CIColorKernel?, displace: CIKernel?) = {
         guard let url = Bundle(for: KernelBundle.self).url(forResource: "default", withExtension: "metallib"),
-              let data = try? Data(contentsOf: url) else { return (nil, nil) }
+              let data = try? Data(contentsOf: url) else { return (nil, nil, nil) }
         return (try? CIColorKernel(functionName: "scDodgeBurn", fromMetalLibraryData: data),
-                try? CIColorKernel(functionName: "scHealTexture", fromMetalLibraryData: data))
+                try? CIColorKernel(functionName: "scHealTexture", fromMetalLibraryData: data),
+                try? CIKernel(functionName: "scDisplace", fromMetalLibraryData: data))
     }()
+
+    /// 按位移图变形（提拉）。field 之外位移为 0
+    static func displace(_ img: CIImage, field: CIImage) -> CIImage {
+        guard let k = kernels.displace else { return img }
+        let e = img.extent
+        let disp = field.composited(over: CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: 1)).cropped(to: e))
+        let margin: CGFloat = max(e.width, e.height) * 0.05
+        return k.apply(extent: e, roiCallback: { i, r in
+            i == 0 ? r.insetBy(dx: -margin, dy: -margin) : r
+        }, arguments: [img.clampedToExtent(), disp])?.cropped(to: e) ?? img
+    }
     private final class KernelBundle {}
     static var kernelsLoaded: Bool { kernels.dodge != nil && kernels.heal != nil }
 

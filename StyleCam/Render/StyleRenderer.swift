@@ -8,6 +8,7 @@ struct RenderMasks {
     var underEye: CIImage?    // 眼下区域（美颜档，人脸关键点定位）
     var faces: [CGRect] = []  // 人脸框（图像坐标）：精修强度和尺度按脸的大小来定
     var faceParse: FaceParser.Result?   // 人脸分区（皮肤 / 五官），成片精修时才有
+    var geometry: [FaceGeometry] = []   // 人脸关键点（年轻化：提拉、法令纹 / 泪沟）
 }
 
 /// 实时滤镜：背景虚化 → 3D LUT（含分区调色）→ 肤色保护 → 区域美颜 → 柔光 → 锐化 → 高光光晕 → 暗角 → 颗粒 → 画幅裁切。
@@ -61,7 +62,12 @@ final class StyleRenderer: @unchecked Sendable {
         st.enabled && st.params.strength > 0
             && (st.params.skinProtect > 0.01 || st.params.hasSkinWork || st.params.regionPerson != nil || st.params.regionBG != nil)
     }
-    static func needsFaceMask(_ st: State) -> Bool { st.enabled && st.params.strength > 0 && st.params.eyeBright > 0.01 }
+    static func needsFaceMask(_ st: State) -> Bool {
+        st.enabled && st.params.strength > 0 && (st.params.eyeBright > 0.01 || st.params.eyeBag > 0.01)
+    }
+    static func needsGeometry(_ st: State) -> Bool {
+        st.enabled && st.params.strength > 0 && (st.params.youthLift > 0.01 || st.params.foldSoften > 0.01)
+    }
     static func needsSubjectMask(_ st: State) -> Bool { st.enabled && st.params.backgroundBlur > 0.002 && st.params.strength > 0 }
 
     func apply(_ input: CIImage, state st: State, masks: RenderMasks = RenderMasks()) -> CIImage {
@@ -161,11 +167,29 @@ final class StyleRenderer: @unchecked Sendable {
             }
         }
 
-        // 3c. 眼下提亮（美颜档）
+        // 3c. 年轻化（美颜档）：法令纹 / 泪沟、眼袋 —— 沿纹路做加深减淡，暗的折痕提亮到周围肤色
+        let youthW = Retoucher.typicalFaceWidth(masks.faces.isEmpty ? masks.geometry.map(\.box) : masks.faces, extent: extent)
+        if p.foldSoften > 0.01 && s > 0, let sk = skinMask,
+           let folds = FaceGeometry.foldMask(masks.geometry, extent: extent) {
+            let lifted = Retoucher.evenSkin(img, skin: sk, even: 1, blemish: 0, faceWidth: youthW)
+            img = blend(lifted, over: img, mask: scaled(folds, min(1, p.foldSoften) * s), extent: extent)
+        }
+        if p.eyeBag > 0.01 && s > 0, let eye = masks.underEye, let sk = skinMask {
+            let lifted = Retoucher.evenSkin(img, skin: sk, even: 1, blemish: 0.5, faceWidth: youthW * 0.8)
+            img = blend(lifted, over: img, mask: scaled(eye.cropped(to: extent), min(1, p.eyeBag) * s), extent: extent)
+        }
+
+        // 3d. 眼下提亮（美颜档）
         if p.eyeBright > 0.01 && s > 0, let eye = masks.underEye {
             let brighter = img.applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: 0.5 * p.eyeBright * s])
             let soft = edgeSmooth(brighter)
             img = blend(soft, over: img, mask: eye.cropped(to: extent), extent: extent)
+        }
+
+        // 3e. 年轻化 · 提拉：下颌线 / 脸颊下缘轻微上提（位移变形，最后做，前面的蒙版都按原位置计算）
+        if p.youthLift > 0.01 && s > 0,
+           let field = FaceGeometry.liftField(masks.geometry, amount: p.youthLift * s, extent: extent) {
+            img = Retoucher.displace(img, field: field)
         }
 
         // 4. 柔光

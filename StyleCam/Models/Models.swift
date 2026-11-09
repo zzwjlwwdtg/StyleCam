@@ -155,16 +155,20 @@ struct GradingParams: Equatable {
     var skinSat: Double = 1             // 肤色饱和度倍率
     var skinClarity: Double = 0         // 美颜档：去暗沉（皮肤阴影提亮）
     var eyeBright: Double = 0           // 美颜档：眼下提亮（人脸关键点定位）
+    var youthLift: Double = 0           // 美颜档 · 年轻化：提拉（下颌线 / 脸颊轻微上提，软组织下垂的反向）
+    var foldSoften: Double = 0          // 美颜档 · 年轻化：淡化法令纹 / 泪沟（沿纹路局部提亮）
+    var eyeBag: Double = 0              // 美颜档 · 年轻化：淡化眼袋（眼下区域加深减淡）
 
     /// 取景预览用：去掉磨皮 / 祛痘 / 眼下提亮 / 去暗沉（这些较重，只在成片里后台精修），肤色调整保留
     func liveSafe() -> GradingParams {
         var o = self
         o.skinSmooth = 0; o.skinEven = 0; o.blemish = 0; o.eyeBright = 0; o.skinClarity = 0
+        o.youthLift = 0; o.foldSoften = 0; o.eyeBag = 0
         return o
     }
 
     var hasSkinWork: Bool {
-        skinSmooth > 0.01 || skinEven > 0.01 || blemish > 0.01 || regionSkin != nil
+        skinSmooth > 0.01 || skinEven > 0.01 || blemish > 0.01 || regionSkin != nil || foldSoften > 0.01 || eyeBag > 0.01
             || abs(skinBright) > 0.05 || skinTint != .zero || abs(skinSat - 1) > 0.01 || skinClarity > 0.01
     }
     var strength: Double = 1            // 整体风格强度（可用 Camera Control 拨动）
@@ -421,11 +425,15 @@ struct BeautySettings: Equatable, Codable {
     var tone: SkinTone = .natural
     var eye = 0.5
     var dull = 0.4
+    // 年轻化（美颜档）
+    var lift = 0.3
+    var folds = 0.4
+    var eyeBag = 0.4
 
     /// 叠加到调色参数上（滤镜自带的肤色设定保留，用户设置在其上叠加）
     func apply(_ g: GradingParams) -> GradingParams {
         var o = g
-        o.eyeBright = 0; o.skinClarity = 0
+        o.eyeBright = 0; o.skinClarity = 0; o.youthLift = 0; o.foldSoften = 0; o.eyeBag = 0
         guard mode != .off else { return o }
         o.skinSmooth = max(o.skinSmooth, smooth)
         o.skinEven = max(o.skinEven, even)
@@ -436,6 +444,9 @@ struct BeautySettings: Equatable, Codable {
         if mode == .beauty {
             o.eyeBright = eye
             o.skinClarity = dull
+            o.youthLift = lift
+            o.foldSoften = folds
+            o.eyeBag = eyeBag
         }
         return o
     }

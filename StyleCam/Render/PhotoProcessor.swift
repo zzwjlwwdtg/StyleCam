@@ -80,7 +80,9 @@ enum PhotoProcessor {
         let needPerson = StyleRenderer.needsPersonMask(state)
         let needSubject = StyleRenderer.needsSubjectMask(state)
         let needFace = StyleRenderer.needsFaceMask(state)
-        guard needPerson || needSubject || needFace else { return m }
+        let needGeometry = StyleRenderer.needsGeometry(state)
+        guard needPerson || needSubject || needFace || needGeometry else { return m }
+        if needGeometry { m.geometry = FaceGeometry.detect(in: ci) }
         let handler = VNImageRequestHandler(ciImage: ci, options: [:])
         if needFace { m.underEye = SubjectMasker.underEyeMask(handler, extent: ci.extent) }
         // 精修按脸的大小定尺度；人像分割失败时用人脸椭圆兜底

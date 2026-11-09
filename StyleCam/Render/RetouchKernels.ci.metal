@@ -25,5 +25,12 @@ float4 scHealTexture(sample_t fill, sample_t donor, sample_t donorBlur) {
     return float4(fill.rgb * t, fill.a);
 }
 
+/// 位移变形（提拉）：输出 = 原图在 (当前位置 − 位移) 处的颜色；位移图的 R/G 是以像素计的 dx / dy
+float4 scDisplace(sampler src, sampler disp, destination dest) {
+    float2 p = dest.coord();
+    float2 d = sample(disp, samplerTransform(disp, p)).xy;
+    return sample(src, samplerTransform(src, p - d));
+}
+
 }
 }

@@ -41,9 +41,11 @@ jobs:
           cd "$RUNNER_TEMP/faces"
           UA="StyleCam-render-test/1.0 (https://github.com/zzwjlwwdtg/StyleCam)"
           for f in "Acne_vulgaris_on_a_very_oily_skin.jpg" "AcneVulgarisUSMIL.jpg" "Acne_vulgaris_1.jpg" \
-                   "Rosacea_01.jpg" "Man_portrait_(5618755358).jpg"; do
-            curl -sSfL -A "$UA" -o "$f" "https://commons.wikimedia.org/wiki/Special:FilePath/${f}?width=2400" \
-              && echo "ok  $f $(stat -f%z "$f")" || { echo "跳过 $f"; rm -f "$f"; }
+                   "Rosacea_01.jpg" "Man_portrait_(5618755358).jpg" "Ageing_of_the_human_face.jpg" \
+                   "Elderly_Woman,_B%26W_image_by_Chalmers_Butterfield.jpg"; do
+            n="${f//%26/and}"; n="${n//,/}"
+            curl -sSfL -A "$UA" -o "$n" "https://commons.wikimedia.org/wiki/Special:FilePath/${f}?width=2400" \
+              && echo "ok  $n $(stat -f%z "$n")" || { echo "跳过 $f"; rm -f "$n"; }
           done
           ls -la
 

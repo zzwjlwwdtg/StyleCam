@@ -631,6 +631,43 @@ final class FaceSampleTests: XCTestCase {
                 let pair = sideBySide(img, out, crop: crop)
                 try ctx.writeJPEGRepresentation(of: pair, to: outDir.appendingPathComponent("\(tag)_face.jpg"), colorSpace: srgb,
                                                 options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
+
+                // 年轻化（美颜档，提拉 / 淡化纹路 / 眼袋 拉满，便于看清效果）
+                if scale == 1 {
+                    var b = BeautySettings(); b.mode = .beauty; b.lift = 1; b.folds = 1; b.eyeBag = 1
+                    let ysnap = GradingSnapshot(base: GradingParams(), ref: nil, refTexture: nil, variant: .faithful,
+                                                effects: EffectToggles(), matchAspect: false, enabled: true, beauty: b)
+                    var yst = ysnap.state(for: img, context: ctx)
+                    yst.params.grain = 0
+                    let ym = PhotoProcessor.masks(for: img, state: yst, preferPerson: true)
+                    let yout = StyleRenderer().apply(img, state: yst, masks: ym)
+                    let folds = FaceGeometry.foldMask(ym.geometry, extent: img.extent)
+                    let field = FaceGeometry.liftField(ym.geometry, amount: 1, extent: img.extent)
+                    var maxShift: Float = 0
+                    if let field {
+                        let fe = field.extent.integral
+                        var px = [Float](repeating: 0, count: 4)
+                        // 抽查下巴附近的位移
+                        if let g = ym.geometry.first, let chin = g.contour.min(by: { $0.y < $1.y }), fe.contains(chin) {
+                            ctx.render(field, toBitmap: &px, rowBytes: 16, bounds: CGRect(x: chin.x, y: chin.y, width: 1, height: 1),
+                                       format: .RGBAf, colorSpace: nil)
+                            maxShift = (px[0] * px[0] + px[1] * px[1]).squareRoot()
+                        }
+                    }
+                    report += String(format: "  └ 年轻化：关键点 %d 张脸 · 纹路蒙版 %@ · 眼下蒙版 %@ · 下巴上提 %.1f px（脸高 %.0f px）\n",
+                                     ym.geometry.count, folds != nil ? "有" : "无", ym.underEye != nil ? "有" : "无",
+                                     maxShift, ym.geometry.first?.box.height ?? 0)
+                    try ctx.writeJPEGRepresentation(of: sideBySide(out, yout, crop: crop), to: outDir.appendingPathComponent("\(tag)_youth.jpg"),
+                                                    colorSpace: srgb, options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
+                    if let folds {
+                        let vis = yout.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0])
+                        let tint = CIImage(color: CIColor(red: 1, green: 0.2, blue: 0.4)).cropped(to: img.extent)
+                        let overlay = tint.applyingFilter("CIBlendWithMask", parameters: [kCIInputBackgroundImageKey: vis, kCIInputMaskImageKey: folds])
+                        try ctx.writeJPEGRepresentation(of: sideBySide(overlay, ym.underEye ?? vis, crop: crop),
+                                                        to: outDir.appendingPathComponent("\(tag)_youthmask.jpg"), colorSpace: srgb,
+                                                        options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.85])
+                    }
+                }
                 let s = min(1, 900 / max(img.extent.width, img.extent.height))
                 let full = out.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: s, kCIInputAspectRatioKey: 1])
                 try ctx.writeJPEGRepresentation(of: full, to: outDir.appendingPathComponent("\(tag)_full.jpg"), colorSpace: srgb,
