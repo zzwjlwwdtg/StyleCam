@@ -9,8 +9,22 @@ struct FaceGeometry {
     var mouthCorners: [CGPoint] // 两侧嘴角
     var eyes: [[CGPoint]]       // 两只眼的轮廓
 
+    /// 模拟器里 GPU / 神经网络引擎上的关键点结果会错位，改走 CPU（真机不受影响）
+    static func configure(_ req: VNRequest) {
+        #if targetEnvironment(simulator)
+        if let devs = try? req.supportedComputeStageDevices() {
+            for (stage, list) in devs {
+                if let cpu = list.first(where: { if case .cpu = $0 { return true } else { return false } }) {
+                    req.setComputeDevice(cpu, for: stage)
+                }
+            }
+        }
+        #endif
+    }
+
     static func detect(in img: CIImage) -> [FaceGeometry] {
         let req = VNDetectFaceLandmarksRequest()
+        configure(req)
         guard (try? VNImageRequestHandler(ciImage: img, options: [:]).perform([req])) != nil else { return [] }
         let e = img.extent
         let size = e.size

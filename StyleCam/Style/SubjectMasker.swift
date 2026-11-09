@@ -73,6 +73,7 @@ enum SubjectMasker {
     /// 眼下区域蒙版（美颜档）：人脸关键点找到双眼，在眼睛正下方画柔和的椭圆
     static func underEyeMask(_ handler: VNImageRequestHandler, extent: CGRect,
                              request: VNDetectFaceLandmarksRequest = VNDetectFaceLandmarksRequest()) -> CIImage? {
+        FaceGeometry.configure(request)
         guard (try? handler.perform([request])) != nil, let faces = request.results, !faces.isEmpty else { return nil }
         let W = 360, H = max(1, Int((360 * extent.height / max(1, extent.width)).rounded()))
         guard let ctx = CGContext(data: nil, width: W, height: H, bitsPerComponent: 8, bytesPerRow: 0,
