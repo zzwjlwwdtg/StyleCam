@@ -87,7 +87,21 @@ struct FaceGeometry {
                   let t = px.min(by: { $0.1 < $1.1 }), let b = px.max(by: { $0.1 < $1.1 }) else { return [] }
             return [img(l.0, l.1), img(t.0, t.1), img(r.0, r.1), img(b.0, b.1)]
         }
-        let eyes = [extremes(byClass[4]), extremes(byClass[5])].filter { !$0.isEmpty }
+        // 眼睛：侧脸时模型常把两只眼标成同一类，所以把两类合起来按横向位置分成两团
+        let eyePx = byClass[4] + byClass[5]
+        var eyes: [[CGPoint]] = []
+        if eyePx.count >= minPx, var c0 = eyePx.map(\.0).min().map(Double.init), var c1 = eyePx.map(\.0).max().map(Double.init) {
+            var g0: [(Int, Int)] = [], g1: [(Int, Int)] = []
+            for _ in 0..<6 {
+                g0 = []; g1 = []
+                for p in eyePx { if abs(Double(p.0) - c0) <= abs(Double(p.0) - c1) { g0.append(p) } else { g1.append(p) } }
+                if !g0.isEmpty { c0 = Double(g0.map(\.0).reduce(0, +)) / Double(g0.count) }
+                if !g1.isEmpty { c1 = Double(g1.map(\.0).reduce(0, +)) / Double(g1.count) }
+            }
+            // 两团太近说明其实只看到一只眼
+            if abs(c1 - c0) < Double(w) * 0.06 { g0 += g1; g1 = [] }
+            eyes = [extremes(g0), extremes(g1)].filter { !$0.isEmpty }
+        }
 
         // 嘴角：口 + 上下唇的最左、最右
         let mouth = byClass[11] + byClass[12] + byClass[13]

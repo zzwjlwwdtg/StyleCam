@@ -169,14 +169,17 @@ final class StyleRenderer: @unchecked Sendable {
 
         // 3c. 年轻化（美颜档）：法令纹 / 泪沟、眼袋 —— 沿纹路做加深减淡，暗的折痕提亮到周围肤色
         let youthW = Retoucher.typicalFaceWidth(masks.faces.isEmpty ? masks.geometry.map(\.box) : masks.faces, extent: extent)
-        if p.foldSoften > 0.01 && s > 0, let sk = skinMask,
+        // 脸太小（远景）时纹路、眼袋都看不清，不做；脸宽 80→200 像素逐渐加到全强度
+        let youthK = ColorMath.smoothstep(80, 200, Double(youthW))
+        if p.foldSoften > 0.01 && s > 0 && youthK > 0, let sk = skinMask,
            let folds = FaceGeometry.foldMask(masks.geometry, extent: extent) {
-            let lifted = Retoucher.evenSkin(img, skin: sk, even: 1, blemish: 0, faceWidth: youthW)
-            img = blend(lifted, over: img, mask: scaled(folds, min(1, p.foldSoften) * s), extent: extent)
+            // 纹路比痘印宽，用更大的“大尺度”把凹陷的阴影拉回周围肤色
+            let lifted = Retoucher.evenSkin(img, skin: sk, even: 1, blemish: 0, faceWidth: youthW * 1.4)
+            img = blend(lifted, over: img, mask: scaled(folds, min(1, p.foldSoften) * s * youthK), extent: extent)
         }
-        if p.eyeBag > 0.01 && s > 0, let eye = masks.underEye, let sk = skinMask {
-            let lifted = Retoucher.evenSkin(img, skin: sk, even: 1, blemish: 0.5, faceWidth: youthW * 0.8)
-            img = blend(lifted, over: img, mask: scaled(eye.cropped(to: extent), min(1, p.eyeBag) * s), extent: extent)
+        if p.eyeBag > 0.01 && s > 0 && youthK > 0, let eye = masks.underEye, let sk = skinMask {
+            let lifted = Retoucher.evenSkin(img, skin: sk, even: 1, blemish: 0.5, faceWidth: youthW * 1.6)
+            img = blend(lifted, over: img, mask: scaled(eye.cropped(to: extent), min(1, p.eyeBag) * s * youthK), extent: extent)
         }
 
         // 3d. 眼下提亮（美颜档）
@@ -187,8 +190,8 @@ final class StyleRenderer: @unchecked Sendable {
         }
 
         // 3e. 年轻化 · 提拉：下颌线 / 脸颊下缘轻微上提（位移变形，最后做，前面的蒙版都按原位置计算）
-        if p.youthLift > 0.01 && s > 0,
-           let field = FaceGeometry.liftField(masks.geometry, amount: p.youthLift * s, extent: extent) {
+        if p.youthLift > 0.01 && s > 0 && youthK > 0,
+           let field = FaceGeometry.liftField(masks.geometry, amount: p.youthLift * s * youthK, extent: extent) {
             img = Retoucher.displace(img, field: field)
         }
 
