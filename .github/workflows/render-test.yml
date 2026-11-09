@@ -41,7 +41,7 @@ jobs:
           cd "$RUNNER_TEMP/faces"
           UA="StyleCam-render-test/1.0 (https://github.com/zzwjlwwdtg/StyleCam)"
           for f in "Acne_vulgaris_on_a_very_oily_skin.jpg" "AcneVulgarisUSMIL.jpg" "Acne_vulgaris_1.jpg" \
-                   "Rosacea_01.jpg" "Man_portrait_(5618755358).jpg" "Ageing_of_the_human_face.jpg" \
+                   "Rosacea_01.jpg" "Man_portrait_(5618755358).jpg" "Ageing_of_the_human_face.jpg" "Middle_aged_man.jpg" "Older_adult.jpg" "An_old_age.JPG" \
                    "Elderly_Woman,_B%26W_image_by_Chalmers_Butterfield.jpg"; do
             n="${f//%26/and}"; n="${n//,/}"
             curl -sSfL -A "$UA" -o "$n" "https://commons.wikimedia.org/wiki/Special:FilePath/${f}?width=2400" \

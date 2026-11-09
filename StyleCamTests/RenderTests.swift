@@ -659,6 +659,30 @@ final class FaceSampleTests: XCTestCase {
                                      maxShift, ym.geometry.first?.box.height ?? 0)
                     try ctx.writeJPEGRepresentation(of: sideBySide(out, yout, crop: crop), to: outDir.appendingPathComponent("\(tag)_youth.jpg"),
                                                     colorSpace: srgb, options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
+                    // 关键点可视化：下颌线（绿）、鼻翼 / 嘴角（红）、眼睛（蓝）
+                    if !ym.geometry.isEmpty {
+                        let e = img.extent
+                        let cs = CGColorSpace(name: CGColorSpace.sRGB)!
+                        if let c = CGContext(data: nil, width: Int(e.width), height: Int(e.height), bitsPerComponent: 8, bytesPerRow: 0,
+                                             space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) {
+                            let r = max(2, e.width / 300)
+                            func dots(_ ps: [CGPoint], _ col: CGColor) {
+                                c.setFillColor(col)
+                                for p in ps { c.fillEllipse(in: CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)) }
+                            }
+                            for g in ym.geometry {
+                                dots(g.contour, CGColor(red: 0, green: 1, blue: 0, alpha: 1))
+                                dots(g.noseWings + g.mouthCorners, CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+                                dots(g.eyes.flatMap { $0 }, CGColor(red: 0, green: 0.4, blue: 1, alpha: 1))
+                                c.setStrokeColor(CGColor(red: 1, green: 1, blue: 0, alpha: 1)); c.setLineWidth(r / 2); c.stroke(g.box)
+                            }
+                            if let cg = c.makeImage() {
+                                let lm = CIImage(cgImage: cg).composited(over: img)
+                                try ctx.writeJPEGRepresentation(of: sideBySide(lm, yout, crop: crop), to: outDir.appendingPathComponent("\(tag)_landmarks.jpg"),
+                                                                colorSpace: srgb, options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.85])
+                            }
+                        }
+                    }
                     if let folds {
                         let vis = yout.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0])
                         let tint = CIImage(color: CIColor(red: 1, green: 0.2, blue: 0.4)).cropped(to: img.extent)
