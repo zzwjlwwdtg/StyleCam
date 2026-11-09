@@ -1,4 +1,5 @@
 import CoreImage
+import Vision
 import CoreImage.CIFilterBuiltins
 
 /// 皮肤精修：中性灰匀肤、自动祛痘、点修。
@@ -40,13 +41,24 @@ enum Retoucher {
     private final class KernelBundle {}
     static var kernelsLoaded: Bool { kernels.dodge != nil && kernels.heal != nil }
 
-    /// 中性灰匀肤 + 自动祛痘。even：拉平程度 0…1；blemish：祛痘强度 0…1
-    static func evenSkin(_ img: CIImage, skin: CIImage, even: Double, blemish: Double) -> CIImage {
+    /// 画面里有代表性的脸宽（像素）：取最大的脸；没检测到脸时按画面长边的 15% 估计
+    static func typicalFaceWidth(_ faces: [CGRect], extent: CGRect) -> CGFloat {
+        faces.map { max($0.width, $0.height) }.max() ?? max(extent.width, extent.height) * 0.15
+    }
+
+    /// 脸越小，磨皮越弱：脸宽 60 像素以下几乎不磨，240 像素以上全强度
+    static func sizeFactor(_ faceW: CGFloat) -> Double {
+        ColorMath.smoothstep(60, 240, Double(faceW))
+    }
+
+    /// 中性灰匀肤 + 自动祛痘。even：拉平程度 0…1；blemish：祛痘强度 0…1；faceWidth：脸宽（像素），决定处理的尺度
+    static func evenSkin(_ img: CIImage, skin: CIImage, even: Double, blemish: Double, faceWidth: CGFloat? = nil) -> CIImage {
         let e = img.extent
         guard let k = kernels.dodge, even > 0.01 || blemish > 0.01 else { return img }
-        let L = Double(max(e.width, e.height))
-        let fine = maskedBlur(img, mask: skin, sigma: max(1, L * 0.0013))   // 去掉毛孔级纹理
-        let broad = maskedBlur(img, mask: skin, sigma: max(4, L * 0.009))   // 只剩大尺度肤色
+        let fw = Double(faceWidth ?? max(e.width, e.height) * 0.15)
+        // 毛孔约为脸宽的 1%，痘印 / 暗沉约 3%～8%：细尺度只去毛孔，粗尺度只保留大块肤色
+        let fine = maskedBlur(img, mask: skin, sigma: max(0.7, fw * 0.010))
+        let broad = maskedBlur(img, mask: skin, sigma: max(2.5, fw * 0.065))
         return k.apply(extent: e, arguments: [img, fine, broad, Float(even), Float(blemish)])?.cropped(to: e) ?? img
     }
 
@@ -77,9 +89,39 @@ enum Retoucher {
         return out.cropped(to: e)
     }
 
-    /// 整张照片的皮肤蒙版：人像分割 × 肤色可能性
-    static func skinMask(for img: CIImage) -> CIImage? {
-        guard let person = SemanticStats.personMask(for: img) else { return nil }
+    /// 人脸框（图像坐标）
+    static func faces(in img: CIImage) -> [CGRect] {
+        let req = VNDetectFaceRectanglesRequest()
+        guard (try? VNImageRequestHandler(ciImage: img, options: [:]).perform([req])) != nil else { return [] }
+        let e = img.extent
+        return (req.results ?? []).map {
+            CGRect(x: e.minX + $0.boundingBox.minX * e.width, y: e.minY + $0.boundingBox.minY * e.height,
+                   width: $0.boundingBox.width * e.width, height: $0.boundingBox.height * e.height)
+        }
+    }
+
+    /// 人像分割失败时的退路：每张脸画一个覆盖整张脸和下巴的椭圆
+    static func faceEllipseMask(_ faces: [CGRect], extent: CGRect) -> CIImage? {
+        guard !faces.isEmpty else { return nil }
+        var out = CIImage(color: .black).cropped(to: extent)
+        for f in faces {
+            let g = CIFilter.radialGradient()
+            g.center = .zero; g.radius0 = 0.8; g.radius1 = 1
+            g.color0 = CIColor.white; g.color1 = CIColor.black
+            guard let unit = g.outputImage else { continue }
+            let ell = unit.transformed(by: CGAffineTransform(scaleX: f.width * 0.78, y: f.height * 1.0)
+                .concatenating(CGAffineTransform(translationX: f.midX, y: f.midY - f.height * 0.08))).cropped(to: extent)
+            let mx = CIFilter.maximumCompositing()
+            mx.inputImage = ell; mx.backgroundImage = out
+            out = mx.outputImage?.cropped(to: extent) ?? out
+        }
+        return out
+    }
+
+    /// 整张照片的皮肤蒙版：人像分割（失败时用人脸椭圆）× 肤色可能性
+    static func skinMask(for img: CIImage, faces: [CGRect]? = nil) -> CIImage? {
+        let fs = faces ?? Self.faces(in: img)
+        guard let person = SemanticStats.personMask(for: img) ?? faceEllipseMask(fs, extent: img.extent) else { return nil }
         let e = img.extent
         let likely = img.applyingFilter("CIColorCubeWithColorSpace", parameters: [
             "inputCubeDimension": LUTBuilder.dimension,

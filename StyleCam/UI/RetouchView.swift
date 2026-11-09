@@ -10,6 +10,7 @@ struct RetouchView: View {
     @State private var source: CIImage?          // 原图（方向已校正）
     @State private var metadata: [String: Any] = [:]
     @State private var skin: CIImage?            // 原图尺寸的皮肤蒙版
+    @State private var faceW: CGFloat = 0        // 最大的脸宽（原图像素），决定精修尺度
     @State private var preview: UIImage?
     @State private var originalPreview: UIImage?
     @State private var even = 0.6
@@ -164,7 +165,11 @@ struct RetouchView: View {
             let props = CGImageSourceCreateWithData(data as CFData, nil)
                 .flatMap { CGImageSourceCopyPropertiesAtIndex($0, 0, nil) as? [String: Any] } ?? [:]
             let flat = ci.transformed(by: CGAffineTransform(translationX: -ci.extent.minX, y: -ci.extent.minY))
-            let mask = await Task.detached { Retoucher.skinMask(for: flat) }.value
+            let (mask, fw) = await Task.detached { () -> (CIImage?, CGFloat) in
+                let fs = Retoucher.faces(in: flat)
+                return (Retoucher.skinMask(for: flat, faces: fs), Retoucher.typicalFaceWidth(fs, extent: flat.extent))
+            }.value
+            faceW = fw
             source = flat
             metadata = props
             skin = mask
@@ -177,11 +182,13 @@ struct RetouchView: View {
     }
 
     /// 按当前参数处理（预览用缩小图，保存用原图）
-    private static func process(_ src: CIImage, skin: CIImage?, even: Double, blemish: Double,
+    private static func process(_ src: CIImage, skin: CIImage?, even: Double, blemish: Double, faceW: CGFloat,
                                 spots: [CGPoint], radii: [CGFloat]) -> CIImage {
         var out = src
         if let skin, even > 0.01 || blemish > 0.01 {
-            let evened = Retoucher.evenSkin(src, skin: skin, even: even, blemish: blemish)
+            // 脸越小越轻：远处的小脸不磨，只去明显斑点
+            let evened = Retoucher.evenSkin(src, skin: skin, even: even * Retoucher.sizeFactor(faceW), blemish: blemish,
+                                            faceWidth: faceW)
             out = Retoucher.blend(evened, over: src, mask: skin)
         }
         if !spots.isEmpty {
@@ -201,7 +208,7 @@ struct RetouchView: View {
         guard let src = source else { return }
         renderToken += 1
         let token = renderToken
-        let (sk, ev, bl, sp, rd) = (skin, even, blemish, spots, spotRadii)
+        let (sk, ev, bl, sp, rd, fw) = (skin, even, blemish, spots, spotRadii, faceW)
         Task.detached(priority: .userInitiated) {
             // 预览：先缩小到 1600 长边再处理（点修坐标同比例缩放）
             let e = src.extent
@@ -209,7 +216,7 @@ struct RetouchView: View {
             let t = CGAffineTransform(scaleX: s, y: s)
             let small = src.transformed(by: t)
             let smallSkin = sk?.transformed(by: t)
-            let out = Self.process(small, skin: smallSkin, even: ev, blemish: bl,
+            let out = Self.process(small, skin: smallSkin, even: ev, blemish: bl, faceW: fw * s,
                                    spots: sp.map { $0.applying(t) }, radii: rd.map { $0 * s })
             let ui = Self.ctx.createCGImage(out, from: small.extent).map { UIImage(cgImage: $0) }
             await MainActor.run { if token == renderToken { preview = ui } }
@@ -220,9 +227,9 @@ struct RetouchView: View {
         guard let src = source else { return }
         busy = true
         message = "正在保存原尺寸照片…"
-        let (sk, ev, bl, sp, rd, meta) = (skin, even, blemish, spots, spotRadii, metadata)
+        let (sk, ev, bl, sp, rd, meta, fw) = (skin, even, blemish, spots, spotRadii, metadata, faceW)
         Task.detached(priority: .userInitiated) {
-            let out = Self.process(src, skin: sk, even: ev, blemish: bl, spots: sp, radii: rd)
+            let out = Self.process(src, skin: sk, even: ev, blemish: bl, faceW: fw, spots: sp, radii: rd)
             let summary = String(format: "StyleCam 精修 | 中性灰 %.0f%% · 祛痘 %.0f%% · 点修 %d 处", ev * 100, bl * 100, sp.count)
             PhotoProcessor.saveRendered(out, metadata: meta, summary: summary) { _, err in
                 Task { @MainActor in

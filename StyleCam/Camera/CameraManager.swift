@@ -447,7 +447,8 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     /// 把“计划里的调色参数 + 当前版本（忠实/柔和/浓郁）”交给渲染器（只在 sessionQueue 上调用）
     private func pushGrading() {
         let (v, crop, fx, beauty) = locked { (_variant, _matchAspect, _effects, _beauty) }
-        var g = beauty.apply(fx.apply(v.apply(plan.grading)))
+        // 取景只显示调色和肤色；磨皮 / 祛痘等精修在拍完后后台处理，保证取景流畅
+        var g = beauty.apply(fx.apply(v.apply(plan.grading))).liveSafe()
         if !crop { g.cropRatio = nil }           // 画幅裁切默认关闭，需在参数面板勾选
         renderer.update(g)
     }

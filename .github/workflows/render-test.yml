@@ -35,6 +35,18 @@ jobs:
           echo "udid=$UDID" >> $GITHUB_OUTPUT
           xcrun simctl list devices available | grep -i iphone | tail -5
 
+      - name: 下载人脸样图（Wikimedia Commons，自由许可）
+        run: |
+          mkdir -p "$RUNNER_TEMP/faces"
+          cd "$RUNNER_TEMP/faces"
+          UA="StyleCam-render-test/1.0 (https://github.com/zzwjlwwdtg/StyleCam)"
+          for f in "Acne_vulgaris_on_a_very_oily_skin.jpg" "AcneVulgarisUSMIL.jpg" "Acne_vulgaris_1.jpg" \
+                   "Rosacea_01.jpg" "Man_portrait_(5618755358).jpg"; do
+            curl -sSfL -A "$UA" -o "$f" "https://commons.wikimedia.org/wiki/Special:FilePath/${f}?width=2400" \
+              && echo "ok  $f $(stat -f%z "$f")" || { echo "跳过 $f"; rm -f "$f"; }
+          done
+          ls -la
+
       - name: 运行渲染测试
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
@@ -46,7 +58,8 @@ jobs:
           case "$COMMIT_MSG" in *"[ui-only]"*) ONLY="-only-testing:StyleCamTests/FilmCabinetSnapshotTests" ;; esac
           case "$COMMIT_MSG" in *"[beauty-only]"*) ONLY="-only-testing:StyleCamTests/BeautyTests" ;; esac
           case "$COMMIT_MSG" in *"[retouch-only]"*) ONLY="-only-testing:StyleCamTests/RetouchTests" ;; esac
-          TEST_RUNNER_OUTPUT_DIR="$PWD/out" xcodebuild test $ONLY \
+          case "$COMMIT_MSG" in *"[faces-only]"*) ONLY="-only-testing:StyleCamTests/FaceSampleTests" ;; esac
+          TEST_RUNNER_FACE_SAMPLES_DIR="$RUNNER_TEMP/faces" TEST_RUNNER_OUTPUT_DIR="$PWD/out" xcodebuild test $ONLY \
             -project StyleCam.xcodeproj -scheme StyleCam \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log | grep -E "error:|Test Case|passed|failed|TEST " || true

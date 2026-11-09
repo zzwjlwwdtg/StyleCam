@@ -156,6 +156,13 @@ struct GradingParams: Equatable {
     var skinClarity: Double = 0         // 美颜档：去暗沉（皮肤阴影提亮）
     var eyeBright: Double = 0           // 美颜档：眼下提亮（人脸关键点定位）
 
+    /// 取景预览用：去掉磨皮 / 祛痘 / 眼下提亮 / 去暗沉（这些较重，只在成片里后台精修），肤色调整保留
+    func liveSafe() -> GradingParams {
+        var o = self
+        o.skinSmooth = 0; o.skinEven = 0; o.blemish = 0; o.eyeBright = 0; o.skinClarity = 0
+        return o
+    }
+
     var hasSkinWork: Bool {
         skinSmooth > 0.01 || skinEven > 0.01 || blemish > 0.01 || regionSkin != nil
             || abs(skinBright) > 0.05 || skinTint != .zero || abs(skinSat - 1) > 0.01 || skinClarity > 0.01

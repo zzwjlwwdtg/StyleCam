@@ -62,7 +62,7 @@ final class TetherSession: ObservableObject, @unchecked Sendable {
             // 影调色彩每 8 帧重新对齐一次（参考图风格才需要；内置滤镜参数固定）
             if st == nil || (snap.ref != nil && frameIndex % 8 == 0) {
                 m = snap.liveMatch(for: img, context: ctx, previous: m)
-                st = snap.renderState(from: m!)
+                st = snap.renderState(from: m!, live: true)
                 lock.lock(); matched = m; state = st; lock.unlock()
             }
             guard let st else { return }

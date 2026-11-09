@@ -6,6 +6,7 @@ struct RenderMasks {
     var subject: CIImage?     // 主体：用于只虚化背景
     var person: CIImage?      // 人像：用于肤色保护 / 区域美颜
     var underEye: CIImage?    // 眼下区域（美颜档，人脸关键点定位）
+    var faces: [CGRect] = []  // 人脸框（图像坐标）：精修强度和尺度按脸的大小来定
 }
 
 /// 实时滤镜：背景虚化 → 3D LUT（含分区调色）→ 肤色保护 → 区域美颜 → 柔光 → 锐化 → 高光光晕 → 暗角 → 颗粒 → 画幅裁切。
@@ -124,16 +125,21 @@ final class StyleRenderer: @unchecked Sendable {
             }
         }
 
-        // 3b. 区域美颜（只在皮肤上）
+        // 3b. 区域美颜（只在皮肤上）。尺度和强度都按“脸有多大（像素）”来定：
+        //     大脸：毛孔级以上的起伏才拉平；小脸：一个像素就是一大块皮肤，几乎不磨，只去明显斑点，保住五官细节
         if p.hasSkinWork, let m = skinMask {
+            let faceW = Retoucher.typicalFaceWidth(masks.faces, extent: extent)
+            let sizeK = Retoucher.sizeFactor(faceW)
             // 中性灰匀肤 + 自动祛痘：拉平中尺度明暗起伏，保留毛孔纹理
             if p.skinEven > 0.01 || p.blemish > 0.01 {
-                let evened = Retoucher.evenSkin(img, skin: m, even: p.skinEven * s, blemish: p.blemish * s)
+                let evened = Retoucher.evenSkin(img, skin: m, even: p.skinEven * s * sizeK, blemish: p.blemish * s,
+                                                faceWidth: faceW)
                 img = blend(evened, over: img, mask: m, extent: extent)
             }
-            // 柔肤：保边平滑（以原图为引导的上采样），五官和头发的边缘不被抹掉
-            if p.skinSmooth > 0.01 {
-                img = blend(edgeSmooth(img), over: img, mask: scaled(m, min(1, p.skinSmooth * 0.85) * s), extent: extent)
+            // 柔肤：皮肤内小半径平滑（半径跟脸大小走），小脸自动减弱
+            if p.skinSmooth > 0.01 && sizeK > 0.01 {
+                let soft = Retoucher.maskedBlur(img, mask: m, sigma: max(0.6, Double(faceW) * 0.012))
+                img = blend(soft, over: img, mask: scaled(m, min(1, p.skinSmooth * 0.7) * s * sizeK), extent: extent)
             }
             // 去暗沉（美颜档）：皮肤上的阴影提亮
             if p.skinClarity > 0.01 {

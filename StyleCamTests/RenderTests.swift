@@ -545,3 +545,94 @@ final class RetouchTests: XCTestCase {
         try report.write(to: try outDir().appendingPathComponent("retouch.txt"), atomically: true, encoding: .utf8)
     }
 }
+
+// MARK: - 真实人脸样图：大 / 中 / 小三种脸的比例，看精修是否保住细节
+final class FaceSampleTests: XCTestCase {
+    let ctx = CIContext(options: [.cacheIntermediates: false])
+    let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+
+    /// 区域内的拉普拉斯方差（细节量）
+    private func detail(_ img: CIImage, in r: CGRect) -> Double {
+        let w = max(8, Int(r.width)), h = max(8, Int(r.height))
+        var px = [UInt8](repeating: 0, count: w * h * 4)
+        ctx.render(img, toBitmap: &px, rowBytes: w * 4, bounds: CGRect(x: r.minX, y: r.minY, width: CGFloat(w), height: CGFloat(h)),
+                   format: .RGBA8, colorSpace: srgb)
+        func g(_ x: Int, _ y: Int) -> Double { let o = (y * w + x) * 4; return 0.3 * Double(px[o]) + 0.59 * Double(px[o + 1]) + 0.11 * Double(px[o + 2]) }
+        var s = 0.0, s2 = 0.0, n = 0.0
+        for y in 1..<(h - 1) { for x in 1..<(w - 1) {
+            let l = 4 * g(x, y) - g(x - 1, y) - g(x + 1, y) - g(x, y - 1) - g(x, y + 1)
+            s += l; s2 += l * l; n += 1
+        } }
+        return n > 0 ? s2 / n - (s / n) * (s / n) : 0
+    }
+
+    /// 前后对比图：脸部按原像素裁出（小脸用最近邻放大，看清像素）
+    private func sideBySide(_ a: CIImage, _ b: CIImage, crop: CGRect) -> CIImage {
+        let k = max(1, min(6, 420 / crop.width))
+        func prep(_ i: CIImage) -> CIImage {
+            i.cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
+                .samplingNearest().transformed(by: CGAffineTransform(scaleX: k, y: k))
+        }
+        let left = prep(a), right = prep(b)
+        return right.transformed(by: CGAffineTransform(translationX: left.extent.width + 8, y: 0)).composited(over: left)
+            .composited(over: CIImage(color: .white).cropped(to: CGRect(x: 0, y: 0, width: left.extent.width * 2 + 8, height: left.extent.height)))
+    }
+
+    func testFaceSamples() throws {
+        let outDir = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OUTPUT_DIR"] ?? NSTemporaryDirectory())
+            .appendingPathComponent("render-out/faces", isDirectory: true)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        var sources: [(String, CIImage)] = []
+        if let dir = ProcessInfo.processInfo.environment["FACE_SAMPLES_DIR"],
+           let files = try? FileManager.default.contentsOfDirectory(atPath: dir) {
+            for f in files.sorted() where f.lowercased().hasSuffix(".jpg") {
+                if let ci = CIImage(contentsOf: URL(fileURLWithPath: dir).appendingPathComponent(f), options: [.applyOrientationProperty: true]) {
+                    sources.append((f, ci))
+                }
+            }
+        }
+        if let u = Bundle(for: FaceSampleTests.self).url(forResource: "scene_forest", withExtension: "jpg"),
+           let ci = CIImage(contentsOf: u, options: [.applyOrientationProperty: true]) { sources.append(("scene_forest.jpg", ci)) }
+        var report = "样图 \(sources.count) 张\n"
+
+        for (name, raw) in sources {
+            // 统一到原点；同一张图再缩成 40% 和 15%，模拟同样的皮肤问题在中 / 小比例下的样子
+            let base = raw.transformed(by: CGAffineTransform(translationX: -raw.extent.minX, y: -raw.extent.minY))
+            for scale in name.hasPrefix("scene_") ? [1.0] : [1.0, 0.4, 0.15] {
+                let img = scale == 1 ? base : base.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: scale, kCIInputAspectRatioKey: 1])
+                let faces = Retoucher.faces(in: img)
+                let tag = "\((name as NSString).deletingPathExtension)_\(Int(scale * 100))"
+                guard let face = faces.max(by: { $0.width < $1.width }) else {
+                    report += "\(tag)：\(Int(img.extent.width))×\(Int(img.extent.height)) 没检测到人脸\n"
+                    continue
+                }
+                let fw = Retoucher.typicalFaceWidth(faces, extent: img.extent)
+                let share = face.width / img.extent.width
+                let snap = GradingSnapshot(base: GradingParams(), ref: nil, refTexture: nil, variant: .faithful,
+                                           effects: EffectToggles(), matchAspect: false, enabled: true, beauty: BeautySettings())
+                var st = snap.state(for: img, context: ctx)
+                st.params.grain = 0
+                let t0 = Date()
+                let masks = PhotoProcessor.masks(for: img, state: st, preferPerson: true)
+                let out = StyleRenderer().apply(img, state: st, masks: masks)
+                let crop = face.insetBy(dx: -face.width * 0.25, dy: -face.height * 0.25).intersection(img.extent).integral
+                let inner = face.insetBy(dx: face.width * 0.2, dy: face.height * 0.2).integral
+                let d0 = detail(img, in: inner), d1 = detail(out, in: inner)
+                _ = ctx.createCGImage(out, from: crop)   // 计时用：确保真正渲染了
+                let ms = Date().timeIntervalSince(t0) * 1000
+                report += String(format: "%@：脸宽 %.0f px（占画面宽 %.0f%%）· 尺度系数 %.2f · 细节保留 %.0f%% · 人像蒙版 %@ · %.0f ms\n",
+                                 tag, fw, share * 100, Retoucher.sizeFactor(fw), d0 > 0 ? d1 / d0 * 100 : 0,
+                                 masks.person != nil ? "有" : "无", ms)
+                let pair = sideBySide(img, out, crop: crop)
+                try ctx.writeJPEGRepresentation(of: pair, to: outDir.appendingPathComponent("\(tag)_face.jpg"), colorSpace: srgb,
+                                                options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.9])
+                let s = min(1, 900 / max(img.extent.width, img.extent.height))
+                let full = out.applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: s, kCIInputAspectRatioKey: 1])
+                try ctx.writeJPEGRepresentation(of: full, to: outDir.appendingPathComponent("\(tag)_full.jpg"), colorSpace: srgb,
+                                                options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: 0.85])
+            }
+        }
+        report += "\n样图来源：Wikimedia Commons（自由许可），文件名见上；scene_forest 为项目自带测试图。\n"
+        try report.write(to: outDir.appendingPathComponent("faces.txt"), atomically: true, encoding: .utf8)
+    }
+}

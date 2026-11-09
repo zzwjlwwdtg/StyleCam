@@ -83,11 +83,14 @@ enum PhotoProcessor {
         guard needPerson || needSubject || needFace else { return m }
         let handler = VNImageRequestHandler(ciImage: ci, options: [:])
         if needFace { m.underEye = SubjectMasker.underEyeMask(handler, extent: ci.extent) }
+        // 精修按脸的大小定尺度；人像分割失败时用人脸椭圆兜底
+        if state.params.hasSkinWork || needFace { m.faces = Retoucher.faces(in: ci) }
         if let o = SemanticStats.overridePersonMask {
             m.person = o(ci)
         } else if needPerson || preferPerson, let pb = SubjectMasker.personMask(handler, quality: .accurate) {
             m.person = SubjectMasker.ciMask(pb, fitting: ci.extent)
         }
+        if needPerson && m.person == nil { m.person = Retoucher.faceEllipseMask(m.faces, extent: ci.extent) }
         if needSubject {
             if preferPerson, let p = m.person {
                 m.subject = p
@@ -159,8 +162,9 @@ struct GradingSnapshot {
         return g
     }
 
-    func renderState(from matched: GradingParams) -> StyleRenderer.State {
+    func renderState(from matched: GradingParams, live: Bool = false) -> StyleRenderer.State {
         var o = beauty.apply(effects.apply(variant.apply(matched)))
+        if live { o = o.liveSafe() }
         o.cropRatio = nil
         return StyleRenderer.makeState(o, enabled: enabled)
     }
