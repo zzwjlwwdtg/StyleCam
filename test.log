@@ -1,0 +1,1070 @@
+Command line invocation:
+    /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/xcodebuild test "-only-testing:StyleCamTests/FaceSampleTests" -project StyleCam.xcodeproj -scheme StyleCam -destination id=09693AE6-5842-4CF5-B801-D905E896271E CODE_SIGNING_ALLOWED=NO
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (2 targets)
+    Target 'StyleCamTests' in project 'StyleCam'
+        ➜ Explicit dependency on target 'StyleCam' in project 'StyleCam'
+    Target 'StyleCam' in project 'StyleCam' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /usr/bin/what -q /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/coremlc
+
+ExecuteExternalTool /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/coremlc generate /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing --dry-run yes --deployment-target 27.0 --sdkroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk --platform ios --output-partial-info-plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/FaceParsing-CoreMLPartialInfo.plist --container bundle-resources --language Swift --swift-version 5.0
+
+ExecuteExternalTool /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/runner/work/StyleCam/StyleCam/StyleCam/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ExecuteExternalTool /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+Build description signature: bd2d0a5d61b82b5fd5bf83eab343179b
+Build description path: /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/XCBuildData/bd2d0a5d61b82b5fd5bf83eab343179b.xcbuilddata
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/CompilationCache.noindex
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/CompilationCache.noindex
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -o /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam-011dba56059aa27972de0e9b9fb054d8-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam-011dba56059aa27972de0e9b9fb054d8-VFS-iphonesimulator/all-product-headers.yaml
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/runner/work/StyleCam/StyleCam/StyleCam.xcodeproj
+    builtin-create-build-directory /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/empty-StyleCamTests.plist (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/empty-StyleCamTests.plist
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.hmap (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyStaticMetadataFileList (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyMetadataFileList (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-project-headers.hmap (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-project-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-own-target-headers.hmap (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-generated-files.hmap (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-generated-files.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-target-headers.hmap (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-non-framework-target-headers.hmap (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_const_extract_protocols.json (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftFileList (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftConstValuesFileList (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.LinkFileList (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.LinkFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-OutputFileMap.json (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/empty-StyleCam.plist (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/empty-StyleCam.plist
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.hmap (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyStaticMetadataFileList (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyMetadataFileList (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-project-headers.hmap (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-project-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-own-target-headers.hmap (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-generated-files.hmap (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-generated-files.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-target-headers.hmap (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-non-framework-target-headers.hmap (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-DebugDylibPath-normal-arm64.txt (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-DebugDylibPath-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-DebugDylibInstallName-normal-arm64.txt (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-DebugDylibInstallName-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_const_extract_protocols.json (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftFileList (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftConstValuesFileList (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.LinkFileList (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.LinkFileList
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-OutputFileMap.json (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/64a93002de4a8d02af67d8db0d18e751.sb (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/64a93002de4a8d02af67d8db0d18e751.sb
+
+WriteAuxiliaryFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/3f3b6665efc658b32fe4c86444a4b211.sb (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    write-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/3f3b6665efc658b32fe4c86444a4b211.sb
+
+MkDir /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /bin/mkdir -p /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+MkDir /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /bin/mkdir -p /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns
+
+MkDir /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /bin/mkdir -p /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app
+
+Ld /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/__preview.dylib normal (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -dynamiclib -isysroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -install_name @rpath/StyleCam.debug.dylib -Xlinker -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_dependency_info.dat -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/__preview.dylib
+
+MkDir /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/unthinned (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /bin/mkdir -p /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/unthinned
+
+MkDir /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /bin/mkdir -p /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned
+
+GenerateAssetSymbols /Users/runner/work/StyleCam/StyleCam/StyleCam/Assets.xcassets (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/actool /Users/runner/work/StyleCam/StyleCam/StyleCam/Assets.xcassets --compile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_dependencies --output-partial-info-plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --minimum-deployment-target 27.0 --platform iphonesimulator --bundle-identifier com.example.stylecam --generate-swift-asset-symbol-extensions NO --generate-swift-asset-symbols /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/preset_sample.jpg /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/preset_sample.jpg (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/preset_sample.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/FaceParsing-NOTICE.txt /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing-NOTICE.txt (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing-NOTICE.txt /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app
+
+CoreMLModelCompile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/ /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /usr/bin/sandbox-exec -D SCRIPT_OUTPUT_FILE_0\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/FaceParsing.mlmodelc -D SCRIPT_OUTPUT_FILE_1\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/FaceParsing-CoreMLPartialInfo.plist -D SCRIPT_INPUT_FILE_0\=/Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage -D SCRIPT_INPUT_FILE_1\=/Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage -D SCRIPT_INPUT_ANCESTOR_0\=/ -D SCRIPT_INPUT_ANCESTOR_1\=/Users -D SCRIPT_INPUT_ANCESTOR_2\=/Users/runner -D SCRIPT_INPUT_ANCESTOR_3\=/Users/runner/work -D SCRIPT_INPUT_ANCESTOR_4\=/Users/runner/work/StyleCam -D SCRIPT_INPUT_ANCESTOR_5\=/Users/runner/work/StyleCam/StyleCam -D SCRIPT_INPUT_ANCESTOR_6\=/Users/runner/work/StyleCam/StyleCam/StyleCam -D SCRIPT_INPUT_ANCESTOR_7\=/Users/runner/work/StyleCam/StyleCam/StyleCam/Resources -D SCRIPT_OUTPUT_ANCESTOR_0\=/ -D SCRIPT_OUTPUT_ANCESTOR_1\=/Users -D SCRIPT_OUTPUT_ANCESTOR_2\=/Users/runner -D SCRIPT_OUTPUT_ANCESTOR_3\=/Users/runner/Library -D SCRIPT_OUTPUT_ANCESTOR_4\=/Users/runner/Library/Developer -D SCRIPT_OUTPUT_ANCESTOR_5\=/Users/runner/Library/Developer/Xcode -D SCRIPT_OUTPUT_ANCESTOR_6\=/Users/runner/Library/Developer/Xcode/DerivedData -D SCRIPT_OUTPUT_ANCESTOR_7\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw -D SCRIPT_OUTPUT_ANCESTOR_8\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build -D SCRIPT_OUTPUT_ANCESTOR_9\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex -D SCRIPT_OUTPUT_ANCESTOR_10\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build -D SCRIPT_OUTPUT_ANCESTOR_11\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator -D SCRIPT_OUTPUT_ANCESTOR_12\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build -D SCRIPT_OUTPUT_ANCESTOR_13\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products -D SCRIPT_OUTPUT_ANCESTOR_14\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -D SCRIPT_OUTPUT_ANCESTOR_15\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app -D SRCROOT\=/Users/runner/work/StyleCam/StyleCam -D PROJECT_DIR\=/Users/runner/work/StyleCam/StyleCam -D OBJROOT\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex -D SYMROOT\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products -D DSTROOT\=/tmp/StyleCam.dst -D SHARED_PRECOMPS_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/PrecompiledHeaders -D CACHE_ROOT\=/var/folders/5n/5t77mfb93jd7q8v9s6f0dn0m0000gn/C/com.apple.DeveloperTools/27.1-27A9275/Xcode -D CONFIGURATION_BUILD_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -D CONFIGURATION_TEMP_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator -D LOCROOT\=/Users/runner/work/StyleCam/StyleCam -D LOCSYMROOT\=/Users/runner/work/StyleCam/StyleCam -D INDEX_PRECOMPS_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/PrecompiledHeaders -D INDEX_DATA_STORE_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -D TEMP_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build -D TARGET_TEMP_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build -D DERIVED_FILE_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources -f /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/3f3b6665efc658b32fe4c86444a4b211.sb /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/coremlc compile /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/ --deployment-target 27.0 --sdkroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk --platform ios --output-partial-info-plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/FaceParsing-CoreMLPartialInfo.plist --container bundle-resources
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/FaceParsing.mlmodelc/coremldata.bin
+
+CoreMLModelCodegen /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /usr/bin/sandbox-exec -D SCRIPT_OUTPUT_FILE_0\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing/FaceParsing.swift -D SCRIPT_INPUT_FILE_0\=/Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage -D SCRIPT_INPUT_ANCESTOR_0\=/ -D SCRIPT_INPUT_ANCESTOR_1\=/Users -D SCRIPT_INPUT_ANCESTOR_2\=/Users/runner -D SCRIPT_INPUT_ANCESTOR_3\=/Users/runner/work -D SCRIPT_INPUT_ANCESTOR_4\=/Users/runner/work/StyleCam -D SCRIPT_INPUT_ANCESTOR_5\=/Users/runner/work/StyleCam/StyleCam -D SCRIPT_INPUT_ANCESTOR_6\=/Users/runner/work/StyleCam/StyleCam/StyleCam -D SCRIPT_INPUT_ANCESTOR_7\=/Users/runner/work/StyleCam/StyleCam/StyleCam/Resources -D SCRIPT_OUTPUT_ANCESTOR_0\=/ -D SCRIPT_OUTPUT_ANCESTOR_1\=/Users -D SCRIPT_OUTPUT_ANCESTOR_2\=/Users/runner -D SCRIPT_OUTPUT_ANCESTOR_3\=/Users/runner/Library -D SCRIPT_OUTPUT_ANCESTOR_4\=/Users/runner/Library/Developer -D SCRIPT_OUTPUT_ANCESTOR_5\=/Users/runner/Library/Developer/Xcode -D SCRIPT_OUTPUT_ANCESTOR_6\=/Users/runner/Library/Developer/Xcode/DerivedData -D SCRIPT_OUTPUT_ANCESTOR_7\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw -D SCRIPT_OUTPUT_ANCESTOR_8\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build -D SCRIPT_OUTPUT_ANCESTOR_9\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex -D SCRIPT_OUTPUT_ANCESTOR_10\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build -D SCRIPT_OUTPUT_ANCESTOR_11\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator -D SCRIPT_OUTPUT_ANCESTOR_12\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build -D SCRIPT_OUTPUT_ANCESTOR_13\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources -D SCRIPT_OUTPUT_ANCESTOR_14\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated -D SCRIPT_OUTPUT_ANCESTOR_15\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing -D SRCROOT\=/Users/runner/work/StyleCam/StyleCam -D PROJECT_DIR\=/Users/runner/work/StyleCam/StyleCam -D OBJROOT\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex -D SYMROOT\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products -D DSTROOT\=/tmp/StyleCam.dst -D SHARED_PRECOMPS_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/PrecompiledHeaders -D CACHE_ROOT\=/var/folders/5n/5t77mfb93jd7q8v9s6f0dn0m0000gn/C/com.apple.DeveloperTools/27.1-27A9275/Xcode -D CONFIGURATION_BUILD_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -D CONFIGURATION_TEMP_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator -D LOCROOT\=/Users/runner/work/StyleCam/StyleCam -D LOCSYMROOT\=/Users/runner/work/StyleCam/StyleCam -D INDEX_PRECOMPS_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/PrecompiledHeaders -D INDEX_DATA_STORE_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -D TEMP_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build -D TARGET_TEMP_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build -D DERIVED_FILE_DIR\=/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources -f /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/64a93002de4a8d02af67d8db0d18e751.sb /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/coremlc generate /Users/runner/work/StyleCam/StyleCam/StyleCam/Resources/FaceParsing.mlpackage /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing --deployment-target 27.0 --sdkroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk --platform ios --output-partial-info-plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/FaceParsing-CoreMLPartialInfo.plist --container bundle-resources --language Swift --swift-version 5.0
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing/FaceParsing.swift
+
+CompileMetalFile /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/RetouchKernels.ci.metal (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.97KfB9/Metal.xctoolchain/usr/bin/metal -c -target air64-apple-ios27.0-simulator -gline-tables-only -frecord-sources -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -isysroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -fmetal-math-mode\=fast -fmetal-math-fp32-functions\=fast -serialize-diagnostics /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Metal/RetouchKernels.ci.dia -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Metal/RetouchKernels.ci.air -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -fcikernel -MMD -MT dependencies -MF /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Metal/RetouchKernels.ci.dat /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/RetouchKernels.ci.metal
+
+CompileAssetCatalogVariant thinned /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app /Users/runner/work/StyleCam/StyleCam/StyleCam/Assets.xcassets (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/actool /Users/runner/work/StyleCam/StyleCam/StyleCam/Assets.xcassets --compile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone19,4 --filter-for-device-os-version 27.1 --development-region en --target-device iphone --minimum-deployment-target 27.0 --platform iphonesimulator
+/* com.apple.actool.compilation-results */
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist_thinned
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned/Assets.car
+
+
+LinkAssetCatalog /Users/runner/work/StyleCam/StyleCam/StyleCam/Assets.xcassets (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-linkAssetCatalog --thinned /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/thinned --thinned-dependencies /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist_unthinned --output /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app --plist-output /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/AppIcon76x76@2x~ipad.png (in target 'StyleCam' from project 'StyleCam')
+note: Emplaced /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Assets.car (in target 'StyleCam' from project 'StyleCam')
+note: Emplaced /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/AppIcon60x60@2x.png (in target 'StyleCam' from project 'StyleCam')
+
+ProcessInfoPlistFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Info.plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/empty-StyleCam.plist (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-infoPlistUtility /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/empty-StyleCam.plist -producttype com.apple.product-type.application -genpkginfo /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/FaceParsing-CoreMLPartialInfo.plist -additionalcontentfile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/assetcatalog_generated_info.plist -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Info.plist
+
+SwiftDriver StyleCam normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftDriver -- /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StyleCam -Onone @/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache -output-file-map /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-generated-files.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-own-target-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-project-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-Swift.h -working-directory /Users/runner/work/StyleCam/StyleCam -experimental-emit-module-separately -disable-cmo
+
+MetalLink /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/default.metallib (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.97KfB9/Metal.xctoolchain/usr/bin/metal -target air64-apple-ios27.0-simulator -frecord-sources -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/default.metallib -cikernel /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Metal/RetouchKernels.ci.air
+metal: warning: argument '-cikernel' is deprecated, use '-fcikernel' instead [-Wdeprecated]
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_stddef-3GBDPAUOIJ7OB793GIJOWUR7Y.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ptrcheck-ISCV24YS6PNN5MYQXA516ER5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_AvailabilityInternal-9JXZNITPNHD8IDW5E92BL6G7V.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_float-BKFLCJSI59J6C9SD01U92MYUX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/DeveloperToolsSupport-2T35STFWZQRTD4RQ2QIXNR4ZW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_stdbool-C8MPRFPVC5V2PYM5DZ26TOPQN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_stdarg-2LN75QXQQLH8FRNFDDF75MHSJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/SwiftShims-1I1J5ZLDJDOHZCC2SRZUMT8XI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_DarwinFoundation1-1652TE7CVEHFNYSTJ2KR7XHWC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-3JROQ0W1XNJS6W95ZS6M8YENB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ptrauth-DBQPHLXTUIZ4PFPXN4R9HTJ7S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_DarwinFoundation2-6M3DVFQZJ3V51KDDHT5N9GWME.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_limits-DTEWOHRD9N7VTBR2CBMBSGH89.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ExtensionFoundation-8Q39NWCNSPRNV6Y53N6LV1Q0L.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_stdint-COMJBJB57ROXC4FWORPHDJBR1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_tgmath-8PLG7ABYN16CJK87EYJZD5SFY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/sys_types-ADO78DY1TWUFR40YQVR3X6H6C.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/string_h-5GPYZFZ0UX7ERA7KFGR0YH3Z2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_DarwinFoundation3-DKUIGZQFC5UZQ4XU7R0RKND53.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_intrinsics-13ID700AQ5R4ZALUUKPAH9JSR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_stdatomic-2ZZI2TJ56HPBI174GWK7QXZEB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_Builtin_inttypes-F58RGGTZQ7CR68ZG7L6ZVOIRE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Darwin-2XMU6CA1OLSI4JDI9IR3QT7A3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/simd-98FXHJID2CUQLI70XGFEJ1E9O.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/MachO-6D6LVQ65D5PI02NHDJ52XYGYA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Compression-D58WDAVU2O03S71LGRUFG8R3R.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ObjectiveC-2A0U52GT6JJ9C3BTQGHZ8VI82.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Spatial-5NJAPUMYLQZBC9CRSLC4TO3TP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/os_object-3FC3B9OZG5FG0QZF3O0DFVEV7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/os_workgroup-7BBMP8KRAN6KW8V46U7C4JK75.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Dispatch-4PBEE4QTKH7OPOIOLUXWG9ZAE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/dnssd-32FVEVEWP8WEZSVQ8PKKMJQLJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreFoundation-9FA2FRWTPLISQQ3RU8N9N00D3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/XPC-EO2MFD5NSR4PJBI07ILP9EQX3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/os-CC0ZFVJ9WO486UKS0AN36T1FF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Security-CB6XPT1GG2SOE7S26ER546LTQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreGraphics-C034YC9V30MNZCOXK4EU5IBS7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreAudioTypes-2MM8UUN58IALCUB37FS0VK2T7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CFNetwork-6SGJ2PSL86YET0MREM9DQMBWZ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreAudio-F44DIQUMI5H1ZFNQSFE5G75NG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreText-325RJ79U0DC7C0Y5AE4U3QA7O.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ImageIO-AKWK6JZMGBUOFMKKUZ59OZ1SG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Foundation-4ZSY3WSBFOHAA762XMYKYO7ZN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Symbols-D3P8N2LHUBPD6LW8ZLSALYVWO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/IOSurface-4KCJM1VEBDP5A8LKOA08PG8NJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/UIUtilities-7EMEHQIJPECUCMUE6HB1V8DQE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ImageCaptureCore-25JH8ZRGVPGP95DNCSC0JW50S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/_LocationEssentials-BL49AYWK2PJ2D3ILJX17PRHUL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreData-D58BP0T4ZTO9Q986QKM0Z5KL1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/OpenGLES-50HXG3TRS4MH63JD8MRM26369.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/UserNotifications-6W0672CUNYRQ052AB3FSQXOWS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/FileProvider-AAMR4GEHQMDILUR7WC8KLTZVY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Metal-8ULORWTWC1FX9GDX1JW74Y006.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreTransferable-6UC7H4TP3IPG4GRY9YC0N02BY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Accessibility-2CHD5496N9A1OR8AUL4KWA5AV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/ModelIO-38KMP2VK5855MJPUOQEI271XE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-1HQJ3SB8OQP0YDC9QIHIPBBRO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreMIDI-4U8CJU33PCHOMMGD6X95IKBXL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreVideo-86TJTZG39PI9U7Q7LSM22LVT2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Network-EW9S1FVKFCYXLWHRYD2BUG78E.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/DataDetection-9PTTCLA2GRWWLWUM9FFBUXW1G.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreImage-98MTSIVRCCU5NPH54XRLZ6E5S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreMedia-8OY22Y4GXUT5WU9V1C5UDENVG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/AVRouting-B3HLCOUJFIDUOTT80D43R7PND.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreML-74SZQ8ZQ420MNBS909I3BJHFQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/AudioToolbox-2QVBVK1R713G3JV4WJEA6PHXF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/OSLog-7IOFFWYR1CX0A5CHOPE94WBKT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/VideoToolbox-10SVGYKKTNISMJEGJ45HYU6YB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Vision-5C5N7WQK402V971OACEBR90BP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreLocation-CJGUR3NPX8GUQ9WIR44X8N5H0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/MediaToolbox-ZSZO3WMMXDEM5Y5J5TSLA33I.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/AVFAudio-4MCRDH86W9RXRQYRM8Y5IYQL4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/QuartzCore-7HZZEZ2YV7TMVB35HPP7W3F7M.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CloudKit-ESQH5GZTMVTCXYOMPXVRFT6AI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/CoreMotion-ETJRSC808D8TGVOA6Y9RUJF3W.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/SwiftUICore-1O27DN1BNBLZUSXCMOT9XK9LW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/AVFoundation-EQ1LZYILJE34NUOW9325YS7CB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Accelerate-DVCGUKLVTU0SVKNOO88G2L0K7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/UIKit-C17B71WFES55MBRNFKO8M6F5K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/Photos-9P3ZJFFHAOXJZTA54O868JX2O.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/AVKit-EZYWC2E80F63Z80I87SQWE6TC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/MetalKit-5GTYBAYX9BI62WE3JKIVOZYFX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/PhotosUI-BJV9EAPRJFTVOA0BUD2VDTO32.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules/SwiftUI-XCD89WE7D7XW3EV64D2QEN6D.pcm
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ StyleCam (in target 'StyleCam' from project 'StyleCam')
+
+SwiftCompile normal arm64 (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:10:26: warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+ 8 |     private let videoInput: AVAssetWriterInput
+ 9 |     private let audioInput: AVAssetWriterInput
+10 |     private let adaptor: AVAssetWriterInputPixelBufferAdaptor
+   |                          `- warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+11 |     private let width: Int
+12 |     private let height: Int
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+SwiftCompile normal arm64 Compiling\ AppModel.swift,\ CameraManager.swift,\ CameraPreview.swift,\ ColorMath.swift,\ CompositionOverlay.swift,\ ContentView.swift,\ DefocusEstimator.swift,\ FaceGeometry.swift,\ FaceParser.swift,\ FilmCabinetView.swift,\ Fmt.swift,\ GrainEstimator.swift,\ HistogramView.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/App/AppModel.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/CameraManager.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/CameraPreview.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/ColorMath.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/CompositionOverlay.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ContentView.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/DefocusEstimator.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/FaceGeometry.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/FaceParser.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/FilmCabinetView.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Support/Fmt.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/GrainEstimator.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/HistogramView.swift (in target 'StyleCam' from project 'StyleCam')
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/App/AppModel.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile AppModel.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/CameraManager.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile CameraManager.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/CameraPreview.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile CameraPreview.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/ColorMath.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile ColorMath.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/CompositionOverlay.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile CompositionOverlay.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ContentView.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/DefocusEstimator.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile DefocusEstimator.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/FaceGeometry.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile FaceGeometry.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/FaceParser.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile FaceParser.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/FilmCabinetView.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile FilmCabinetView.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Support/Fmt.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile Fmt.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/GrainEstimator.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile GrainEstimator.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/HistogramView.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile HistogramView.swift
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/CameraManager.swift:635:97: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 629 |     private func startRecording() {
+ 630 |         videoQueue.async { self.wantRecording = true }
+ 631 |         DispatchQueue.main.async {
+     |                                  |- note: 'self' implicitly strongly captured here
+     |                                  `- note: add 'self' as a capture list item to silence
+ 632 |             self.isRecording = true
+ 633 |             self.recordingSeconds = 0
+ 634 |             self.recordTimer?.invalidate()
+ 635 |             self.recordTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+     |                                                                                                 |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                                                                                 `- note: explicitly assign the capture list item to silence
+ 636 |                 self?.recordingSeconds += 1
+ 637 |             }
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ContentView.swift:109:40: warning: main actor-isolated property 'referenceImage' can not be referenced from a nonisolated context
+107 |             PhotosPicker(selection: $pickerItem, matching: .images) {
+108 |                 ZStack {
+109 |                     if let ref = model.referenceImage {
+    |                                        `- warning: main actor-isolated property 'referenceImage' can not be referenced from a nonisolated context
+110 |                         Image(uiImage: ref).resizable().scaledToFill()
+111 |                     } else if let p = model.currentPreset {
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/App/AppModel.swift:13:20: note: property declared here
+ 11 |     let level = LevelMonitor()
+ 12 | 
+ 13 |     @Published var referenceImage: UIImage?
+    |                    `- note: property declared here
+ 14 |     @Published var profile: StyleProfile?
+ 15 |     @Published var plan: CapturePlan?
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ContentView.swift:111:45: warning: main actor-isolated property 'currentPreset' can not be referenced from a nonisolated context
+109 |                     if let ref = model.referenceImage {
+110 |                         Image(uiImage: ref).resizable().scaledToFill()
+111 |                     } else if let p = model.currentPreset {
+    |                                             `- warning: main actor-isolated property 'currentPreset' can not be referenced from a nonisolated context
+112 |                         VStack(spacing: 2) {
+113 |                             Text(p.mood.emoji).font(.title3)
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/App/AppModel.swift:41:20: note: property declared here
+ 39 |     @Published var currentRecipeID: UUID?
+ 40 |     /// 当前使用的内置滤镜（与参考图二选一）
+ 41 |     @Published var currentPreset: LookPreset?
+    |                    `- note: property declared here
+ 42 |     var hasStyle: Bool { referenceImage != nil || currentPreset != nil }
+ 43 |     static let lastPresetKey = "lastPresetID"
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ContentView.swift:125:89: warning: main actor-isolated property 'hasStyle' can not be referenced from a Sendable closure
+123 |                 .frame(width: 46, height: 46)
+124 |                 .clipShape(RoundedRectangle(cornerRadius: 8))
+125 |                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(.yellow.opacity(model.hasStyle ? 1 : 0.3), lineWidth: 1.5))
+    |                                                                                         `- warning: main actor-isolated property 'hasStyle' can not be referenced from a Sendable closure
+126 |             }
+127 | 
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/App/AppModel.swift:42:9: note: property declared here
+ 40 |     /// 当前使用的内置滤镜（与参考图二选一）
+ 41 |     @Published var currentPreset: LookPreset?
+ 42 |     var hasStyle: Bool { referenceImage != nil || currentPreset != nil }
+    |         `- note: property declared here
+ 43 |     static let lastPresetKey = "lastPresetID"
+ 44 |     @Published var batchProgress: String?
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/FilmCabinetView.swift:679:13: warning: default will never be executed
+677 |                     y += 0.07
+678 |                 }
+679 |             default:
+    |             `- warning: default will never be executed
+680 |                 rect(0, 0.6, 1, 0.4, P)
+681 |             }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+SwiftCompile normal arm64 Compiling\ LUTBuilder.swift,\ LevelMonitor.swift,\ LookPresets.swift,\ Models.swift,\ Optics.swift,\ PTP.swift,\ ParameterPanel.swift,\ ParameterPlanner.swift,\ PhotoProcessor.swift,\ RecipeLibraryView.swift,\ RecipeStore.swift,\ RetouchView.swift,\ Retoucher.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/LUTBuilder.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/LevelMonitor.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/LookPresets.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Models/Models.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/Optics.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Tether/PTP.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ParameterPanel.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/ParameterPlanner.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/PhotoProcessor.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RecipeLibraryView.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/App/RecipeStore.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RetouchView.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/Retoucher.swift (in target 'StyleCam' from project 'StyleCam')
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/LUTBuilder.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile LUTBuilder.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/LevelMonitor.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile LevelMonitor.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/LookPresets.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile LookPresets.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Models/Models.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile Models.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/Optics.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile Optics.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Tether/PTP.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile PTP.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/ParameterPanel.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile ParameterPanel.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/ParameterPlanner.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile ParameterPlanner.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/PhotoProcessor.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile PhotoProcessor.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RecipeLibraryView.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile RecipeLibraryView.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/App/RecipeStore.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile RecipeStore.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RetouchView.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile RetouchView.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/Retoucher.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile Retoucher.swift
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RetouchView.swift:220:28: warning: main actor-isolated static method 'process(_:skin:even:blemish:faceW:spots:radii:)' cannot be called from outside of the actor; this is an error in the Swift 6 language mode
+218 |             let small = src.transformed(by: t)
+219 |             let smallSkin = sk?.transformed(by: t)
+220 |             let out = Self.process(small, skin: smallSkin, even: ev, blemish: bl, faceW: fw * s,
+    |                            `- warning: main actor-isolated static method 'process(_:skin:even:blemish:faceW:spots:radii:)' cannot be called from outside of the actor; this is an error in the Swift 6 language mode
+221 |                                    spots: sp.map { $0.applying(t) }, radii: rd.map { $0 * s })
+222 |             let ui = Self.ctx.createCGImage(out, from: small.extent).map { UIImage(cgImage: $0) }
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RetouchView.swift:222:27: warning: main actor-isolated static property 'ctx' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+220 |             let out = Self.process(small, skin: smallSkin, even: ev, blemish: bl, faceW: fw * s,
+221 |                                    spots: sp.map { $0.applying(t) }, radii: rd.map { $0 * s })
+222 |             let ui = Self.ctx.createCGImage(out, from: small.extent).map { UIImage(cgImage: $0) }
+    |                           `- warning: main actor-isolated static property 'ctx' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+223 |             await MainActor.run { if token == renderToken { preview = ui } }
+224 |         }
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/UI/RetouchView.swift:233:28: warning: main actor-isolated static method 'process(_:skin:even:blemish:faceW:spots:radii:)' cannot be called from outside of the actor; this is an error in the Swift 6 language mode
+231 |         let (sk, ev, bl, sp, rd, meta, fw) = (skin, even, blemish, spots, spotRadii, metadata, faceW)
+232 |         Task.detached(priority: .userInitiated) {
+233 |             let out = Self.process(src, skin: sk, even: ev, blemish: bl, faceW: fw, spots: sp, radii: rd)
+    |                            `- warning: main actor-isolated static method 'process(_:skin:even:blemish:faceW:spots:radii:)' cannot be called from outside of the actor; this is an error in the Swift 6 language mode
+234 |             let summary = String(format: "StyleCam 精修 | 中性灰 %.0f%% · 祛痘 %.0f%% · 点修 %d 处", ev * 100, bl * 100, sp.count)
+235 |             PhotoProcessor.saveRendered(out, metadata: meta, summary: summary) { _, err in
+SwiftCompile normal arm64 Compiling\ SemanticStats.swift,\ SonyTether.swift,\ StyleAnalyzer.swift,\ StyleCamApp.swift,\ StyleMatcher.swift,\ StyleRenderer.swift,\ SubjectMasker.swift,\ TetherView.swift,\ TextureEstimator.swift,\ VideoRecorder.swift,\ FaceParsing.swift,\ GeneratedAssetSymbols.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/SemanticStats.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Tether/SonyTether.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/StyleAnalyzer.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/App/StyleCamApp.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/StyleMatcher.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/StyleRenderer.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/SubjectMasker.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Tether/TetherView.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/TextureEstimator.swift /Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing/FaceParsing.swift /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'StyleCam' from project 'StyleCam')
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/SemanticStats.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile SemanticStats.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Tether/SonyTether.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile SonyTether.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/StyleAnalyzer.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile StyleAnalyzer.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/App/StyleCamApp.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile StyleCamApp.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/StyleMatcher.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile StyleMatcher.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Render/StyleRenderer.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile StyleRenderer.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/SubjectMasker.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile SubjectMasker.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Tether/TetherView.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile TetherView.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Style/TextureEstimator.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile TextureEstimator.swift
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile VideoRecorder.swift
+
+SwiftCompile normal arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/CoreMLGenerated/FaceParsing/FaceParsing.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile FaceParsing.swift
+
+SwiftCompile normal arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile GeneratedAssetSymbols.swift
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:10:26: warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+ 8 |     private let videoInput: AVAssetWriterInput
+ 9 |     private let audioInput: AVAssetWriterInput
+10 |     private let adaptor: AVAssetWriterInputPixelBufferAdaptor
+   |                          `- warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+11 |     private let width: Int
+12 |     private let height: Int
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:28:11: warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+26 |             AVVideoHeightKey: h
+27 |         ])
+28 |         v.expectsMediaDataInRealTime = true
+   |           `- warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+29 |         v.transform = CGAffineTransform(rotationAngle: CGFloat(rotationDegrees) * .pi / 180)
+30 |         let a = AVAssetWriterInput(mediaType: .audio, outputSettings: [
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:36:11: warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+34 |             AVEncoderBitRateKey: 128_000
+35 |         ])
+36 |         a.expectsMediaDataInRealTime = true
+   |           `- warning: 'expectsMediaDataInRealTime' was deprecated in iOS 27.0: Use the input receiver's appendImmediately(...) method instead [#DeprecatedDeclaration]
+37 |         guard writer.canAdd(v), writer.canAdd(a) else { return nil }
+38 |         writer.add(v)
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:38:16: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+36 |         a.expectsMediaDataInRealTime = true
+37 |         guard writer.canAdd(v), writer.canAdd(a) else { return nil }
+38 |         writer.add(v)
+   |                `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+39 |         writer.add(a)
+40 |         let ad = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: v, sourcePixelBufferAttributes: [
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:39:16: warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+37 |         guard writer.canAdd(v), writer.canAdd(a) else { return nil }
+38 |         writer.add(v)
+39 |         writer.add(a)
+   |                `- warning: 'add' was deprecated in iOS 27.0: Use the appropriate AVAssetWriter.inputReceiver(for:...) overload for your input and optional adaptor instead [#DeprecatedDeclaration]
+40 |         let ad = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: v, sourcePixelBufferAttributes: [
+41 |             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:40:18: warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+38 |         writer.add(v)
+39 |         writer.add(a)
+40 |         let ad = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: v, sourcePixelBufferAttributes: [
+   |                  `- warning: 'AVAssetWriterInputPixelBufferAdaptor' was deprecated in iOS 27.0: Use AVAssetWriter.inputPixelBufferReceiver(for:pixelBufferAttributes:) instead [#DeprecatedDeclaration]
+41 |             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+42 |             kCVPixelBufferWidthKey as String: w,
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:58:26: warning: 'startWriting()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+56 |     func appendVideo(_ image: CIImage, time: CMTime) {
+57 |         if !started {
+58 |             guard writer.startWriting() else { return }
+   |                          `- warning: 'startWriting()' was deprecated in iOS 27.0: Use start() instead [#DeprecatedDeclaration]
+59 |             writer.startSession(atSourceTime: time)
+60 |             startTime = time
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:63:53: warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+61 |             started = true
+62 |         }
+63 |         guard writer.status == .writing, videoInput.isReadyForMoreMediaData,
+   |                                                     `- warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+64 |               let pool = adaptor.pixelBufferPool else { return }
+65 |         var pb: CVPixelBuffer?
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:79:62: warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+77 | 
+78 |     func appendAudio(_ sample: CMSampleBuffer) {
+79 |         guard started, writer.status == .writing, audioInput.isReadyForMoreMediaData else { return }
+   |                                                              `- warning: 'isReadyForMoreMediaData' was deprecated in iOS 27.0: Use the input receiver's async append(...) method instead [#DeprecatedDeclaration]
+80 |         audioInput.append(sample)
+81 |     }
+
+/Users/runner/work/StyleCam/StyleCam/StyleCam/Camera/VideoRecorder.swift:80:20: warning: 'append' was deprecated in iOS 27.0: Use SampleBufferReceiver.append(_:) instead [#DeprecatedDeclaration]
+78 |     func appendAudio(_ sample: CMSampleBuffer) {
+79 |         guard started, writer.status == .writing, audioInput.isReadyForMoreMediaData else { return }
+80 |         audioInput.append(sample)
+   |                    `- warning: 'append' was deprecated in iOS 27.0: Use SampleBufferReceiver.append(_:) instead [#DeprecatedDeclaration]
+81 |     }
+82 | 
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+SwiftDriverJobDiscovery normal arm64 Emitting module for StyleCam (in target 'StyleCam' from project 'StyleCam')
+
+SwiftDriver\ Compilation\ Requirements StyleCam normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StyleCam -Onone @/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache -output-file-map /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-generated-files.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-own-target-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-project-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-Swift.h -working-directory /Users/runner/work/StyleCam/StyleCam -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal arm64 Compiling AppModel.swift, CameraManager.swift, CameraPreview.swift, ColorMath.swift, CompositionOverlay.swift, ContentView.swift, DefocusEstimator.swift, FaceGeometry.swift, FaceParser.swift, FilmCabinetView.swift, Fmt.swift, GrainEstimator.swift, HistogramView.swift (in target 'StyleCam' from project 'StyleCam')
+
+SwiftDriverJobDiscovery normal arm64 Compiling LUTBuilder.swift, LevelMonitor.swift, LookPresets.swift, Models.swift, Optics.swift, PTP.swift, ParameterPanel.swift, ParameterPlanner.swift, PhotoProcessor.swift, RecipeLibraryView.swift, RecipeStore.swift, RetouchView.swift, Retoucher.swift (in target 'StyleCam' from project 'StyleCam')
+
+SwiftMergeGeneratedHeaders /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/StyleCam-Swift.h /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-Swift.h (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-swiftHeaderTool -arch arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-Swift.h -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/StyleCam-Swift.h
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftmodule (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftmodule /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftdoc (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftdoc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.abi.json (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.abi.json /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftsourceinfo (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftsourceinfo /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftDriver StyleCamTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftDriver -- /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StyleCamTests -Onone @/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftFileList -DDEBUG -plugin-path /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache -output-file-map /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-generated-files.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-own-target-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-project-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-Swift.h -working-directory /Users/runner/work/StyleCam/StyleCam -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal arm64 Compiling SemanticStats.swift, SonyTether.swift, StyleAnalyzer.swift, StyleCamApp.swift, StyleMatcher.swift, StyleRenderer.swift, SubjectMasker.swift, TetherView.swift, TextureEstimator.swift, VideoRecorder.swift, FaceParsing.swift, GeneratedAssetSymbols.swift (in target 'StyleCam' from project 'StyleCam')
+
+SwiftDriver\ Compilation StyleCam normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-Swift-Compilation -- /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StyleCam -Onone @/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache -output-file-map /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-generated-files.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-own-target-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-project-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam-Swift.h -working-directory /Users/runner/work/StyleCam/StyleCam -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam.debug.dylib normal (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -dynamiclib -isysroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -filelist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.LinkFileList -install_name @rpath/StyleCam.debug.dylib -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.swiftmodule -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam.debug.dylib
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCUIAutomation-F49J9758YCS9B60ZPFJQR0ZR7.pcm
+
+ConstructStubExecutorLinkFileList /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-ExecutorLinkFileList-normal-arm64.txt (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    construct-stub-executor-link-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam.debug.dylib /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'StyleCam' from project 'StyleCam')
+
+Ld /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam normal (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -isysroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam-ExecutorLinkFileList-normal-arm64.txt /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam.debug.dylib -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam
+
+ExtractAppIntentsMetadata (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.97KfB9/Metal.xctoolchain --module-name StyleCam --sdk-root /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk --xcode-version 27A9275 --platform-family iOS --deployment-target 27.0 --bundle-identifier com.example.stylecam --output /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app --target-triple arm64-apple-ios27.0-simulator --binary-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam --dependency-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam_dependency_info.dat --stringsdata-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftFileList --metadata-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyMetadataFileList --static-metadata-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/Objects-normal/arm64/StyleCam.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-11-09 04:56:58.062 appintentsmetadataprocessor[48472:114188] Starting appintentsmetadataprocessor export
+2026-11-09 04:56:58.072 appintentsmetadataprocessor[48472:114188] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+CopySwiftLibs /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam.debug.dylib --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Frameworks --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/SystemExtensions --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Extensions --platform iphonesimulator --toolchain /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.97KfB9/Metal.xctoolchain --toolchain /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCTest-8S18KQNOX2ST5YN7TYOR1IDNA.pcm
+
+SwiftExplicitDependencyCompileModuleFromInterface arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCUIAutomation-176O25O8MTUBE.swiftmodule
+
+AppIntentsSSUTraining (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Info.plist --temp-dir-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/ssu --bundle-id com.example.stylecam --product-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app --extracted-metadata-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Metadata.appintents --metadata-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCam.build/StyleCam.DependencyMetadataFileList --source-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/Info.plist --archive-ssu-assets
+2026-11-09 04:56:58.126 appintentsnltrainingprocessor[48490:114223] Parsing options for appintentsnltrainingprocessor
+2026-11-09 04:56:58.128 appintentsnltrainingprocessor[48490:114223] Starting AppIntents SSU YAML Generation
+2026-11-09 04:56:58.132 appintentsnltrainingprocessor[48490:114223] No AppShortcuts found - Skipping.
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/scene_office2.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/scene_office2.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/scene_office2.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+ProcessInfoPlistFile /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Info.plist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/empty-StyleCamTests.plist (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-infoPlistUtility /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/empty-StyleCamTests.plist -producttype com.apple.product-type.bundle.unit-test -expandbuildsettings -format binary -platform iphonesimulator -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Info.plist
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/scene_office.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/scene_office.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/scene_office.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/scene_forest.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/scene_forest.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/scene_forest.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/reference.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/reference.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/reference.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/noise_stylecam_rich.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/noise_stylecam_rich.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/noise_stylecam_rich.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/noise_reference.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/noise_reference.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/noise_reference.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+CpResource /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/noise_iphone_stock.jpg /Users/runner/work/StyleCam/StyleCam/StyleCamTests/noise_iphone_stock.jpg (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/runner/work/StyleCam/StyleCam/StyleCamTests/noise_iphone_stock.jpg /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+SwiftExplicitDependencyCompileModuleFromInterface arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/XCTest-16F1F39CH8LT2.swiftmodule
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ StyleCamTests (in target 'StyleCamTests' from project 'StyleCam')
+
+SwiftCompile normal arm64 (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    
+
+SwiftCompile normal arm64 Compiling\ RenderTests.swift /Users/runner/work/StyleCam/StyleCam/StyleCamTests/RenderTests.swift (in target 'StyleCamTests' from project 'StyleCam')
+
+SwiftCompile normal arm64 /Users/runner/work/StyleCam/StyleCam/StyleCamTests/RenderTests.swift (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-SwiftPerFileCompile RenderTests.swift
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for StyleCamTests (in target 'StyleCamTests' from project 'StyleCam')
+
+SwiftDriver\ Compilation\ Requirements StyleCamTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StyleCamTests -Onone @/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftFileList -DDEBUG -plugin-path /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache -output-file-map /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-generated-files.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-own-target-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-project-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-Swift.h -working-directory /Users/runner/work/StyleCam/StyleCam -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources/StyleCamTests-Swift.h /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-Swift.h (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-swiftHeaderTool -arch arm64 /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-Swift.h -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources/StyleCamTests-Swift.h
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftmodule (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftmodule /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftdoc (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftdoc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.abi.json (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.abi.json /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftsourceinfo (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftsourceinfo /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCamTests.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftDriverJobDiscovery normal arm64 Compiling RenderTests.swift (in target 'StyleCamTests' from project 'StyleCam')
+
+SwiftDriver\ Compilation StyleCamTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-Swift-Compilation -- /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StyleCamTests -Onone @/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftFileList -DDEBUG -plugin-path /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -target arm64-apple-ios27.0-simulator -g -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk/Developer/Library/Frameworks -parse-as-library -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.1-24A94232-e829b21a6f8c9b70876ba0858053c0444d9d9db8bd6230e456490c80ea63f8ae.sdkstatcache -output-file-map /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/runner/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-generated-files.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-own-target-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests-project-headers.hmap -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources/arm64 -Xcc -I/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests-Swift.h -working-directory /Users/runner/work/StyleCam/StyleCam -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/StyleCamTests normal (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios27.0-simulator -bundle -isysroot /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk/Developer/Library/Frameworks -filelist /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.LinkFileList -Xlinker -rpath -Xlinker @loader_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -bundle_loader /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam -Xlinker -object_path_lto -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.swiftmodule -Xlinker -needed_framework -Xlinker XCTest -framework XCTest -Xlinker -needed-lXCTestSwiftSupport -lXCTestSwiftSupport /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/StyleCam.debug.dylib -o /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/StyleCamTests
+
+ExtractAppIntentsMetadata (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.97KfB9/Metal.xctoolchain --module-name StyleCamTests --sdk-root /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.1.sdk --xcode-version 27A9275 --platform-family iOS --deployment-target 27.0 --bundle-identifier com.example.stylecam.tests --output /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest --target-triple arm64-apple-ios27.0-simulator --binary-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/StyleCamTests --dependency-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests_dependency_info.dat --stringsdata-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftFileList --metadata-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyMetadataFileList --static-metadata-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/Objects-normal/arm64/StyleCamTests.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-11-09 04:57:00.642 appintentsmetadataprocessor[48540:114364] Starting appintentsmetadataprocessor export
+2026-11-09 04:57:00.644 appintentsmetadataprocessor[48540:114364] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+CopySwiftLibs /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/StyleCamTests --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Frameworks --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/PlugIns --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/SystemExtensions --scan-folder /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Extensions --platform iphonesimulator --toolchain /var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.97KfB9/Metal.xctoolchain --toolchain /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Frameworks --strip-bitcode --scan-executable /Applications/Xcode_27.1.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib --strip-bitcode-tool /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+AppIntentsSSUTraining (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /Applications/Xcode_27.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Info.plist --temp-dir-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/ssu --bundle-id com.example.stylecam.tests --product-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest --extracted-metadata-path /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Metadata.appintents --metadata-file-list /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/StyleCam.build/Debug-iphonesimulator/StyleCamTests.build/StyleCamTests.DependencyMetadataFileList --source-file /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest/Info.plist --archive-ssu-assets
+2026-11-09 04:57:00.670 appintentsnltrainingprocessor[48541:114365] Parsing options for appintentsnltrainingprocessor
+2026-11-09 04:57:00.670 appintentsnltrainingprocessor[48541:114365] Starting AppIntents SSU YAML Generation
+2026-11-09 04:57:00.671 appintentsnltrainingprocessor[48541:114365] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-RegisterExecutionPolicyException /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+Touch /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest (in target 'StyleCamTests' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /usr/bin/touch -c /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app/PlugIns/StyleCamTests.xctest
+
+RegisterExecutionPolicyException /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-RegisterExecutionPolicyException /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app
+
+Validate /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    builtin-validationUtility /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app (in target 'StyleCam' from project 'StyleCam')
+    cd /Users/runner/work/StyleCam/StyleCam
+    /usr/bin/touch -c /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Products/Debug-iphonesimulator/StyleCam.app
+
+PruneExplicitPrecompiledModules /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/runner/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+
+2026-11-09 04:57:45.311 xcodebuild[47313:111009] [MT] IDESchemeActionSDKRecord: operatingSystemBuild = <DVTBuildVersion 24A94232>, error = invalidDigitCount(94232).
+2026-11-09 04:57:45.311 xcodebuild[47313:111009] [MT] IDESchemeActionDeviceRecord: versionAndBuild = 27.1 (24A94425), error = invalidDigitCount(94425).
+2026-11-09 04:59:37.823024+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:37.823450+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:37.823603+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:37.824427+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:37.824658+0000 StyleCam[49168:118099] [] <<<< FormatDescription >>>> signalled err=-12710 at <>:990
+2026-11-09 04:59:37.824808+0000 StyleCam[49168:118099] [] (Fig) signalled err=-12710 at <>:645
+2026-11-09 04:59:37.824991+0000 StyleCam[49168:118099] [] <<<< FormatDescription >>>> signalled err=-12710 at <>:990
+2026-11-09 04:59:37.825120+0000 StyleCam[49168:118099] [] (Fig) signalled err=-12710 at <>:645
+2026-11-09 04:59:37.825330+0000 StyleCam[49168:118099] [] <<<< FormatDescription >>>> signalled err=-12710 at <>:990
+2026-11-09 04:59:38.099056+0000 StyleCam[49168:118099] [] (Fig) signalled err=-12710 at <>:645
+2026-11-09 04:59:38.099493+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:38.099863+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:38.100040+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:38.100431+0000 StyleCam[49168:118099] [] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:236
+2026-11-09 04:59:38.254152+0000 StyleCam[49168:119515] [Core] {"msg":"file does not exist... clearing", "file":/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94425.0.ccXO7d/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.1.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, "error":Error Domain=NSCocoaErrorDomain Code=260 "The file “com.apple.CoreMotion.plist” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94425.0.ccXO7d/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.1.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, NSURL=file:///private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94425.0.ccXO7d/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS%2027.1.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed%20Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, NSUnderlyingError=0x10a8a0840 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}}
+Test Suite 'Selected tests' started at 2026-11-09 04:59:44.045.
+Test Suite 'StyleCamTests.xctest' started at 2026-11-09 04:59:44.046.
+Test Suite 'FaceSampleTests' started at 2026-11-09 04:59:44.046.
+Test Case '-[StyleCamTests.FaceSampleTests testFaceSamples]' started.
+2026-11-09 04:59:44.892291+0000 StyleCam[49168:119483] fopen failed for data file: errno = 2 (No such file or directory)
+2026-11-09 04:59:45.327973+0000 StyleCam[49168:119483] fopen failed for data file: errno = 2 (No such file or directory)
+Test Case '-[StyleCamTests.FaceSampleTests testFaceSamples]' passed (287.809 seconds).
+Test Suite 'FaceSampleTests' passed at 2026-11-09 05:04:31.859.
+	 Executed 1 test, with 0 failures (0 unexpected) in 287.809 (287.813) seconds
+Test Suite 'StyleCamTests.xctest' passed at 2026-11-09 05:04:31.862.
+	 Executed 1 test, with 0 failures (0 unexpected) in 287.809 (287.817) seconds
+Test Suite 'Selected tests' passed at 2026-11-09 05:04:31.862.
+	 Executed 1 test, with 0 failures (0 unexpected) in 287.809 (287.817) seconds
+2026-11-09 05:04:32.820 xcodebuild[47313:111009] [MT] IDESchemeActionSDKRecord: operatingSystemBuild = <DVTBuildVersion 24A94232>, error = invalidDigitCount(94232).
+2026-11-09 05:04:32.997 xcodebuild[47313:111009] [MT] IDESchemeActionDeviceRecord: versionAndBuild = 27.1 (24A94425), error = invalidDigitCount(94425).
+2026-11-09 05:04:33.054 xcodebuild[47313:111009] [MT] IDESchemeActionSDKRecord: operatingSystemBuild = <DVTBuildVersion 24A94232>, error = invalidDigitCount(94232).
+2026-11-09 05:04:33.054 xcodebuild[47313:111009] [MT] IDESchemeActionDeviceRecord: versionAndBuild = 27.1 (24A94425), error = invalidDigitCount(94425).
+2026-11-09 05:04:33.088 xcodebuild[47313:111009] [MT] IDESchemeActionSDKRecord: operatingSystemBuild = <DVTBuildVersion 24A94232>, error = invalidDigitCount(94232).
+2026-11-09 05:04:33.089 xcodebuild[47313:111009] [MT] IDESchemeActionDeviceRecord: versionAndBuild = 27.1 (24A94425), error = invalidDigitCount(94425).
+2026-11-09 05:04:33.562 xcodebuild[47313:111009] [MT] IDETestOperationsObserverDebug: 452.749 elapsed -- Testing started completed.
+2026-11-09 05:04:33.562 xcodebuild[47313:111009] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-09 05:04:33.562 xcodebuild[47313:111009] [MT] IDETestOperationsObserverDebug: 452.749 sec, +452.749 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/runner/Library/Developer/Xcode/DerivedData/StyleCam-eqchrtoshydubfdnzqgoqwddqosw/Logs/Test/Test-StyleCam-2026.11.09_04-56-27-+0000.xcresult
+
+** TEST SUCCEEDED **
+
+Testing started

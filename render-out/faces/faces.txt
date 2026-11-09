@@ -1,0 +1,39 @@
+样图 11 张 · 人脸分区模型已加载：true
+AcneVulgarisUSMIL_100：脸宽 186 px（占画面宽 45%）· 尺度系数 0.79 · 细节保留 93% · 人像蒙版 有 · 人脸分区 有 · 3530 ms
+  └ 年轻化：关键点 1 张脸 · 纹路蒙版 有 · 眼下蒙版 有 · 下巴上提 6.4 px（脸高 186 px）
+AcneVulgarisUSMIL_40：脸宽 69 px（占画面宽 42%）· 尺度系数 0.01 · 细节保留 93% · 人像蒙版 有 · 人脸分区 有 · 1895 ms
+AcneVulgarisUSMIL_15：脸宽 25 px（占画面宽 41%）· 尺度系数 0.00 · 细节保留 99% · 人像蒙版 有 · 人脸分区 有 · 1909 ms
+Acne_vulgaris_1_100：1121×1655 没检测到人脸
+Acne_vulgaris_1_40：449×662 没检测到人脸
+Acne_vulgaris_1_15：169×249 没检测到人脸
+Acne_vulgaris_on_a_very_oily_skin_100：1920×1440 没检测到人脸
+Acne_vulgaris_on_a_very_oily_skin_40：768×576 没检测到人脸
+Acne_vulgaris_on_a_very_oily_skin_15：288×216 没检测到人脸
+Ageing_of_the_human_face_100：1700×1000 没检测到人脸
+Ageing_of_the_human_face_40：680×400 没检测到人脸
+Ageing_of_the_human_face_15：255×150 没检测到人脸
+An_old_age_100：脸宽 1103 px（占画面宽 57%）· 尺度系数 1.00 · 细节保留 99% · 人像蒙版 有 · 人脸分区 有 · 5856 ms
+  └ 年轻化：关键点 1 张脸 · 纹路蒙版 有 · 眼下蒙版 有 · 下巴上提 38.2 px（脸高 1103 px）
+An_old_age_40：脸宽 461 px（占画面宽 59%）· 尺度系数 1.00 · 细节保留 89% · 人像蒙版 有 · 人脸分区 有 · 11717 ms
+An_old_age_15：脸宽 162 px（占画面宽 55%）· 尺度系数 0.60 · 细节保留 102% · 人像蒙版 有 · 人脸分区 有 · 2854 ms
+Elderly_Woman_BandW_image_by_Chalmers_Butterfield_100：1968×2469 没检测到人脸
+Elderly_Woman_BandW_image_by_Chalmers_Butterfield_40：788×988 没检测到人脸
+Elderly_Woman_BandW_image_by_Chalmers_Butterfield_15：296×371 没检测到人脸
+Man_portrait_(5618755358)_100：脸宽 556 px（占画面宽 19%）· 尺度系数 1.00 · 细节保留 105% · 人像蒙版 有 · 人脸分区 有 · 2573 ms
+  └ 年轻化：关键点 1 张脸 · 纹路蒙版 有 · 眼下蒙版 有 · 下巴上提 19.4 px（脸高 556 px）
+Man_portrait_(5618755358)_40：脸宽 225 px（占画面宽 19%）· 尺度系数 0.98 · 细节保留 101% · 人像蒙版 有 · 人脸分区 有 · 7060 ms
+Man_portrait_(5618755358)_15：脸宽 80 px（占画面宽 18%）· 尺度系数 0.03 · 细节保留 100% · 人像蒙版 有 · 人脸分区 有 · 2829 ms
+Middle_aged_man_100：脸宽 220 px（占画面宽 18%）· 尺度系数 0.97 · 细节保留 93% · 人像蒙版 有 · 人脸分区 有 · 1697 ms
+  └ 年轻化：关键点 1 张脸 · 纹路蒙版 有 · 眼下蒙版 有 · 下巴上提 7.7 px（脸高 220 px）
+Middle_aged_man_40：脸宽 90 px（占画面宽 19%）· 尺度系数 0.07 · 细节保留 95% · 人像蒙版 有 · 人脸分区 有 · 2338 ms
+Middle_aged_man_15：脸宽 32 px（占画面宽 18%）· 尺度系数 0.00 · 细节保留 99% · 人像蒙版 有 · 人脸分区 有 · 1853 ms
+Older_adult_100：623×1023 没检测到人脸
+Older_adult_40：250×410 没检测到人脸
+Older_adult_15：94×154 没检测到人脸
+Rosacea_01_100：1200×793 没检测到人脸
+Rosacea_01_40：480×318 没检测到人脸
+Rosacea_01_15：180×119 没检测到人脸
+scene_forest_100：脸宽 38 px（占画面宽 3%）· 尺度系数 0.00 · 细节保留 100% · 人像蒙版 有 · 人脸分区 有 · 2211 ms
+  └ 年轻化：关键点 1 张脸 · 纹路蒙版 有 · 眼下蒙版 有 · 下巴上提 1.4 px（脸高 38 px）
+
+样图来源：Wikimedia Commons（自由许可），文件名见上；scene_forest 为项目自带测试图。
