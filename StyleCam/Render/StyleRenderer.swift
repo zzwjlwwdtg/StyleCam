@@ -132,7 +132,9 @@ final class StyleRenderer: @unchecked Sendable {
             let sizeK = Retoucher.sizeFactor(faceW)
             // 中性灰匀肤 + 自动祛痘：拉平中尺度明暗起伏，保留毛孔纹理
             if p.skinEven > 0.01 || p.blemish > 0.01 {
-                let evened = Retoucher.evenSkin(img, skin: m, even: p.skinEven * s * sizeK, blemish: p.blemish * s,
+                // 祛痘也随脸变小减弱：脸宽 40px 以下一个斑点只有一两个像素，硬修只会抹掉五官细节
+                let spotK = ColorMath.smoothstep(40, 120, Double(faceW))
+                let evened = Retoucher.evenSkin(img, skin: m, even: p.skinEven * s * sizeK, blemish: p.blemish * s * spotK,
                                                 faceWidth: faceW)
                 img = blend(evened, over: img, mask: m, extent: extent)
             }

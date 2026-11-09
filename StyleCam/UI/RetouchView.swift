@@ -187,7 +187,8 @@ struct RetouchView: View {
         var out = src
         if let skin, even > 0.01 || blemish > 0.01 {
             // 脸越小越轻：远处的小脸不磨，只去明显斑点
-            let evened = Retoucher.evenSkin(src, skin: skin, even: even * Retoucher.sizeFactor(faceW), blemish: blemish,
+            let evened = Retoucher.evenSkin(src, skin: skin, even: even * Retoucher.sizeFactor(faceW),
+                                            blemish: blemish * ColorMath.smoothstep(40, 120, Double(faceW)),
                                             faceWidth: faceW)
             out = Retoucher.blend(evened, over: src, mask: skin)
         }
